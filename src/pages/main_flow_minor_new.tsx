@@ -10,7 +10,6 @@ import {
 import { Reorder, motion } from "framer-motion";
 import { Switch } from "@/components/ui/switch"; // shadcn/ui toggle
 import { Label } from "@/components/ui/label";
-import { useNavigate } from "react-router-dom";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Config
