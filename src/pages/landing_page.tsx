@@ -1,0 +1,1174 @@
+import * as React from "react";
+import { motion } from "framer-motion";
+import {
+  Card,
+  CardContent
+} from "@/components/ui/card";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent
+} from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell
+} from "@/components/ui/table";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Filter, ArrowUpDown } from "lucide-react";
+import { cn } from "@/lib/utils"; // For merging Tailwind classes if needed
+import { useNavigate } from "react-router-dom";
+
+
+// Data
+const sampleData = [
+  { id: "T001", Oil: 10, Egg: 20, Vinegar: 15, Creaminess: 45, Stability: 50 },
+  { id: "T002", Oil: 5, Egg: 3, Vinegar: 2, Creaminess: 10, Stability: 7 },
+  { id: "T003", Oil: 12, Egg: 8, Vinegar: 22, Creaminess: 42, Stability: 32 },
+  { id: "T004", Oil: 7, Egg: 11, Vinegar: 9, Creaminess: 27, Stability: 21 },
+  { id: "T005", Oil: 14, Egg: 6, Vinegar: 18, Creaminess: 38, Stability: 24 },
+  { id: "T006", Oil: 3, Egg: 15, Vinegar: 7, Creaminess: 25, Stability: 19 },
+  { id: "T007", Oil: 16, Egg: 2, Vinegar: 5, Creaminess: 23, Stability: 18 },
+  { id: "T008", Oil: 9, Egg: 4, Vinegar: 16, Creaminess: 29, Stability: 30 },
+  { id: "T009", Oil: 11, Egg: 10, Vinegar: 3, Creaminess: 24, Stability: 14 },
+  { id: "T010", Oil: 20, Egg: 5, Vinegar: 5, Creaminess: 30, Stability: 25 }
+];
+
+const sampleProjects = [
+  { projectId: "P001", name: "Garlic Aioli", status: "Active", experiments: 5, benefit: 12.5 },
+  { projectId: "P002", name: "Low-Oil, Low Starch", status: "Draft", experiments: 0, benefit: null },
+  { projectId: "P003", name: "Pick best Oil blend", status: "Completed", experiments: 10, benefit: 20.0 },
+  { projectId: "P004", name: "Reduced fat", status: "Active", experiments: 7, benefit: 15.7 },
+  { projectId: "P005", name: "Reduced cost without hurting taste", status: "On Hold", experiments: 4, benefit: 6.2 },
+  { projectId: "P006", name: "Avocado Oil test", status: "Completed", experiments: 12, benefit: 25.1 }
+];
+
+// Add this right after the sampleProjects array declaration
+const sampleIdeas = [
+  { id: "I001", title: "High-vinegar, no lemon juice", notes: "Single ingredient acidity source", status: "idea", benefit: null, source: "Turing" },
+  { id: "I002", title: "High oil, low starch", notes: "Higher cost stable point that came up during cost opt", status: "scenario", benefit: 45, source: "User" },
+  { id: "I003", title: "Avocado Oil cost opt", notes: "Potential transition to avocado", status: "idea", benefit: null, source: "Turing" },
+  { id: "I004", title: "Switch to minced garlic", notes: "Increase sensory outcomes, use garlic for shelf life", status: "scenario", benefit: 72, source: "Turing" },
+  { id: "I005", title: "Low fat starch substitution", notes: "Test with substitute starch", status: "scenario", benefit: 38, source: "User" }
+];
+
+
+const sampleKnowledge = [
+  { id: "K001", title: "Stability Guidelines", content: "Minimum stability score of 30 required for production.", dateAdded: "2025-01-12", hasDocument: true, documentName: "stability_guide.pdf" },
+  { id: "K002", title: "Oil Selection Criteria", content: "Preferred oil sources ranked by cost efficiency and stability.", dateAdded: "2025-02-03", hasDocument: false },
+  { id: "K003", title: "Egg Quality Standards", content: "Requirements for egg quality and preservation methods.", dateAdded: "2025-02-15", hasDocument: true, documentName: "egg_standards.docx" }
+];
+
+const sampleConstructs = [
+  { id: "C001", type: "Constraint", info: "Lemon = 0.2%", notes: "Constrained by pilot plant" },
+  { id: "C002", type: "Composition", info: "Total fat - Oil, Egg", notes: "All reportable fats" }
+];
+
+// Helpers
+function parseNumber(value: string): number | null {
+  if (!value.trim()) return null;
+  const parsed = Number(value);
+  return isNaN(parsed) ? null : parsed;
+}
+
+function sortValues(a: any, b: any, direction: string, numeric: boolean) {
+  if (direction === "none") return 0;
+  if (numeric) {
+    return direction === "asc" ? a - b : b - a;
+  } else {
+    const aa = String(a).toLowerCase();
+    const bb = String(b).toLowerCase();
+    if (aa < bb) return direction === "asc" ? -1 : 1;
+    if (aa > bb) return direction === "asc" ? 1 : -1;
+    return 0;
+  }
+}
+
+function inRange(num: number, minVal: number | null, maxVal: number | null): boolean {
+  if (minVal !== null && num < minVal) return false;
+  if (maxVal !== null && num > maxVal) return false;
+  return true;
+}
+
+export default function DataProjectsPage() {
+  // Overall search states
+  const [dataSearch, setDataSearch] = React.useState("");
+  const [projectSearch, setProjectSearch] = React.useState("");
+
+  // Column sorting states (which column, direction? 'none' | 'asc' | 'desc')
+  const [dataSortCol, setDataSortCol] = React.useState<{col: string; direction: string}>({col: "", direction: "none"});
+  const [projectSortCol, setProjectSortCol] = React.useState<{col: string; direction: string}>({col: "", direction: "none"});
+
+  const navigate = useNavigate();
+  function handleNewProjectClick() {
+    navigate("/project-setup");
+  }
+
+  // For Data numeric filters (by column)
+  const [dataFilters, setDataFilters] = React.useState({
+    id: [], // distinct string values (checkbox approach) if we want.
+    OilMin: "", OilMax: "",
+    EggMin: "", EggMax: "",
+    VinegarMin: "", VinegarMax: "",
+    CreaminessMin: "", CreaminessMax: "",
+    StabilityMin: "", StabilityMax: ""
+  });
+
+  // For Projects filters
+  const [projFilters, setProjFilters] = React.useState({
+    id: [], // projectId distinct string checks?
+    name: [], // name distinct string checks?
+    status: [], // status distinct string checks?
+    experimentsMin: "", experimentsMax: "",
+    benefitMin: "", benefitMax: ""
+  });
+
+  // Add right after the projFilters state declaration
+  const [ideaSearch, setIdeaSearch] = React.useState("");
+  const [ideaSortCol, setIdeaSortCol] = React.useState<{col: string; direction: string}>({col: "", direction: "none"});
+  const [ideaFilters, setIdeaFilters] = React.useState({
+    status: [], // Status filters
+    source: [], // Source filters
+    benefitMin: "", 
+    benefitMax: ""
+  });
+  const [openIdeaFilterCol, setOpenIdeaFilterCol] = React.useState<string | null>(null);
+
+  // We'll store popover open states per column if we want.
+  const [openDataFilterCol, setOpenDataFilterCol] = React.useState<string | null>(null);
+  const [openProjectFilterCol, setOpenProjectFilterCol] = React.useState<string | null>(null);
+
+
+  // Add these new state variables after your other state declarations
+  // Add these new state variables after your other state declarations
+  const [knowledgeSearch, setKnowledgeSearch] = React.useState("");
+  const [filteredKnowledge, setFilteredKnowledge] = React.useState(sampleKnowledge);
+  const [selectedKnowledgeItem, setSelectedKnowledgeItem] = React.useState(null);
+  const [showAddKnowledgeModal, setShowAddKnowledgeModal] = React.useState(false);
+  const [showAddConstructModal, setShowAddConstructModal] = React.useState(false);
+  const [activeKnowledgeTab, setActiveKnowledgeTab] = React.useState("notes");
+  const [newKnowledge, setNewKnowledge] = React.useState({ title: "", content: "", hasDocument: false });
+  const [newConstruct, setNewConstruct] = React.useState({ type: "Constraint", info: "", notes: "" });
+
+
+  // Memos for filtered & sorted data
+  const filteredData = React.useMemo(() => {
+    // 1) search
+    let rows = sampleData.filter((row) => {
+      const vals = Object.values(row).map((v) => String(v).toLowerCase());
+      return vals.some((val) => val.includes(dataSearch.toLowerCase()));
+    });
+
+    // 2) numeric filters
+    rows = rows.filter((row) => {
+      // ID filtering by distinct check is not implemented here for brevity
+
+      // Oil
+      const i1min = parseNumber(dataFilters.OilMin);
+      const i1max = parseNumber(dataFilters.OilMax);
+      if (!inRange(row.Oil, i1min, i1max)) return false;
+
+      // Egg
+      const i2min = parseNumber(dataFilters.EggMin);
+      const i2max = parseNumber(dataFilters.EggMax);
+      if (!inRange(row.Egg, i2min, i2max)) return false;
+
+      // Vinegar
+      const i3min = parseNumber(dataFilters.VinegarMin);
+      const i3max = parseNumber(dataFilters.VinegarMax);
+      if (!inRange(row.Vinegar, i3min, i3max)) return false;
+
+      // Creaminess
+      const o1min = parseNumber(dataFilters.CreaminessMin);
+      const o1max = parseNumber(dataFilters.CreaminessMax);
+      if (!inRange(row.Creaminess, o1min, o1max)) return false;
+
+      // Stability
+      const o2min = parseNumber(dataFilters.StabilityMin);
+      const o2max = parseNumber(dataFilters.StabilityMax);
+      if (!inRange(row.Stability, o2min, o2max)) return false;
+
+      return true;
+    });
+
+    // 3) sorting
+    if (dataSortCol.col) {
+      rows = [...rows].sort((a, b) => {
+        const valA = a[dataSortCol.col as keyof typeof a];
+        const valB = b[dataSortCol.col as keyof typeof b];
+        // check if numeric
+        const numeric = typeof valA === "number";
+        return sortValues(valA, valB, dataSortCol.direction, numeric);
+      });
+    }
+
+    return rows;
+  }, [dataSearch, dataFilters, dataSortCol]);
+
+  const filteredProjects = React.useMemo(() => {
+    // 1) search
+    let rows = sampleProjects.filter((p) => {
+      const vals = Object.values(p).map((v) => String(v).toLowerCase());
+      return vals.some((val) => val.includes(projectSearch.toLowerCase()));
+    });
+
+    // 2) numeric filters
+    rows = rows.filter((p) => {
+      // experiments
+      const eMin = parseNumber(projFilters.experimentsMin);
+      const eMax = parseNumber(projFilters.experimentsMax);
+      if (!inRange(p.experiments, eMin, eMax)) return false;
+
+      // benefit
+      const bMin = parseNumber(projFilters.benefitMin);
+      const bMax = parseNumber(projFilters.benefitMax);
+      if (!inRange(p.benefit, bMin, bMax)) return false;
+
+      return true;
+    });
+
+    // 3) sorting
+    if (projectSortCol.col) {
+      rows = [...rows].sort((a, b) => {
+        const valA = a[projectSortCol.col as keyof typeof a];
+        const valB = b[projectSortCol.col as keyof typeof b];
+        const numeric = typeof valA === "number";
+        return sortValues(valA, valB, projectSortCol.direction, numeric);
+      });
+    }
+
+    return rows;
+  }, [projectSearch, projFilters, projectSortCol]);
+
+  // Handler for changing sort on a column
+  function handleDataColumnSort(col: string) {
+    setDataSortCol((prev) => {
+      if (prev.col !== col) {
+        return { col, direction: "asc" };
+      } else {
+        // cycle asc -> desc -> none -> asc
+        if (prev.direction === "asc") return { col, direction: "desc" };
+        if (prev.direction === "desc") return { col: "", direction: "none" };
+        return { col, direction: "asc" };
+      }
+    });
+  }
+
+  // Add right after the filteredProjects useMemo
+  const filteredIdeas = React.useMemo(() => {
+    // 1) search
+    let rows = sampleIdeas.filter((idea) => {
+      const vals = Object.values(idea).map((v) => String(v).toLowerCase());
+      return vals.some((val) => val.includes(ideaSearch.toLowerCase()));
+    });
+
+    // 2) filters
+    rows = rows.filter((idea) => {
+      // benefit filter (only applies to scenarios)
+      if (idea.status === "scenario" && idea.benefit !== null) {
+        const bMin = parseNumber(ideaFilters.benefitMin);
+        const bMax = parseNumber(ideaFilters.benefitMax);
+        if (!inRange(idea.benefit, bMin, bMax)) return false;
+      }
+      return true;
+    });
+
+    // 3) sorting
+    if (ideaSortCol.col) {
+      rows = [...rows].sort((a, b) => {
+        const valA = a[ideaSortCol.col as keyof typeof a];
+        const valB = b[ideaSortCol.col as keyof typeof b];
+        const numeric = typeof valA === "number";
+        return sortValues(valA, valB, ideaSortCol.direction, numeric);
+      });
+    }
+
+    return rows;
+  }, [ideaSearch, ideaFilters, ideaSortCol]);
+
+  function handleProjectColumnSort(col: string) {
+    setProjectSortCol((prev) => {
+      if (prev.col !== col) {
+        return { col, direction: "asc" };
+      } else {
+        // cycle asc -> desc -> none -> asc
+        if (prev.direction === "asc") return { col, direction: "desc" };
+        if (prev.direction === "desc") return { col: "", direction: "none" };
+        return { col, direction: "asc" };
+      }
+    });
+  }
+
+
+  // Add right after the handleProjectColumnSort function
+  function handleIdeaColumnSort(col: string) {
+    setIdeaSortCol((prev) => {
+      if (prev.col !== col) {
+        return { col, direction: "asc" };
+      } else {
+        // cycle asc -> desc -> none -> asc
+        if (prev.direction === "asc") return { col, direction: "desc" };
+        if (prev.direction === "desc") return { col: "", direction: "none" };
+        return { col, direction: "asc" };
+      }
+    });
+  }
+
+// Add this function before the return statement
+  function filterKnowledge(searchTerm) {
+    setKnowledgeSearch(searchTerm);
+    if (!searchTerm.trim()) {
+      setFilteredKnowledge(sampleKnowledge);
+      return;
+    }
+    
+    const lowerSearchTerm = searchTerm.toLowerCase();
+    const filtered = sampleKnowledge.filter(item => 
+      item.title.toLowerCase().includes(lowerSearchTerm) || 
+      item.content.toLowerCase().includes(lowerSearchTerm)
+    );
+    
+    setFilteredKnowledge(filtered);
+  }
+
+  return (
+    <motion.div
+      className="p-4"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      {/* Title and right-aligned buttons */}
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-bold">Product A</h1>
+        <div className="flex space-x-4">
+          <Button className="bg-red-600 text-white hover:bg-red-700">Upload Data</Button>
+          <Button 
+            className="bg-red-600 text-white hover:bg-red-700" 
+            onClick={handleNewProjectClick}
+          >
+            New Project
+          </Button>
+        </div>
+      </div>
+
+      {/* Card with Tabs */}
+      <Card className="shadow-xl rounded-2xl">
+        <CardContent>
+          <Tabs defaultValue="data">
+            <TabsList className="mb-4">
+              <TabsTrigger value="data">Data</TabsTrigger>
+              <TabsTrigger value="projects">Projects</TabsTrigger>
+              <TabsTrigger value="ideas">Ideas</TabsTrigger>
+            </TabsList>
+
+            {/* Data Tab */}
+            <TabsContent value="data">
+              <div className="flex items-center gap-2 mb-2">
+                <Input
+                  placeholder="Search Data..."
+                  className="max-w-sm"
+                  value={dataSearch}
+                  onChange={(e) => setDataSearch(e.target.value)}
+                />
+              </div>
+              <div className="max-h-[450px] overflow-auto border border-gray-200 rounded-lg">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      {/* ID col with sort + filter popover for substring matching? (omitted advanced distinct check) */}
+                      <TableHead className="whitespace-nowrap">
+                        <div className="flex items-center gap-1">
+                          <span onClick={() => handleDataColumnSort("id")} className="cursor-pointer flex items-center gap-1">
+                            ID
+                            <ArrowUpDown className="h-4 w-4" />
+                          </span>
+                          <Popover open={openDataFilterCol === "id"} onOpenChange={(o) => setOpenDataFilterCol(o ? "id" : null)}>
+                            <PopoverTrigger className="ml-1">
+                              <Filter className="h-4 w-4 text-gray-500 cursor-pointer" />
+                            </PopoverTrigger>
+                            <PopoverContent className="p-2 space-y-2">
+                              <p className="text-sm text-gray-500">String filter not implemented</p>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </TableHead>
+
+                      {/* Oil col with numeric range filter & sorting */}
+                      <TableHead className="whitespace-nowrap">
+                        <div className="flex items-center gap-1">
+                          <span onClick={() => handleDataColumnSort("Oil")} className="cursor-pointer flex items-center gap-1">
+                            Oil
+                            <ArrowUpDown className="h-4 w-4" />
+                          </span>
+                          <Popover open={openDataFilterCol === "Oil"} onOpenChange={(o) => setOpenDataFilterCol(o ? "Oil" : null)}>
+                            <PopoverTrigger>
+                              <Filter className="h-4 w-4 text-gray-500 cursor-pointer" />
+                            </PopoverTrigger>
+                            <PopoverContent className="p-2 space-y-2 w-36">
+                              <Input
+                                placeholder="Min"
+                                value={dataFilters.OilMin}
+                                onChange={(e) => setDataFilters((old) => ({...old, OilMin: e.target.value}))}
+                                className="h-8"
+                              />
+                              <Input
+                                placeholder="Max"
+                                value={dataFilters.OilMax}
+                                onChange={(e) => setDataFilters((old) => ({...old, OilMax: e.target.value}))}
+                                className="h-8"
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </TableHead>
+
+                      {/* Egg col */}
+                      <TableHead className="whitespace-nowrap">
+                        <div className="flex items-center gap-1">
+                          <span onClick={() => handleDataColumnSort("Egg")} className="cursor-pointer flex items-center gap-1">
+                            Egg
+                            <ArrowUpDown className="h-4 w-4" />
+                          </span>
+                          <Popover open={openDataFilterCol === "Egg"} onOpenChange={(o) => setOpenDataFilterCol(o ? "Egg" : null)}>
+                            <PopoverTrigger>
+                              <Filter className="h-4 w-4 text-gray-500 cursor-pointer" />
+                            </PopoverTrigger>
+                            <PopoverContent className="p-2 space-y-2 w-36">
+                              <Input
+                                placeholder="Min"
+                                value={dataFilters.EggMin}
+                                onChange={(e) => setDataFilters((old) => ({...old, EggMin: e.target.value}))}
+                                className="h-8"
+                              />
+                              <Input
+                                placeholder="Max"
+                                value={dataFilters.EggMax}
+                                onChange={(e) => setDataFilters((old) => ({...old, EggMax: e.target.value}))}
+                                className="h-8"
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </TableHead>
+
+                      {/* Vinegar col */}
+                      <TableHead className="whitespace-nowrap">
+                        <div className="flex items-center gap-1">
+                          <span onClick={() => handleDataColumnSort("Vinegar")} className="cursor-pointer flex items-center gap-1">
+                            Vinegar
+                            <ArrowUpDown className="h-4 w-4" />
+                          </span>
+                          <Popover open={openDataFilterCol === "Vinegar"} onOpenChange={(o) => setOpenDataFilterCol(o ? "Vinegar" : null)}>
+                            <PopoverTrigger>
+                              <Filter className="h-4 w-4 text-gray-500 cursor-pointer" />
+                            </PopoverTrigger>
+                            <PopoverContent className="p-2 space-y-2 w-36">
+                              <Input
+                                placeholder="Min"
+                                value={dataFilters.VinegarMin}
+                                onChange={(e) => setDataFilters((old) => ({...old, VinegarMin: e.target.value}))}
+                                className="h-8"
+                              />
+                              <Input
+                                placeholder="Max"
+                                value={dataFilters.VinegarMax}
+                                onChange={(e) => setDataFilters((old) => ({...old, VinegarMax: e.target.value}))}
+                                className="h-8"
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </TableHead>
+
+                      {/* Creaminess col */}
+                      <TableHead className="whitespace-nowrap">
+                        <div className="flex items-center gap-1">
+                          <span onClick={() => handleDataColumnSort("Creaminess")} className="cursor-pointer flex items-center gap-1">
+                            Creaminess
+                            <ArrowUpDown className="h-4 w-4" />
+                          </span>
+                          <Popover open={openDataFilterCol === "Creaminess"} onOpenChange={(o) => setOpenDataFilterCol(o ? "Creaminess" : null)}>
+                            <PopoverTrigger>
+                              <Filter className="h-4 w-4 text-gray-500 cursor-pointer" />
+                            </PopoverTrigger>
+                            <PopoverContent className="p-2 space-y-2 w-36">
+                              <Input
+                                placeholder="Min"
+                                value={dataFilters.CreaminessMin}
+                                onChange={(e) => setDataFilters((old) => ({...old, CreaminessMin: e.target.value}))}
+                                className="h-8"
+                              />
+                              <Input
+                                placeholder="Max"
+                                value={dataFilters.CreaminessMax}
+                                onChange={(e) => setDataFilters((old) => ({...old, CreaminessMax: e.target.value}))}
+                                className="h-8"
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </TableHead>
+
+                      {/* Stability col */}
+                      <TableHead className="whitespace-nowrap">
+                        <div className="flex items-center gap-1">
+                          <span onClick={() => handleDataColumnSort("Stability")} className="cursor-pointer flex items-center gap-1">
+                            Stability
+                            <ArrowUpDown className="h-4 w-4" />
+                          </span>
+                          <Popover open={openDataFilterCol === "Stability"} onOpenChange={(o) => setOpenDataFilterCol(o ? "Stability" : null)}>
+                            <PopoverTrigger>
+                              <Filter className="h-4 w-4 text-gray-500 cursor-pointer" />
+                            </PopoverTrigger>
+                            <PopoverContent className="p-2 space-y-2 w-36">
+                              <Input
+                                placeholder="Min"
+                                value={dataFilters.StabilityMin}
+                                onChange={(e) => setDataFilters((old) => ({...old, StabilityMin: e.target.value}))}
+                                className="h-8"
+                              />
+                              <Input
+                                placeholder="Max"
+                                value={dataFilters.StabilityMax}
+                                onChange={(e) => setDataFilters((old) => ({...old, StabilityMax: e.target.value}))}
+                                className="h-8"
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredData.map((row) => (
+                      <TableRow key={row.id}>
+                        <TableCell>{row.id}</TableCell>
+                        <TableCell>{row.Oil}</TableCell>
+                        <TableCell>{row.Egg}</TableCell>
+                        <TableCell>{row.Vinegar}</TableCell>
+                        <TableCell>{row.Creaminess}</TableCell>
+                        <TableCell>{row.Stability}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+
+            {/* Projects Tab */}
+            <TabsContent value="projects">
+              <div className="flex items-center gap-2 mb-2">
+                <Input
+                  placeholder="Search Projects..."
+                  className="max-w-sm"
+                  value={projectSearch}
+                  onChange={(e) => setProjectSearch(e.target.value)}
+                />
+              </div>
+
+              <div className="max-h-[450px] overflow-auto border border-gray-200 rounded-lg">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      {/* projectId col with sort + popover for advanced filter? */}
+                      <TableHead className="whitespace-nowrap">
+                        <div className="flex items-center gap-1">
+                          <span onClick={() => handleProjectColumnSort("projectId")} className="cursor-pointer flex items-center gap-1">
+                            Project ID
+                            <ArrowUpDown className="h-4 w-4" />
+                          </span>
+                          <Popover open={openProjectFilterCol === "projectId"} onOpenChange={(o) => setOpenProjectFilterCol(o ? "projectId" : null)}>
+                            <PopoverTrigger>
+                              <Filter className="h-4 w-4 text-gray-500 cursor-pointer" />
+                            </PopoverTrigger>
+                            <PopoverContent className="p-2 space-y-2">
+                              <p className="text-sm text-gray-500">String filter not implemented</p>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </TableHead>
+
+                      {/* name col */}
+                      <TableHead className="whitespace-nowrap">
+                        <div className="flex items-center gap-1">
+                          <span onClick={() => handleProjectColumnSort("name")} className="cursor-pointer flex items-center gap-1">
+                            Project Name
+                            <ArrowUpDown className="h-4 w-4" />
+                          </span>
+                          <Popover open={openProjectFilterCol === "name"} onOpenChange={(o) => setOpenProjectFilterCol(o ? "name" : null)}>
+                            <PopoverTrigger>
+                              <Filter className="h-4 w-4 text-gray-500 cursor-pointer" />
+                            </PopoverTrigger>
+                            <PopoverContent className="p-2 space-y-2">
+                              <p className="text-sm text-gray-500">String filter not implemented</p>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </TableHead>
+
+                      {/* status col */}
+                      <TableHead className="whitespace-nowrap">
+                        <div className="flex items-center gap-1">
+                          <span onClick={() => handleProjectColumnSort("status")} className="cursor-pointer flex items-center gap-1">
+                            Status
+                            <ArrowUpDown className="h-4 w-4" />
+                          </span>
+                          <Popover open={openProjectFilterCol === "status"} onOpenChange={(o) => setOpenProjectFilterCol(o ? "status" : null)}>
+                            <PopoverTrigger>
+                              <Filter className="h-4 w-4 text-gray-500 cursor-pointer" />
+                            </PopoverTrigger>
+                            <PopoverContent className="p-2 space-y-2">
+                              <p className="text-sm text-gray-500">String filter not implemented</p>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </TableHead>
+
+                      {/* experiments col numeric range */}
+                      <TableHead className="whitespace-nowrap">
+                        <div className="flex items-center gap-1">
+                          <span onClick={() => handleProjectColumnSort("experiments")} className="cursor-pointer flex items-center gap-1">
+                            # of Experiments
+                            <ArrowUpDown className="h-4 w-4" />
+                          </span>
+                          <Popover open={openProjectFilterCol === "experiments"} onOpenChange={(o) => setOpenProjectFilterCol(o ? "experiments" : null)}>
+                            <PopoverTrigger>
+                              <Filter className="h-4 w-4 text-gray-500 cursor-pointer" />
+                            </PopoverTrigger>
+                            <PopoverContent className="p-2 space-y-2 w-36">
+                              <Input
+                                placeholder="Min"
+                                value={projFilters.experimentsMin}
+                                onChange={(e) => setProjFilters((old) => ({...old, experimentsMin: e.target.value}))}
+                                className="h-8"
+                              />
+                              <Input
+                                placeholder="Max"
+                                value={projFilters.experimentsMax}
+                                onChange={(e) => setProjFilters((old) => ({...old, experimentsMax: e.target.value}))}
+                                className="h-8"
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </TableHead>
+
+                      {/* benefit col numeric range */}
+                      <TableHead className="whitespace-nowrap">
+                        <div className="flex items-center gap-1">
+                          <span onClick={() => handleProjectColumnSort("benefit")} className="cursor-pointer flex items-center gap-1">
+                            Next Round Benefit
+                            <ArrowUpDown className="h-4 w-4" />
+                          </span>
+                          <Popover open={openProjectFilterCol === "benefit"} onOpenChange={(o) => setOpenProjectFilterCol(o ? "benefit" : null)}>
+                            <PopoverTrigger>
+                              <Filter className="h-4 w-4 text-gray-500 cursor-pointer" />
+                            </PopoverTrigger>
+                            <PopoverContent className="p-2 space-y-2 w-36">
+                              <Input
+                                placeholder="Min"
+                                value={projFilters.benefitMin}
+                                onChange={(e) => setProjFilters((old) => ({...old, benefitMin: e.target.value}))}
+                                className="h-8"
+                              />
+                              <Input
+                                placeholder="Max"
+                                value={projFilters.benefitMax}
+                                onChange={(e) => setProjFilters((old) => ({...old, benefitMax: e.target.value}))}
+                                className="h-8"
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredProjects.map((proj) => (
+                      <TableRow key={proj.projectId}>
+                        <TableCell>{proj.projectId}</TableCell>
+                        <TableCell>{proj.name}</TableCell>
+                        <TableCell>{proj.status}</TableCell>
+                        <TableCell>{proj.experiments}</TableCell>
+                        <TableCell>{proj.benefit}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+
+            {/* Ideas Tab */}
+            <TabsContent value="ideas">
+              <div className="flex items-center gap-2 mb-2">
+                <Input
+                  placeholder="Search Ideas..."
+                  className="max-w-sm"
+                  value={ideaSearch}
+                  onChange={(e) => setIdeaSearch(e.target.value)}
+                />
+              </div>
+
+              <div className="max-h-[450px] overflow-auto border border-gray-200 rounded-lg">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      {/* Title column */}
+                      <TableHead className="whitespace-nowrap">
+                        <div className="flex items-center gap-1">
+                          <span onClick={() => handleIdeaColumnSort("title")} className="cursor-pointer flex items-center gap-1">
+                            Title
+                            <ArrowUpDown className="h-4 w-4" />
+                          </span>
+                          <Popover open={openIdeaFilterCol === "title"} onOpenChange={(o) => setOpenIdeaFilterCol(o ? "title" : null)}>
+                            <PopoverTrigger>
+                              <Filter className="h-4 w-4 text-gray-500 cursor-pointer" />
+                            </PopoverTrigger>
+                            <PopoverContent className="p-2 space-y-2">
+                              <p className="text-sm text-gray-500">String filter not implemented</p>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </TableHead>
+
+                      {/* Notes column */}
+                      <TableHead className="whitespace-nowrap">
+                        <div className="flex items-center gap-1">
+                          <span onClick={() => handleIdeaColumnSort("notes")} className="cursor-pointer flex items-center gap-1">
+                            Notes
+                            <ArrowUpDown className="h-4 w-4" />
+                          </span>
+                        </div>
+                      </TableHead>
+
+                      {/* Status column */}
+                      <TableHead className="whitespace-nowrap">
+                        <div className="flex items-center gap-1">
+                          <span onClick={() => handleIdeaColumnSort("status")} className="cursor-pointer flex items-center gap-1">
+                            Status
+                            <ArrowUpDown className="h-4 w-4" />
+                          </span>
+                          <Popover open={openIdeaFilterCol === "status"} onOpenChange={(o) => setOpenIdeaFilterCol(o ? "status" : null)}>
+                            <PopoverTrigger>
+                              <Filter className="h-4 w-4 text-gray-500 cursor-pointer" />
+                            </PopoverTrigger>
+                            <PopoverContent className="p-2 space-y-2">
+                              <p className="text-sm text-gray-500">Status filter not implemented</p>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </TableHead>
+
+                      {/* Benefit column */}
+                      <TableHead className="whitespace-nowrap">
+                        <div className="flex items-center gap-1">
+                          <span onClick={() => handleIdeaColumnSort("benefit")} className="cursor-pointer flex items-center gap-1">
+                            Benefit
+                            <ArrowUpDown className="h-4 w-4" />
+                          </span>
+                          <Popover open={openIdeaFilterCol === "benefit"} onOpenChange={(o) => setOpenIdeaFilterCol(o ? "benefit" : null)}>
+                            <PopoverTrigger>
+                              <Filter className="h-4 w-4 text-gray-500 cursor-pointer" />
+                            </PopoverTrigger>
+                            <PopoverContent className="p-2 space-y-2 w-36">
+                              <Input
+                                placeholder="Min"
+                                value={ideaFilters.benefitMin}
+                                onChange={(e) => setIdeaFilters((old) => ({...old, benefitMin: e.target.value}))}
+                                className="h-8"
+                              />
+                              <Input
+                                placeholder="Max"
+                                value={ideaFilters.benefitMax}
+                                onChange={(e) => setIdeaFilters((old) => ({...old, benefitMax: e.target.value}))}
+                                className="h-8"
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </TableHead>
+
+                      {/* Source column */}
+                      <TableHead className="whitespace-nowrap">
+                        <div className="flex items-center gap-1">
+                          <span onClick={() => handleIdeaColumnSort("source")} className="cursor-pointer flex items-center gap-1">
+                            Source
+                            <ArrowUpDown className="h-4 w-4" />
+                          </span>
+                          <Popover open={openIdeaFilterCol === "source"} onOpenChange={(o) => setOpenIdeaFilterCol(o ? "source" : null)}>
+                            <PopoverTrigger>
+                              <Filter className="h-4 w-4 text-gray-500 cursor-pointer" />
+                            </PopoverTrigger>
+                            <PopoverContent className="p-2 space-y-2">
+                              <p className="text-sm text-gray-500">Source filter not implemented</p>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </TableHead>
+
+                      {/* Actions column */}
+                      <TableHead className="whitespace-nowrap">
+                        <div className="flex items-center gap-1">
+                          Actions
+                        </div>
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredIdeas.map((idea) => (
+                      <TableRow key={idea.id}>
+                        <TableCell>{idea.title}</TableCell>
+                        <TableCell>{idea.notes}</TableCell>
+                        <TableCell>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            idea.status === "idea" ? "bg-yellow-100 text-yellow-800" : "bg-green-100 text-green-800"
+                          }`}>
+                            {idea.status}
+                          </span>
+                        </TableCell>
+                        <TableCell>{idea.benefit !== null ? idea.benefit : "-"}</TableCell>
+                        <TableCell>{idea.source}</TableCell>
+                        <TableCell>
+                          <Button 
+                            size="sm" 
+                            className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-2 py-1 h-6"
+                            onClick={() => navigate(`/project-setup?ideaId=${idea.id}`)}
+                          >
+                            Create Project
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+      
+      {/* Additional Sections Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+        {/* Knowledge & Notes Section - Left Column */}
+        <Card className="shadow-xl rounded-2xl">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">Knowledge & Notes</h2>
+              <Button 
+                className="bg-red-600 text-white hover:bg-red-700 h-8 w-8 rounded-full p-0 flex items-center justify-center"
+                onClick={() => setShowAddKnowledgeModal(true)}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+              </Button>
+            </div>
+
+            <div className="flex flex-col h-[300px]">
+              <Tabs defaultValue="notes">
+                <TabsList className="grid w-48 grid-cols-2 mb-2">
+                  <TabsTrigger value="notes">Notes</TabsTrigger>
+                  <TabsTrigger value="documents">Documents</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="notes" className="flex-grow flex flex-col mt-0">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Input
+                      placeholder="Search Knowledge..."
+                      className="max-w-full"
+                      value={knowledgeSearch}
+                      onChange={(e) => filterKnowledge(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-2 overflow-y-auto flex-grow">
+                    {filteredKnowledge.map((item) => (
+                      <div 
+                        key={item.id}
+                        className={`border p-3 rounded-lg cursor-pointer hover:bg-gray-50 ${
+                          selectedKnowledgeItem?.id === item.id ? 'bg-gray-100 border-gray-400' : ''
+                        }`}
+                        onClick={() => setSelectedKnowledgeItem(item)}
+                      >
+                        <div className="flex justify-between mb-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-medium">{item.title}</h3>
+                            {item.hasDocument && (
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-blue-600">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                              </svg>
+                            )}
+                          </div>
+                          <span className="text-xs text-gray-500">{item.dateAdded}</span>
+                        </div>
+                        <p className="text-sm text-gray-600 line-clamp-2">{item.content}</p>
+                      </div>
+                    ))}
+
+                    {filteredKnowledge.length === 0 && (
+                      <div className="flex items-center justify-center h-full text-gray-500">
+                        No items found
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="documents" className="flex-grow flex flex-col mt-0">
+                  <div className="grid grid-cols-1 gap-2 overflow-y-auto">
+                    {filteredKnowledge
+                      .filter(item => item.hasDocument)
+                      .map((item) => (
+                        <div 
+                          key={item.id}
+                          className="border p-3 rounded-lg cursor-pointer hover:bg-gray-50 flex items-center gap-3"
+                        >
+                          <div className="bg-blue-100 p-2 rounded">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-blue-600">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                            </svg>
+                          </div>
+                          <div className="flex-grow">
+                            <h3 className="font-medium">{item.documentName}</h3>
+                            <p className="text-sm text-gray-600">{item.title}</p>
+                          </div>
+                          <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+                            View
+                          </Button>
+                        </div>
+                    ))}
+
+                    {filteredKnowledge.filter(item => item.hasDocument).length === 0 && (
+                      <div className="flex items-center justify-center h-full text-gray-500 py-12">
+                        No documents found
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Product-Level Constructs Section - Right Column */}
+        <Card className="shadow-xl rounded-2xl">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">Product-Level Constructs</h2>
+              <Button 
+                className="bg-red-600 text-white hover:bg-red-700 h-8 w-8 rounded-full p-0 flex items-center justify-center"
+                onClick={() => setShowAddConstructModal(true)}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+              </Button>
+            </div>
+
+            <div className="max-h-[300px] overflow-auto border border-gray-200 rounded-lg">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="whitespace-nowrap">
+                      <div className="flex items-center gap-1">
+                        Type
+                        <ArrowUpDown className="h-4 w-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap">
+                      <div className="flex items-center gap-1">
+                        Info
+                        <ArrowUpDown className="h-4 w-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap">
+                      <div className="flex items-center gap-1">
+                        Notes
+                        <ArrowUpDown className="h-4 w-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead className="w-20">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sampleConstructs.map((construct) => (
+                    <TableRow key={construct.id}>
+                      <TableCell>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          construct.type === "Constraint" ? "bg-purple-100 text-purple-800" : "bg-blue-100 text-blue-800"
+                        }`}>
+                          {construct.type}
+                        </span>
+                      </TableCell>
+                      <TableCell>{construct.info}</TableCell>
+                      <TableCell>{construct.notes}</TableCell>
+                      <TableCell className="space-x-1">
+                        <Button 
+                          size="sm" 
+                          variant="ghost"
+                          className="h-7 w-7 p-0"
+                        >
+                          <span className="sr-only">Edit</span>
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                          </svg>
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="ghost"
+                          className="h-7 w-7 p-0 text-red-500"
+                        >
+                          <span className="sr-only">Delete</span>
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                          </svg>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Add Knowledge Modal */}
+      {showAddKnowledgeModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-bold mb-4">Add New Knowledge Item</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                <Input 
+                  id="title" 
+                  value={newKnowledge.title} 
+                  onChange={(e) => setNewKnowledge({...newKnowledge, title: e.target.value})}
+                  placeholder="Enter title"
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">Note</label>
+                <textarea 
+                  id="content"
+                  value={newKnowledge.content}
+                  onChange={(e) => setNewKnowledge({...newKnowledge, content: e.target.value})}
+                  placeholder="Enter note content"
+                  className="w-full border border-gray-300 rounded-md p-2 min-h-[100px]"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Attachment (Optional)</label>
+                <div className="border border-dashed border-gray-300 rounded-md p-4 text-center relative">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 mx-auto text-gray-400 mb-2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                  </svg>
+                  <p className="text-sm text-gray-500">Drag and drop a file here, or click to browse</p>
+                  <input 
+                    type="file" 
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    onChange={() => setNewKnowledge({...newKnowledge, hasDocument: true})}
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-2 mt-6">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowAddKnowledgeModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                className="bg-red-600 text-white hover:bg-red-700"
+                onClick={() => {
+                  // Add logic to save the new knowledge item
+                  setShowAddKnowledgeModal(false);
+                  // Reset form
+                  setNewKnowledge({ title: "", content: "", hasDocument: false });
+                }}
+              >
+                Save
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Construct Modal */}
+      {showAddConstructModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-bold mb-4">Add New Construct</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                <select
+                  id="type"
+                  value={newConstruct.type}
+                  onChange={(e) => setNewConstruct({...newConstruct, type: e.target.value})}
+                  className="w-full border border-gray-300 rounded-md p-2"
+                >
+                  <option value="Constraint">Constraint</option>
+                  <option value="Composition">Composition</option>
+                </select>
+              </div>
+              
+              <div>
+                <label htmlFor="info" className="block text-sm font-medium text-gray-700 mb-1">Info</label>
+                <Input 
+                  id="info" 
+                  value={newConstruct.info} 
+                  onChange={(e) => setNewConstruct({...newConstruct, info: e.target.value})}
+                  placeholder="Enter info"
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                <Input 
+                  id="notes" 
+                  value={newConstruct.notes} 
+                  onChange={(e) => setNewConstruct({...newConstruct, notes: e.target.value})}
+                  placeholder="Enter notes"
+                />
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-2 mt-6">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowAddConstructModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                className="bg-red-600 text-white hover:bg-red-700"
+                onClick={() => {
+                  // Add logic to save the new construct
+                  setShowAddConstructModal(false);
+                  // Reset form
+                  setNewConstruct({ type: "Constraint", info: "", notes: "" });
+                }}
+              >
+                Save
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </motion.div>
+  );
+}
