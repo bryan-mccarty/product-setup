@@ -106,11 +106,7 @@ function OutcomeChart({ item, overlay = false }) {
 // ─────────────────────────────────────────────────────────────────────────────
 export default function OutcomePrioritizationMajor() {
 
-  const navigate = useNavigate(); // <-- Add this line
 
-  function handleConfirmClick() {
-    navigate("/prioritize-2");
-  }
   // Options currently in rank order (index = rank‑1)
   const [options, setOptions] = useState([
     { id: "optionA", name: "Option A", Thickness: 3, sweetness: 7, Cardboard: 4 },
