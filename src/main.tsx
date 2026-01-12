@@ -5,16 +5,21 @@ import App from './App.tsx'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Dashboard from './pages/finished_dashboard.tsx'
 import { ThemeProvider } from './contexts/ThemeContext'
+import { DataProvider } from './contexts/DataContext'
+import AppHeader from './components/AppHeader'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<App />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-        </Routes>
-      </BrowserRouter>
+      <DataProvider>
+        <BrowserRouter>
+          <AppHeader />
+          <Routes>
+            <Route path="/" element={<App />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+          </Routes>
+        </BrowserRouter>
+      </DataProvider>
     </ThemeProvider>
   </StrictMode>,
 )

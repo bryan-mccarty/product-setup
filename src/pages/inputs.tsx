@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useData } from '../contexts/DataContext';
 
-const InputsModal = ({ onClose, onSave }) => {
-  const [inputs, setInputs] = useState([]);
+const InputsModal = ({ onClose }) => {
+  // Get inputs and input library from global context
+  const { inputs, setInputs, inputLibrary } = useData();
+
   const [showLibrary, setShowLibrary] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLibraryItems, setSelectedLibraryItems] = useState([]);
@@ -11,27 +14,6 @@ const InputsModal = ({ onClose, onSave }) => {
   // Autocomplete state
   const [activeAutocomplete, setActiveAutocomplete] = useState(null);
   const [autocompleteIndex, setAutocompleteIndex] = useState(0);
-
-  // Quality library data - INPUTS ONLY
-  // Ingredients are always continuous (amounts/percentages)
-  // Processing conditions can be continuous or discrete
-  const inputLibrary = [
-    { id: 'lib-1', name: 'Flour', inputType: 'Ingredient', variableType: 'Continuous', description: 'Base flour amount', cost: 0.42 },
-    { id: 'lib-2', name: 'Sugar', inputType: 'Ingredient', variableType: 'Continuous', description: 'Granulated sugar', cost: 0.68 },
-    { id: 'lib-3', name: 'Butter', inputType: 'Ingredient', variableType: 'Continuous', description: 'Unsalted butter', cost: 1.85 },
-    { id: 'lib-4', name: 'Eggs', inputType: 'Ingredient', variableType: 'Continuous', description: 'Whole eggs', cost: 0.35 },
-    { id: 'lib-5', name: 'Vanilla Extract', inputType: 'Ingredient', variableType: 'Continuous', description: 'Pure vanilla', cost: 4.20 },
-    { id: 'lib-6', name: 'Cocoa Powder', inputType: 'Ingredient', variableType: 'Continuous', description: 'Dutch-process cocoa', cost: 2.15 },
-    { id: 'lib-7', name: 'Baking Temperature', inputType: 'Processing Condition', variableType: 'Continuous', description: 'Oven temp in °F' },
-    { id: 'lib-8', name: 'Mixing Duration', inputType: 'Processing Condition', variableType: 'Continuous', description: 'Total mix time in minutes' },
-    { id: 'lib-9', name: 'Mixer Speed', inputType: 'Processing Condition', variableType: 'Ordinal', description: 'Speed setting', levels: ['Low', 'Medium', 'High'] },
-    { id: 'lib-10', name: 'Bake Time', inputType: 'Processing Condition', variableType: 'Continuous', description: 'Duration in minutes' },
-    { id: 'lib-11', name: 'Cooling Method', inputType: 'Processing Condition', variableType: 'Nominal', description: 'Post-bake cooling', levels: ['Room Temp', 'Refrigerated', 'Flash Cool'] },
-    { id: 'lib-12', name: 'Milk', inputType: 'Ingredient', variableType: 'Continuous', description: 'Whole milk', cost: 0.52 },
-    { id: 'lib-13', name: 'Salt', inputType: 'Ingredient', variableType: 'Continuous', description: 'Fine sea salt', cost: 0.15 },
-    { id: 'lib-14', name: 'Proofing Time', inputType: 'Processing Condition', variableType: 'Continuous', description: 'Dough rest duration' },
-    { id: 'lib-15', name: 'Humidity Level', inputType: 'Processing Condition', variableType: 'Ordinal', description: 'Environment humidity', levels: ['Low', 'Medium', 'High'] },
-  ];
 
   // Filter library items for autocomplete
   const getAutocompleteSuggestions = (query) => {
@@ -841,10 +823,12 @@ const InputsModal = ({ onClose, onSave }) => {
             >
               Cancel
             </button>
-            <button 
+            <button
               onClick={() => {
-                if (inputs.length > 0 && onSave) {
-                  onSave(inputs);
+                // Data is already saved to context automatically
+                // Just close the modal if we have inputs
+                if (inputs.length > 0) {
+                  onClose();
                 }
               }}
               disabled={inputs.length === 0}

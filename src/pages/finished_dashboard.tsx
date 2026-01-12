@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
+import { useData } from '../contexts/DataContext';
 import DashboardHeader from '../components/DashboardHeader';
 import ProjectsView from './projects_view';
 import GraphView from './graph_view';
@@ -11,6 +12,20 @@ import ObjectivesModal from './objectives';
 
 const CPGCategoryDashboard = () => {
   const { theme } = useTheme();
+  const {
+    inputs,
+    setInputs,
+    outcomes,
+    setOutcomes,
+    constraints,
+    objectives,
+    combinations,
+    projects,
+    setProjects,
+    ideas,
+    setIdeas,
+    suppliers,
+  } = useData();
 
   // View state with localStorage persistence
   const [activeView, setActiveView] = useState<'projects' | 'graph'>(() => {
@@ -41,75 +56,7 @@ const CPGCategoryDashboard = () => {
     { role: 'assistant', content: 'Hello! I\'m your AI assistant. I can help you analyze your projects, suggest optimizations, and answer questions about your data.' }
   ]);
 
-  // Projects state
-  const [projects, setProjects] = useState([
-    { id: 'KCHP', name: 'Summer Launch Optimization', roundsCompleted: 4, owner: 'Sarah Chen', dateModified: '2025-01-15T14:30:00', starred: true, status: { current: 72, projectedMean: 81, projectedStd: 8 } },
-    { id: 'BRWN', name: 'Fudge Brownie Reformulation', roundsCompleted: 7, owner: 'Marcus Johnson', dateModified: '2025-01-14T09:15:00', starred: true, status: { current: 85, projectedMean: 89, projectedStd: 4 } },
-    { id: 'CKCH', name: 'Chocolate Chip - Cost Reduction', roundsCompleted: 2, owner: 'Emily Rodriguez', dateModified: '2025-01-13T16:45:00', starred: false, status: { current: 45, projectedMean: 62, projectedStd: 14 } },
-    { id: 'VNLA', name: 'Vanilla Extract Substitution', roundsCompleted: 0, owner: 'Sarah Chen', dateModified: '2025-01-12T11:00:00', starred: false, status: { current: 0, projectedMean: 0, projectedStd: 0 } },
-    { id: 'CRML', name: 'Caramel Swirl Integration', roundsCompleted: 5, owner: 'Alex Kim', dateModified: '2025-01-10T13:20:00', starred: false, status: { current: 68, projectedMean: 75, projectedStd: 6 } },
-    { id: 'NTBR', name: 'Nut-Free Alternative', roundsCompleted: 3, owner: 'Jordan Taylor', dateModified: '2025-01-09T08:30:00', starred: false, status: { current: 52, projectedMean: 71, projectedStd: 12 } },
-  ]);
-
-  // Ideas state
-  const [ideas, setIdeas] = useState([
-    { id: 'IDEA', name: 'Reduced Sugar Formula Exploration', fidelity: 78, source: 'Luna AI', dateModified: '2025-01-15T10:00:00', starred: true, status: { current: 42, projectedMean: 65, projectedStd: 12 } },
-    { id: 'IDBX', name: 'Gluten-Free Base Investigation', fidelity: 45, source: 'Emily Rodriguez', dateModified: '2025-01-14T16:20:00', starred: false, status: { current: 0, projectedMean: 55, projectedStd: 22 } },
-    { id: 'IDCF', name: 'Plant-Based Butter Alternative', fidelity: 62, source: 'Marcus Johnson', dateModified: '2025-01-13T11:45:00', starred: false, status: { current: 38, projectedMean: 58, projectedStd: 15 } },
-    { id: 'IDDM', name: 'High-Protein Brownie Concept', fidelity: 34, source: 'Luna AI', dateModified: '2025-01-12T09:30:00', starred: false, status: { current: 0, projectedMean: 48, projectedStd: 25 } },
-  ]);
-
-  // Inputs data
-  const [inputs, setInputs] = useState([
-    { id: 'input-1', name: 'Flour', inputType: 'Ingredient', variableType: 'Continuous', description: 'Base flour amount', cost: 0.42, isDefault: true },
-    { id: 'input-2', name: 'Sugar', inputType: 'Ingredient', variableType: 'Continuous', description: 'Granulated sugar', cost: 0.68, isDefault: true },
-    { id: 'input-3', name: 'Butter', inputType: 'Ingredient', variableType: 'Continuous', description: 'Unsalted butter', cost: 1.85, isDefault: true },
-    { id: 'input-4', name: 'Eggs', inputType: 'Ingredient', variableType: 'Continuous', description: 'Whole eggs', cost: 0.35, isDefault: false },
-    { id: 'input-5', name: 'Vanilla Extract', inputType: 'Ingredient', variableType: 'Continuous', description: 'Pure vanilla', cost: 4.20, isDefault: false },
-    { id: 'input-6', name: 'Cocoa Powder', inputType: 'Ingredient', variableType: 'Continuous', description: 'Dutch-process cocoa', cost: 2.15, isDefault: true },
-    { id: 'input-7', name: 'Baking Temperature', inputType: 'Processing', variableType: 'Continuous', description: 'Oven temp °F', cost: null, isDefault: true },
-    { id: 'input-8', name: 'Mixing Duration', inputType: 'Processing', variableType: 'Continuous', description: 'Total mix time', cost: null, isDefault: false },
-    { id: 'input-9', name: 'Mixer Speed', inputType: 'Processing', variableType: 'Ordinal', description: 'Speed setting', isDefault: false },
-    { id: 'input-10', name: 'Bake Time', inputType: 'Processing', variableType: 'Continuous', description: 'Duration in minutes', cost: null, isDefault: true },
-  ]);
-
-  // Suppliers data
-  const [suppliers] = useState([
-    { id: 'supplier-1', name: 'Acme Flour Co.', suppliesInputIds: ['input-1'] },
-    { id: 'supplier-2', name: 'Sweet Sugar Inc.', suppliesInputIds: ['input-2'] },
-    { id: 'supplier-3', name: 'Dairy Best', suppliesInputIds: ['input-3'] },
-    { id: 'supplier-4', name: 'Global Ingredients', suppliesInputIds: ['input-5', 'input-6'] },
-  ]);
-
-  // Outcomes data
-  const [outcomes, setOutcomes] = useState([
-    { id: 'outcome-1', name: 'Moisture Content', outcomeType: 'Analytical', variableType: 'Continuous', description: 'Water activity level (%)', isDefault: true },
-    { id: 'outcome-2', name: 'Texture Firmness', outcomeType: 'Analytical', variableType: 'Continuous', description: 'Force measurement (N)', isDefault: true },
-    { id: 'outcome-3', name: 'Color L*', outcomeType: 'Analytical', variableType: 'Continuous', description: 'Lightness value', isDefault: false },
-    { id: 'outcome-4', name: 'Overall Liking', outcomeType: 'Sensory', variableType: 'Ordinal', description: '9-point hedonic scale', isDefault: true },
-    { id: 'outcome-5', name: 'Sweetness Intensity', outcomeType: 'Sensory', variableType: 'Continuous', description: 'Line scale 0-100', isDefault: false },
-    { id: 'outcome-6', name: 'Flavor Intensity', outcomeType: 'Sensory', variableType: 'Continuous', description: 'Intensity scale 0-15', isDefault: true },
-    { id: 'outcome-7', name: 'Purchase Intent', outcomeType: 'Consumer', variableType: 'Ordinal', description: 'Likelihood to buy', isDefault: true },
-    { id: 'outcome-8', name: 'Value Perception', outcomeType: 'Consumer', variableType: 'Ordinal', description: 'Price-value rating', isDefault: false },
-  ]);
-
-  // Objectives data
-  const [objectives] = useState([
-    { id: 'obj-1', targetName: 'Overall Liking', objectiveType: 'maximize', value1: '', successCriteria: 'At Least 7' },
-    { id: 'obj-2', targetName: 'Cost', objectiveType: 'minimize', value1: '', successCriteria: 'At Most $2.50' },
-    { id: 'obj-3', targetName: 'Moisture Content', objectiveType: 'between', value1: '12', value2: '18', successCriteria: '' },
-    { id: 'obj-4', targetName: 'Texture Firmness', objectiveType: 'target', value1: '25', successCriteria: '±5' },
-    { id: 'obj-5', targetName: 'Purchase Intent', objectiveType: 'maximize', value1: '', successCriteria: '' },
-  ]);
-
-  // Constraints data
-  const [constraints] = useState([
-    { id: 'con-1', targetName: 'Sugar', constraintType: 'at_most', value1: '30', value2: '', tags: ['Regulatory'] },
-    { id: 'con-2', targetName: 'Cost', constraintType: 'at_most', value1: '3.00', value2: '', tags: ['Cost Control'] },
-    { id: 'con-3', targetName: 'Baking Temperature', constraintType: 'between', value1: '325', value2: '375', tags: ['Quality'] },
-    { id: 'con-4', targetName: 'Cocoa Powder', constraintType: 'at_least', value1: '15', value2: '', tags: ['Quality'] },
-    { id: 'con-5', targetName: 'Butter', constraintType: 'between', value1: '20', value2: '35', tags: ['Cost Control'] },
-  ]);
+  // All data now comes from context - no local state needed
 
   // Modal states
   const [showInputsModal, setShowInputsModal] = useState(false);
@@ -726,47 +673,30 @@ const CPGCategoryDashboard = () => {
       {showInputsModal && (
         <InputsModal
           onClose={() => setShowInputsModal(false)}
-          onSave={(inputs) => {
-            setInputs(inputs);
-            setShowInputsModal(false);
-          }}
         />
       )}
 
       {showOutcomesModal && (
         <OutcomesModal
           onClose={() => setShowOutcomesModal(false)}
-          onSave={(outcomes) => {
-            setOutcomes(outcomes);
-            setShowOutcomesModal(false);
-          }}
         />
       )}
 
       {showCombinationsModal && (
         <CombinationsModal
           onClose={() => setShowCombinationsModal(false)}
-          onSave={() => {
-            setShowCombinationsModal(false);
-          }}
         />
       )}
 
       {showConstraintsModal && (
         <ConstraintsModal
           onClose={() => setShowConstraintsModal(false)}
-          onSave={() => {
-            setShowConstraintsModal(false);
-          }}
         />
       )}
 
       {showObjectivesModal && (
         <ObjectivesModal
           onClose={() => setShowObjectivesModal(false)}
-          onSave={() => {
-            setShowObjectivesModal(false);
-          }}
         />
       )}
     </div>

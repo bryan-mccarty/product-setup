@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useData } from './contexts/DataContext';
 import InputsModal from './pages/inputs';
 import OutcomesModal from './pages/outcomes';
 import CombinationsModal from './pages/combinations';
@@ -9,6 +10,7 @@ import DataUploadModal from './pages/upload';
 
 const SetupFlow = () => {
   const navigate = useNavigate();
+  const { inputs, outcomes, combinations, constraints, objectives } = useData();
 
   // Theme state
   const [isDarkMode, setIsDarkMode] = useState(true);
@@ -53,13 +55,34 @@ const SetupFlow = () => {
   const [showObjectivesModal, setShowObjectivesModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
 
-  const [nodeStatus, setNodeStatus] = useState({
-    inputs: { complete: false, items: 0, required: true },
-    outcomes: { complete: false, items: 0, required: true },
-    combinations: { complete: false, items: 0, required: false },
-    constraints: { complete: false, items: 0, required: false },
-    objectives: { complete: false, items: 0, required: false },
-  });
+  // Compute nodeStatus from context data
+  const nodeStatus = useMemo(() => ({
+    inputs: {
+      complete: inputs.length > 0,
+      items: inputs.length,
+      required: true
+    },
+    outcomes: {
+      complete: outcomes.length > 0,
+      items: outcomes.length,
+      required: true
+    },
+    combinations: {
+      complete: combinations.length > 0,
+      items: combinations.length,
+      required: false
+    },
+    constraints: {
+      complete: constraints.length > 0,
+      items: constraints.length,
+      required: false
+    },
+    objectives: {
+      complete: objectives.length > 0,
+      items: objectives.length,
+      required: false
+    },
+  }), [inputs, outcomes, combinations, constraints, objectives]);
 
   const completedCount = Object.values(nodeStatus).filter(n => n.complete).length;
   const totalNodes = Object.keys(nodeStatus).length;
@@ -931,130 +954,50 @@ const SetupFlow = () => {
 
       {/* Inputs Modal */}
       {showInputsModal && (
-        <InputsModal 
+        <InputsModal
           onClose={() => setShowInputsModal(false)}
-          onSave={(inputs) => {
-            // Update node status when inputs are saved
-            setNodeStatus(prev => ({
-              ...prev,
-              inputs: {
-                complete: inputs.length > 0,
-                items: inputs.length,
-                required: true
-              }
-            }));
-            // Close the modal
-            setShowInputsModal(false);
-          }}
         />
       )}
 
       {/* Outcomes Modal */}
       {showOutcomesModal && (
-        <OutcomesModal 
+        <OutcomesModal
           onClose={() => setShowOutcomesModal(false)}
-          onSave={(outcomes) => {
-            // Update node status when outcomes are saved
-            setNodeStatus(prev => ({
-              ...prev,
-              outcomes: {
-                complete: outcomes.length > 0,
-                items: outcomes.length,
-                required: true
-              }
-            }));
-            // Close the modal
-            setShowOutcomesModal(false);
-          }}
         />
       )}
 
       {/* Combinations Modal */}
       {showCombinationsModal && (
-        <CombinationsModal 
+        <CombinationsModal
           onClose={() => setShowCombinationsModal(false)}
-          onSave={(combinations) => {
-            // Update node status when combinations are saved
-            setNodeStatus(prev => ({
-              ...prev,
-              combinations: {
-                complete: combinations.length > 0,
-                items: combinations.length,
-                required: false
-              }
-            }));
-            // Close the modal
-            setShowCombinationsModal(false);
-          }}
         />
       )}
 
       {/* Constraints Modal */}
       {showConstraintsModal && (
-        <ConstraintsModal 
+        <ConstraintsModal
           onClose={() => setShowConstraintsModal(false)}
-          onSave={(constraints) => {
-            // Update node status when constraints are saved
-            setNodeStatus(prev => ({
-              ...prev,
-              constraints: {
-                complete: constraints.length > 0,
-                items: constraints.length,
-                required: false
-              }
-            }));
-            // Close the modal
-            setShowConstraintsModal(false);
-          }}
         />
       )}
 
       {/* Objectives Modal */}
       {showObjectivesModal && (
-        <ObjectivesModal 
+        <ObjectivesModal
           onClose={() => setShowObjectivesModal(false)}
-          onSave={(objectives) => {
-            // Update node status when objectives are saved
-            setNodeStatus(prev => ({
-              ...prev,
-              objectives: {
-                complete: objectives.length > 0,
-                items: objectives.length,
-                required: false
-              }
-            }));
-            // Close the modal
-            setShowObjectivesModal(false);
-          }}
         />
       )}
 
       {/* Data Upload Modal */}
       {showUploadModal && (
-        <DataUploadModal 
+        <DataUploadModal
           onClose={() => setShowUploadModal(false)}
           onSave={(uploadData) => {
-            // Process uploaded data
+            // Mark data as uploaded
             setDataUploaded(true);
-            
-            // Update node statuses based on uploaded classifications
-            const inputs = uploadData.classifications.filter(c => c.classification === 'input');
-            const outcomes = uploadData.classifications.filter(c => c.classification === 'outcome');
-            
-            setNodeStatus(prev => ({
-              ...prev,
-              inputs: {
-                complete: inputs.length > 0,
-                items: inputs.length,
-                required: true
-              },
-              outcomes: {
-                complete: outcomes.length > 0,
-                items: outcomes.length,
-                required: true
-              }
-            }));
-            
+
+            // Note: Data persistence is handled by the modal via context
+            // nodeStatus will automatically update via useMemo when context changes
+
             // Close the modal and transition to configure stage
             setShowUploadModal(false);
             setTimeout(() => setFlowStage('configure'), 300);

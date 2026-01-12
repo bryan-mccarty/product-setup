@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useData } from '../contexts/DataContext';
 
-const CombinationsModal = ({ onClose }) => {
+const CombinationsModal = ({ onClose, onSave }) => {
+  // Use context for combinations and inputs
   const { combinations, setCombinations, inputs } = useData();
   const [expandedId, setExpandedId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -12,7 +13,7 @@ const CombinationsModal = ({ onClose }) => {
   const [mentionIndex, setMentionIndex] = useState(0);
   const directEntryRefs = useRef({});
 
-  // Get available inputs from context
+  // Use inputs directly from context
   const availableInputs = inputs;
 
   // Theme color for Combinations - Purple
@@ -1347,10 +1348,10 @@ const CombinationsModal = ({ onClose }) => {
             >
               Cancel
             </button>
-            <button
+            <button 
               onClick={() => {
-                if (combinations.length > 0) {
-                  onClose();
+                if (combinations.length > 0 && onSave) {
+                  onSave(combinations);
                 }
               }}
               disabled={combinations.length === 0}
@@ -1358,7 +1359,7 @@ const CombinationsModal = ({ onClose }) => {
                 padding: '10px 24px',
                 fontSize: '13px',
                 fontWeight: 600,
-                background: combinations.length > 0
+                background: combinations.length > 0 
                   ? `linear-gradient(135deg, ${themeColor} 0%, #8B5CF6 100%)`
                   : 'rgba(255,255,255,0.05)',
                 color: combinations.length > 0 ? '#0a0a0f' : '#52525b',

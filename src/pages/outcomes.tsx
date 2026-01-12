@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useData } from '../contexts/DataContext';
 
-const OutcomesModal = ({ onClose, onSave }) => {
-  const [outcomes, setOutcomes] = useState([]);
+const OutcomesModal = ({ onClose }) => {
+  // Get outcomes and outcome library from global context
+  const { outcomes, setOutcomes, outcomeLibrary } = useData();
+
   const [showLibrary, setShowLibrary] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLibraryItems, setSelectedLibraryItems] = useState([]);
@@ -9,37 +12,6 @@ const OutcomesModal = ({ onClose, onSave }) => {
   const [hoveredRow, setHoveredRow] = useState(null);
   const [activeAutocomplete, setActiveAutocomplete] = useState(null); // tracks which row has autocomplete open
   const [autocompleteIndex, setAutocompleteIndex] = useState(0); // keyboard navigation index
-  
-  // Outcomes Library - categorized by measurement type
-  const outcomeLibrary = [
-    // Analytical (lab measurements - typically continuous)
-    { id: 'lib-1', name: 'Moisture Content', outcomeType: 'Analytical', variableType: 'Continuous', description: 'Water activity level (%)', limits: '2-8' },
-    { id: 'lib-2', name: 'pH Level', outcomeType: 'Analytical', variableType: 'Continuous', description: 'Acidity measurement', limits: '4.0-7.0' },
-    { id: 'lib-3', name: 'Viscosity', outcomeType: 'Analytical', variableType: 'Continuous', description: 'Flow resistance (cP)', limits: '100-5000' },
-    { id: 'lib-4', name: 'Texture Firmness', outcomeType: 'Analytical', variableType: 'Continuous', description: 'Force measurement (N)', limits: '5-50' },
-    { id: 'lib-5', name: 'Color L*', outcomeType: 'Analytical', variableType: 'Continuous', description: 'Lightness value', limits: '20-80' },
-    { id: 'lib-6', name: 'Particle Size', outcomeType: 'Analytical', variableType: 'Continuous', description: 'Average diameter (μm)', limits: '10-500' },
-    
-    // Sensory (panel evaluations - can be ordinal or continuous)
-    { id: 'lib-7', name: 'Overall Liking', outcomeType: 'Sensory', variableType: 'Ordinal', description: '9-point hedonic scale', levels: ['Dislike Extremely', 'Dislike Very Much', 'Dislike Moderately', 'Dislike Slightly', 'Neither', 'Like Slightly', 'Like Moderately', 'Like Very Much', 'Like Extremely'] },
-    { id: 'lib-8', name: 'Sweetness Intensity', outcomeType: 'Sensory', variableType: 'Continuous', description: 'Line scale 0-100', limits: '0-100' },
-    { id: 'lib-9', name: 'Crunchiness', outcomeType: 'Sensory', variableType: 'Ordinal', description: 'Texture rating', levels: ['Not Crunchy', 'Slightly Crunchy', 'Moderately Crunchy', 'Very Crunchy', 'Extremely Crunchy'] },
-    { id: 'lib-10', name: 'Flavor Intensity', outcomeType: 'Sensory', variableType: 'Continuous', description: 'Intensity scale 0-15', limits: '0-15' },
-    { id: 'lib-11', name: 'Aroma Quality', outcomeType: 'Sensory', variableType: 'Ordinal', description: 'Quality rating', levels: ['Poor', 'Fair', 'Good', 'Very Good', 'Excellent'] },
-    { id: 'lib-12', name: 'Mouthfeel', outcomeType: 'Sensory', variableType: 'Nominal', description: 'Texture descriptor', levels: ['Smooth', 'Grainy', 'Creamy', 'Waxy', 'Chalky'] },
-    
-    // Consumer (market research - various types)
-    { id: 'lib-13', name: 'Purchase Intent', outcomeType: 'Consumer', variableType: 'Ordinal', description: 'Likelihood to buy', levels: ['Definitely Would Not', 'Probably Would Not', 'Might/Might Not', 'Probably Would', 'Definitely Would'] },
-    { id: 'lib-14', name: 'Value Perception', outcomeType: 'Consumer', variableType: 'Ordinal', description: 'Price-value rating', levels: ['Very Poor Value', 'Poor Value', 'Fair Value', 'Good Value', 'Excellent Value'] },
-    { id: 'lib-15', name: 'Brand Fit', outcomeType: 'Consumer', variableType: 'Continuous', description: 'Fit score 1-10', limits: '1-10' },
-    { id: 'lib-16', name: 'Repeat Purchase', outcomeType: 'Consumer', variableType: 'Nominal', description: 'Would buy again', levels: ['Yes', 'No', 'Unsure'] },
-    { id: 'lib-17', name: 'NPS Score', outcomeType: 'Consumer', variableType: 'Continuous', description: 'Net Promoter Score', limits: '-100-100' },
-    
-    // Other
-    { id: 'lib-18', name: 'Shelf Life', outcomeType: 'Other', variableType: 'Continuous', description: 'Days until expiration', limits: '7-365' },
-    { id: 'lib-19', name: 'Production Yield', outcomeType: 'Other', variableType: 'Continuous', description: 'Output percentage', limits: '80-100' },
-    { id: 'lib-20', name: 'Quality Grade', outcomeType: 'Other', variableType: 'Ordinal', description: 'Final product grade', levels: ['Reject', 'C-Grade', 'B-Grade', 'A-Grade', 'Premium'] },
-  ];
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -865,10 +837,12 @@ const OutcomesModal = ({ onClose, onSave }) => {
             >
               Cancel
             </button>
-            <button 
+            <button
               onClick={() => {
-                if (outcomes.length > 0 && onSave) {
-                  onSave(outcomes);
+                // Data is already saved to context automatically
+                // Just close the modal if we have outcomes
+                if (outcomes.length > 0) {
+                  onClose();
                 }
               }}
               disabled={outcomes.length === 0}

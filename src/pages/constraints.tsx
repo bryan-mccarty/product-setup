@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useData } from '../contexts/DataContext';
 
-const ConstraintsModal = ({ onClose, onSave }) => {
-  const [constraints, setConstraints] = useState([]);
+const ConstraintsModal = ({ onClose }) => {
+  // Get constraints, inputs, and combinations from global context
+  const { constraints, setConstraints, inputs, combinations } = useData();
   const [hoveredRow, setHoveredRow] = useState(null);
   const [focusNewRow, setFocusNewRow] = useState(null);
   const [activeAutocomplete, setActiveAutocomplete] = useState(null);
@@ -25,34 +27,19 @@ const ConstraintsModal = ({ onClose, onSave }) => {
   const [tagSearchQuery, setTagSearchQuery] = useState({});
   const [tagAutocompleteIndex, setTagAutocompleteIndex] = useState(0);
 
-  // Simulated inputs (in real app, would come from props/context)
-  const availableInputs = [
-    { id: 'input-1', name: 'Flour', sourceType: 'Input', inputType: 'Ingredient', variableType: 'Continuous' },
-    { id: 'input-2', name: 'Sugar', sourceType: 'Input', inputType: 'Ingredient', variableType: 'Continuous' },
-    { id: 'input-3', name: 'Butter', sourceType: 'Input', inputType: 'Ingredient', variableType: 'Continuous' },
-    { id: 'input-4', name: 'Eggs', sourceType: 'Input', inputType: 'Ingredient', variableType: 'Continuous' },
-    { id: 'input-5', name: 'Vanilla Extract', sourceType: 'Input', inputType: 'Ingredient', variableType: 'Continuous' },
-    { id: 'input-6', name: 'Cocoa Powder', sourceType: 'Input', inputType: 'Ingredient', variableType: 'Continuous' },
-    { id: 'input-7', name: 'Milk', sourceType: 'Input', inputType: 'Ingredient', variableType: 'Continuous' },
-    { id: 'input-8', name: 'Salt', sourceType: 'Input', inputType: 'Ingredient', variableType: 'Continuous' },
-    { id: 'input-9', name: 'Baking Temperature', sourceType: 'Input', inputType: 'Processing', variableType: 'Continuous' },
-    { id: 'input-10', name: 'Mixing Duration', sourceType: 'Input', inputType: 'Processing', variableType: 'Continuous' },
-    { id: 'input-11', name: 'Bake Time', sourceType: 'Input', inputType: 'Processing', variableType: 'Continuous' },
-    { id: 'input-12', name: 'Mixer Speed', sourceType: 'Input', inputType: 'Processing', variableType: 'Ordinal', levels: ['Low', 'Medium', 'High'] },
-    { id: 'input-13', name: 'Cooling Method', sourceType: 'Input', inputType: 'Processing', variableType: 'Nominal', levels: ['Room Temp', 'Refrigerated', 'Flash Cool'] },
-    { id: 'input-14', name: 'Humidity Level', sourceType: 'Input', inputType: 'Processing', variableType: 'Ordinal', levels: ['Low', 'Medium', 'High'] },
-    { id: 'input-15', name: 'Coating Type', sourceType: 'Input', inputType: 'Other', variableType: 'Nominal', levels: ['None', 'Chocolate', 'Glaze', 'Frosting'] },
-  ];
+  // Get available inputs from context and map to format expected by component
+  const availableInputs = inputs.map(i => ({
+    ...i,
+    sourceType: 'Input' as const
+  }));
 
-  // Simulated combinations (in real app, would come from props/context)
-  const availableCombinations = [
-    { id: 'combo-1', name: 'Cost', sourceType: 'Combination', inputType: 'Combination', variableType: 'Continuous', description: 'Total ingredient cost' },
-    { id: 'combo-2', name: 'Total Sugar Content', sourceType: 'Combination', inputType: 'Combination', variableType: 'Continuous', description: 'Sugar + sweeteners' },
-    { id: 'combo-3', name: 'Fat Ratio', sourceType: 'Combination', inputType: 'Combination', variableType: 'Continuous', description: 'Butter + oils / total' },
-    { id: 'combo-4', name: 'Dry Ingredients', sourceType: 'Combination', inputType: 'Combination', variableType: 'Continuous', description: 'Flour + cocoa + salt' },
-    { id: 'combo-5', name: 'Wet Ingredients', sourceType: 'Combination', inputType: 'Combination', variableType: 'Continuous', description: 'Milk + eggs + vanilla' },
-    { id: 'combo-6', name: 'Sweetener Group', sourceType: 'Combination', inputType: 'Combination', variableType: 'Continuous', description: 'All sweetening agents' },
-  ];
+  // Get available combinations from context and map to format expected by component
+  const availableCombinations = combinations.map(c => ({
+    ...c,
+    sourceType: 'Combination' as const,
+    inputType: 'Combination',
+    variableType: 'Continuous'
+  }));
 
   // Combined list for autocomplete
   const allConstrainableItems = [...availableInputs, ...availableCombinations];
@@ -1475,10 +1462,12 @@ const ConstraintsModal = ({ onClose, onSave }) => {
             >
               Cancel
             </button>
-            <button 
+            <button
               onClick={() => {
-                if (constraints.length > 0 && onSave) {
-                  onSave(constraints);
+                // Data is already saved to context automatically
+                // Just close the modal if we have constraints
+                if (constraints.length > 0) {
+                  onClose();
                 }
               }}
               disabled={constraints.length === 0}

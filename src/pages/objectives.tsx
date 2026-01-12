@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useData } from '../contexts/DataContext';
 
-const ObjectivesModal = ({ onClose, onSave }) => {
-  const [objectives, setObjectives] = useState([]);
+const ObjectivesModal = ({ onClose }) => {
+  // Get objectives, outcomes, and combinations from global context
+  const { objectives, setObjectives, outcomes, combinations } = useData();
   const [hoveredRow, setHoveredRow] = useState(null);
   const [focusNewRow, setFocusNewRow] = useState(null);
   const [activeAutocomplete, setActiveAutocomplete] = useState(null);
@@ -25,43 +27,19 @@ const ObjectivesModal = ({ onClose, onSave }) => {
   const [tagSearchQuery, setTagSearchQuery] = useState({});
   const [tagAutocompleteIndex, setTagAutocompleteIndex] = useState(0);
 
-  // Simulated outcomes (in real app, would come from props/context)
-  const availableOutcomes = [
-    // Analytical
-    { id: 'outcome-1', name: 'Moisture Content', sourceType: 'Outcome', outcomeType: 'Analytical', variableType: 'Continuous', description: 'Water activity level (%)' },
-    { id: 'outcome-2', name: 'pH Level', sourceType: 'Outcome', outcomeType: 'Analytical', variableType: 'Continuous', description: 'Acidity measurement' },
-    { id: 'outcome-3', name: 'Viscosity', sourceType: 'Outcome', outcomeType: 'Analytical', variableType: 'Continuous', description: 'Flow resistance (cP)' },
-    { id: 'outcome-4', name: 'Texture Firmness', sourceType: 'Outcome', outcomeType: 'Analytical', variableType: 'Continuous', description: 'Force measurement (N)' },
-    { id: 'outcome-5', name: 'Color L*', sourceType: 'Outcome', outcomeType: 'Analytical', variableType: 'Continuous', description: 'Lightness value' },
-    { id: 'outcome-6', name: 'Particle Size', sourceType: 'Outcome', outcomeType: 'Analytical', variableType: 'Continuous', description: 'Average diameter (μm)' },
-    // Sensory
-    { id: 'outcome-7', name: 'Overall Liking', sourceType: 'Outcome', outcomeType: 'Sensory', variableType: 'Ordinal', description: '9-point hedonic scale', levels: ['Dislike Extremely', 'Dislike Very Much', 'Dislike Moderately', 'Dislike Slightly', 'Neither', 'Like Slightly', 'Like Moderately', 'Like Very Much', 'Like Extremely'] },
-    { id: 'outcome-8', name: 'Sweetness Intensity', sourceType: 'Outcome', outcomeType: 'Sensory', variableType: 'Continuous', description: 'Line scale 0-100' },
-    { id: 'outcome-9', name: 'Crunchiness', sourceType: 'Outcome', outcomeType: 'Sensory', variableType: 'Ordinal', description: 'Texture rating', levels: ['Not Crunchy', 'Slightly Crunchy', 'Moderately Crunchy', 'Very Crunchy', 'Extremely Crunchy'] },
-    { id: 'outcome-10', name: 'Flavor Intensity', sourceType: 'Outcome', outcomeType: 'Sensory', variableType: 'Continuous', description: 'Intensity scale 0-15' },
-    { id: 'outcome-11', name: 'Aroma Quality', sourceType: 'Outcome', outcomeType: 'Sensory', variableType: 'Ordinal', description: 'Quality rating', levels: ['Poor', 'Fair', 'Good', 'Very Good', 'Excellent'] },
-    { id: 'outcome-12', name: 'Mouthfeel', sourceType: 'Outcome', outcomeType: 'Sensory', variableType: 'Nominal', description: 'Texture descriptor', levels: ['Smooth', 'Grainy', 'Creamy', 'Waxy', 'Chalky'] },
-    // Consumer
-    { id: 'outcome-13', name: 'Purchase Intent', sourceType: 'Outcome', outcomeType: 'Consumer', variableType: 'Ordinal', description: 'Likelihood to buy', levels: ['Definitely Would Not', 'Probably Would Not', 'Might/Might Not', 'Probably Would', 'Definitely Would'] },
-    { id: 'outcome-14', name: 'Value Perception', sourceType: 'Outcome', outcomeType: 'Consumer', variableType: 'Ordinal', description: 'Price-value rating', levels: ['Very Poor Value', 'Poor Value', 'Fair Value', 'Good Value', 'Excellent Value'] },
-    { id: 'outcome-15', name: 'Brand Fit', sourceType: 'Outcome', outcomeType: 'Consumer', variableType: 'Continuous', description: 'Fit score 1-10' },
-    { id: 'outcome-16', name: 'Repeat Purchase', sourceType: 'Outcome', outcomeType: 'Consumer', variableType: 'Nominal', description: 'Would buy again', levels: ['Yes', 'No', 'Unsure'] },
-    { id: 'outcome-17', name: 'NPS Score', sourceType: 'Outcome', outcomeType: 'Consumer', variableType: 'Continuous', description: 'Net Promoter Score' },
-    // Other
-    { id: 'outcome-18', name: 'Shelf Life', sourceType: 'Outcome', outcomeType: 'Other', variableType: 'Continuous', description: 'Days until expiration' },
-    { id: 'outcome-19', name: 'Production Yield', sourceType: 'Outcome', outcomeType: 'Other', variableType: 'Continuous', description: 'Output percentage' },
-    { id: 'outcome-20', name: 'Quality Grade', sourceType: 'Outcome', outcomeType: 'Other', variableType: 'Ordinal', description: 'Final product grade', levels: ['Reject', 'C-Grade', 'B-Grade', 'A-Grade', 'Premium'] },
-  ];
+  // Get available outcomes from context and map to format expected by component
+  const availableOutcomes = outcomes.map(o => ({
+    ...o,
+    sourceType: 'Outcome' as const
+  }));
 
-  // Simulated combinations (in real app, would come from props/context)
-  const availableCombinations = [
-    { id: 'combo-1', name: 'Cost', sourceType: 'Combination', outcomeType: 'Combination', variableType: 'Continuous', description: 'Total ingredient cost' },
-    { id: 'combo-2', name: 'Total Sugar Content', sourceType: 'Combination', outcomeType: 'Combination', variableType: 'Continuous', description: 'Sugar + sweeteners' },
-    { id: 'combo-3', name: 'Fat Ratio', sourceType: 'Combination', outcomeType: 'Combination', variableType: 'Continuous', description: 'Butter + oils / total' },
-    { id: 'combo-4', name: 'Sensory Score', sourceType: 'Combination', outcomeType: 'Combination', variableType: 'Continuous', description: 'Weighted sensory composite' },
-    { id: 'combo-5', name: 'Consumer Appeal', sourceType: 'Combination', outcomeType: 'Combination', variableType: 'Continuous', description: 'Liking + purchase intent' },
-    { id: 'combo-6', name: 'Quality Index', sourceType: 'Combination', outcomeType: 'Combination', variableType: 'Continuous', description: 'Analytical quality composite' },
-  ];
+  // Get available combinations from context and map to format expected by component
+  const availableCombinations = combinations.map(c => ({
+    ...c,
+    sourceType: 'Combination' as const,
+    outcomeType: 'Combination',
+    variableType: 'Continuous'
+  }));
 
   // Combined list for autocomplete
   const allObjectiveItems = [...availableOutcomes, ...availableCombinations];
@@ -1586,10 +1564,12 @@ const ObjectivesModal = ({ onClose, onSave }) => {
             >
               Cancel
             </button>
-            <button 
+            <button
               onClick={() => {
-                if (objectives.length > 0 && onSave) {
-                  onSave(objectives);
+                // Data is already saved to context automatically
+                // Just close the modal if we have objectives
+                if (objectives.length > 0) {
+                  onClose();
                 }
               }}
               disabled={objectives.length === 0}

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useData } from '../contexts/DataContext';
 
 const DataUploadModal = ({ onClose, onSave }) => {
+  const { setInputs, setOutcomes } = useData();
   const [stage, setStage] = useState('upload'); // 'upload' | 'preview' | 'classify'
   const [uploadedFile, setUploadedFile] = useState(null);
   const [parsedData, setParsedData] = useState(null);
@@ -1424,14 +1426,46 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
             {stage === 'classify' && classificationProgress >= 100 && (
               <button
                 onClick={() => {
-                  if (allConfirmed && onSave) {
-                    // Pass the confirmed classifications and parsed data
-                    onSave({
-                      classifications: classifications.filter(c => c.confirmed),
-                      parsedData,
-                      columns,
-                      file: uploadedFile
-                    });
+                  if (allConfirmed) {
+                    const confirmedClassifications = classifications.filter((c: any) => c.confirmed);
+
+                    // Separate inputs and outcomes
+                    const inputClassifications = confirmedClassifications.filter((c: any) => c.classification === 'input');
+                    const outcomeClassifications = confirmedClassifications.filter((c: any) => c.classification === 'outcome');
+
+                    // Convert to Input/Outcome format and save to context
+                    const newInputs = inputClassifications.map((item: any, index) => ({
+                      id: `csv-input-${Date.now()}-${index}`,
+                      name: item.name,
+                      inputType: item.subType || 'Other',
+                      variableType: item.variableType,
+                      description: '',
+                      cost: null,
+                      isDefault: false,
+                    }));
+
+                    const newOutcomes = outcomeClassifications.map((item: any, index) => ({
+                      id: `csv-outcome-${Date.now()}-${index}`,
+                      name: item.name,
+                      outcomeType: item.subType || 'Other',
+                      variableType: item.variableType,
+                      description: '',
+                      isDefault: false,
+                    }));
+
+                    // Save to context
+                    setInputs(newInputs);
+                    setOutcomes(newOutcomes);
+
+                    // Call onSave for stage transition
+                    if (onSave) {
+                      onSave({
+                        classifications: confirmedClassifications,
+                        parsedData,
+                        columns,
+                        file: uploadedFile
+                      });
+                    }
                   }
                 }}
                 disabled={!allConfirmed}
