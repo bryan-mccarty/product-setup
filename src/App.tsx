@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from './contexts/DataContext';
+import { useTheme } from './contexts/ThemeContext';
 import InputsModal from './pages/inputs';
 import OutcomesModal from './pages/outcomes';
 import CombinationsModal from './pages/combinations';
@@ -11,35 +12,7 @@ import DataUploadModal from './pages/upload';
 const SetupFlow = () => {
   const navigate = useNavigate();
   const { inputs, outcomes, combinations, constraints, objectives } = useData();
-
-  // Theme state
-  const [isDarkMode, setIsDarkMode] = useState(true);
-
-  // Theme configuration
-  const theme = {
-    dark: {
-      background: '#0a0a0f',
-      text: '#E4E4E7',
-      textSecondary: '#A1A1AA',
-      textTertiary: '#71717A',
-      textMuted: '#52525b',
-      border: 'rgba(255,255,255,0.1)',
-      cardBg: 'rgba(255,255,255,0.05)',
-      inputBg: 'rgba(255,255,255,0.08)',
-    },
-    light: {
-      background: '#ffffff',
-      text: '#18181b',
-      textSecondary: '#52525b',
-      textTertiary: '#71717A',
-      textMuted: '#A1A1AA',
-      border: 'rgba(0,0,0,0.1)',
-      cardBg: 'rgba(0,0,0,0.05)',
-      inputBg: 'rgba(0,0,0,0.08)',
-    }
-  };
-
-  const currentTheme = isDarkMode ? theme.dark : theme.light;
+  const { theme } = useTheme();
 
   const [categoryName, setCategoryName] = useState('');
   const [isEditingCategory, setIsEditingCategory] = useState(false);
@@ -224,52 +197,14 @@ const SetupFlow = () => {
   return (
     <div style={{
       minHeight: '100vh',
-      background: currentTheme.background,
+      background: theme.background,
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-      color: currentTheme.text,
+      color: theme.text,
       overflow: 'hidden',
       position: 'relative',
       display: 'flex',
       flexDirection: 'column',
     }}>
-      {/* Theme Toggle - Fixed bottom left */}
-      <button
-        onClick={() => setIsDarkMode(!isDarkMode)}
-        style={{
-          position: 'fixed',
-          bottom: '20px',
-          left: '20px',
-          background: currentTheme.cardBg,
-          border: `1px solid ${currentTheme.border}`,
-          borderRadius: '8px',
-          padding: '8px',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 100,
-          transition: 'all 0.2s ease'
-        }}
-        title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-      >
-        {isDarkMode ? (
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={currentTheme.text} strokeWidth="2">
-            <circle cx="12" cy="12" r="5"/>
-            <line x1="12" y1="1" x2="12" y2="3"/>
-            <line x1="12" y1="21" x2="12" y2="23"/>
-            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-            <line x1="1" y1="12" x2="3" y2="12"/>
-            <line x1="21" y1="12" x2="23" y2="12"/>
-            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-          </svg>
-        ) : (
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={currentTheme.text} strokeWidth="2">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-          </svg>
-        )}
-      </button>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         
