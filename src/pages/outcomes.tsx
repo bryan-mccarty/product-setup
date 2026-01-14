@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useData } from '../contexts/DataContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 const OutcomesModal = ({ onClose }) => {
   // Get outcomes and outcome library from global context
   const { outcomes, setOutcomes, outcomeLibrary } = useData();
+  const { theme, isDarkMode } = useTheme();
 
   const [showLibrary, setShowLibrary] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -175,15 +177,31 @@ const OutcomesModal = ({ onClose }) => {
   );
 
   // Theme color for Outcomes - Pink
-  const themeColor = '#F472B6';
-  const themeColorRgb = '244, 114, 182';
+  const themeColor = theme.accentOutcomes;
+  const themeColorRgb = isDarkMode ? '244, 114, 182' : '219, 39, 119';
 
   const OutcomeTypeTag = ({ type, small }) => {
     const colors = {
-      'Analytical': { bg: 'rgba(96, 165, 250, 0.15)', text: '#60A5FA', border: 'rgba(96, 165, 250, 0.3)' },
-      'Sensory': { bg: 'rgba(251, 146, 60, 0.15)', text: '#FB923C', border: 'rgba(251, 146, 60, 0.3)' },
-      'Consumer': { bg: 'rgba(167, 139, 250, 0.15)', text: '#A78BFA', border: 'rgba(167, 139, 250, 0.3)' },
-      'Other': { bg: 'rgba(113, 113, 122, 0.15)', text: '#A1A1AA', border: 'rgba(113, 113, 122, 0.3)' },
+      'Analytical': {
+        bg: isDarkMode ? 'rgba(96, 165, 250, 0.15)' : '#eff6ff',
+        text: isDarkMode ? '#60A5FA' : '#1e40af',
+        border: isDarkMode ? 'rgba(96, 165, 250, 0.3)' : '#93c5fd'
+      },
+      'Sensory': {
+        bg: isDarkMode ? 'rgba(251, 146, 60, 0.15)' : '#fff7ed',
+        text: isDarkMode ? '#FB923C' : '#c2410c',
+        border: isDarkMode ? 'rgba(251, 146, 60, 0.3)' : '#fdba74'
+      },
+      'Consumer': {
+        bg: isDarkMode ? 'rgba(167, 139, 250, 0.15)' : '#f5f3ff',
+        text: isDarkMode ? '#A78BFA' : '#6d28d9',
+        border: isDarkMode ? 'rgba(167, 139, 250, 0.3)' : '#c4b5fd'
+      },
+      'Other': {
+        bg: isDarkMode ? 'rgba(113, 113, 122, 0.15)' : '#f8fafc',
+        text: theme.textSecondary,
+        border: isDarkMode ? 'rgba(113, 113, 122, 0.3)' : '#cbd5e1'
+      },
     };
     const c = colors[type] || colors['Other'];
     return (
@@ -204,9 +222,21 @@ const OutcomesModal = ({ onClose }) => {
 
   const VariableTypeTag = ({ type, small }) => {
     const colors = {
-      'Continuous': { bg: 'rgba(45, 212, 191, 0.15)', text: '#2DD4BF', border: 'rgba(45, 212, 191, 0.3)' },
-      'Ordinal': { bg: 'rgba(244, 114, 182, 0.15)', text: '#F472B6', border: 'rgba(244, 114, 182, 0.3)' },
-      'Nominal': { bg: 'rgba(251, 191, 36, 0.15)', text: '#FBBF24', border: 'rgba(251, 191, 36, 0.3)' },
+      'Continuous': {
+        bg: isDarkMode ? 'rgba(45, 212, 191, 0.15)' : '#f0fdfa',
+        text: isDarkMode ? '#2DD4BF' : '#0f766e',
+        border: isDarkMode ? 'rgba(45, 212, 191, 0.3)' : '#5eead4'
+      },
+      'Ordinal': {
+        bg: isDarkMode ? 'rgba(244, 114, 182, 0.15)' : '#fdf2f8',
+        text: isDarkMode ? '#F472B6' : '#be185d',
+        border: isDarkMode ? 'rgba(244, 114, 182, 0.3)' : '#f9a8d4'
+      },
+      'Nominal': {
+        bg: isDarkMode ? 'rgba(251, 191, 36, 0.15)' : '#fffbeb',
+        text: isDarkMode ? '#FBBF24' : '#d97706',
+        border: isDarkMode ? 'rgba(251, 191, 36, 0.3)' : '#fcd34d'
+      },
     };
     const c = colors[type] || colors['Continuous'];
     return (
@@ -245,7 +275,7 @@ const OutcomesModal = ({ onClose }) => {
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0, 0, 0, 0.8)',
+        background: theme.modalOverlay,
         backdropFilter: 'blur(8px)',
         display: 'flex',
         alignItems: 'center',
@@ -276,10 +306,10 @@ const OutcomesModal = ({ onClose }) => {
           width: 6px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(255,255,255,0.02);
+          background: theme.cardBg;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(255,255,255,0.1);
+          background: theme.scrollbarThumb;
           border-radius: 3px;
         }
         
@@ -298,8 +328,8 @@ const OutcomesModal = ({ onClose }) => {
         .outcome-field {
           padding: 6px 10px;
           font-size: 13px;
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(255,255,255,0.08);
+          background: theme.inputBg;
+          border: 1px solid ${theme.inputBorder};
           border-radius: 5px;
           color: #E4E4E7;
           outline: none;
@@ -311,7 +341,7 @@ const OutcomesModal = ({ onClose }) => {
           background: rgba(${themeColorRgb}, 0.05);
         }
         .outcome-field:disabled {
-          background: rgba(255,255,255,0.01);
+          background: theme.rowHoverBg;
           color: #3f3f46;
           cursor: not-allowed;
         }
@@ -323,7 +353,7 @@ const OutcomesModal = ({ onClose }) => {
         maxWidth: '95vw',
         height: '600px',
         maxHeight: '90vh',
-        background: '#0f0f14',
+        background: theme.modalBg,
         borderRadius: '16px',
         border: `1px solid rgba(${themeColorRgb}, 0.2)`,
         boxShadow: `0 0 60px rgba(${themeColorRgb}, 0.1), 0 25px 80px rgba(0,0,0,0.5)`,
@@ -336,7 +366,7 @@ const OutcomesModal = ({ onClose }) => {
         {/* Header */}
         <div style={{
           padding: '20px 24px',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          borderBottom: `1px solid ${theme.border}`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -365,7 +395,7 @@ const OutcomesModal = ({ onClose }) => {
                 margin: 0,
                 fontSize: '18px',
                 fontWeight: 600,
-                color: '#E4E4E7',
+                color: theme.text,
                 letterSpacing: '-0.02em',
               }}>
                 Configure Outcomes
@@ -373,7 +403,7 @@ const OutcomesModal = ({ onClose }) => {
               <p style={{
                 margin: '2px 0 0 0',
                 fontSize: '12px',
-                color: '#71717A',
+                color: theme.textTertiary,
               }}>
                 {outcomes.length} outcome{outcomes.length !== 1 ? 's' : ''} configured
               </p>
@@ -387,9 +417,9 @@ const OutcomesModal = ({ onClose }) => {
                 padding: '8px 14px',
                 fontSize: '13px',
                 fontWeight: 500,
-                background: 'rgba(255,255,255,0.03)',
-                color: '#A1A1AA',
-                border: '1px solid rgba(255,255,255,0.1)',
+                background: theme.inputBg,
+                color: theme.textSecondary,
+                border: `1px solid ${theme.border}`,
                 borderRadius: '6px',
                 cursor: 'pointer',
                 display: 'flex',
@@ -398,12 +428,12 @@ const OutcomesModal = ({ onClose }) => {
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
+                e.currentTarget.style.background = theme.border;
+                e.currentTarget.style.borderColor = theme.borderStrong;
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+                e.currentTarget.style.background = theme.inputBg;
+                e.currentTarget.style.borderColor = theme.border;
               }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -414,9 +444,9 @@ const OutcomesModal = ({ onClose }) => {
               <kbd style={{
                 padding: '1px 5px',
                 borderRadius: '3px',
-                background: 'rgba(255,255,255,0.08)',
+                background: theme.inputBorder,
                 fontSize: '10px',
-                color: '#71717A',
+                color: theme.textTertiary,
               }}>⌘L</kbd>
             </button>
             
@@ -427,7 +457,7 @@ const OutcomesModal = ({ onClose }) => {
                 fontSize: '13px',
                 fontWeight: 600,
                 background: `linear-gradient(135deg, ${themeColor} 0%, #EC4899 100%)`,
-                color: '#0a0a0f',
+                color: '#ffffff',
                 border: 'none',
                 borderRadius: '6px',
                 cursor: 'pointer',
@@ -473,17 +503,17 @@ const OutcomesModal = ({ onClose }) => {
           }}>
             <thead>
               <tr style={{
-                borderBottom: '1px solid rgba(255,255,255,0.06)',
+                borderBottom: `1px solid ${theme.border}`,
                 position: 'sticky',
                 top: 0,
-                background: '#0f0f14',
+                background: theme.modalBg,
                 zIndex: 10,
               }}>
-                <th style={{ padding: '10px 16px', textAlign: 'left', fontSize: '10px', fontWeight: 600, color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.08em', width: '28%' }}>Name</th>
-                <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '10px', fontWeight: 600, color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.08em', width: '12%' }}>Outcome Type</th>
-                <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '10px', fontWeight: 600, color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.08em', width: '12%' }}>Variable Type</th>
-                <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '10px', fontWeight: 600, color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.08em', width: '20%' }}>Range / Levels</th>
-                <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '10px', fontWeight: 600, color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.08em', width: '23%' }}>Description</th>
+                <th style={{ padding: '10px 16px', textAlign: 'left', fontSize: '10px', fontWeight: 600, color: theme.textTertiary, textTransform: 'uppercase', letterSpacing: '0.08em', width: '28%' }}>Name</th>
+                <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '10px', fontWeight: 600, color: theme.textTertiary, textTransform: 'uppercase', letterSpacing: '0.08em', width: '12%' }}>Outcome Type</th>
+                <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '10px', fontWeight: 600, color: theme.textTertiary, textTransform: 'uppercase', letterSpacing: '0.08em', width: '12%' }}>Variable Type</th>
+                <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '10px', fontWeight: 600, color: theme.textTertiary, textTransform: 'uppercase', letterSpacing: '0.08em', width: '20%' }}>Range / Levels</th>
+                <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '10px', fontWeight: 600, color: theme.textTertiary, textTransform: 'uppercase', letterSpacing: '0.08em', width: '23%' }}>Description</th>
                 <th style={{ padding: '10px 16px', width: '40px' }}></th>
               </tr>
             </thead>
@@ -518,14 +548,14 @@ const OutcomesModal = ({ onClose }) => {
                           margin: '0 0 6px 0',
                           fontSize: '14px',
                           fontWeight: 500,
-                          color: '#A1A1AA',
+                          color: theme.textSecondary,
                         }}>
                           No outcomes configured
                         </p>
                         <p style={{
                           margin: 0,
                           fontSize: '13px',
-                          color: '#52525b',
+                          color: theme.textMuted,
                         }}>
                           Add outcomes from the <button 
                             onClick={() => setShowLibrary(true)}
@@ -563,8 +593,8 @@ const OutcomesModal = ({ onClose }) => {
                       onMouseEnter={() => setHoveredRow(outcome.id)}
                       onMouseLeave={() => setHoveredRow(null)}
                       style={{
-                        borderBottom: '1px solid rgba(255,255,255,0.04)',
-                        background: hoveredRow === outcome.id ? 'rgba(255,255,255,0.015)' : 'transparent',
+                        borderBottom: `1px solid ${theme.borderLight}`,
+                        background: hoveredRow === outcome.id ? theme.rowHoverBg : 'transparent',
                         transition: 'background 0.1s ease',
                       }}
                     >
@@ -625,7 +655,7 @@ const OutcomesModal = ({ onClose }) => {
                                 left: 0,
                                 right: 0,
                                 marginTop: '4px',
-                                background: '#1a1a22',
+                                background: theme.surfaceElevated,
                                 border: `1px solid rgba(${themeColorRgb}, 0.3)`,
                                 borderRadius: '8px',
                                 boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
@@ -635,15 +665,15 @@ const OutcomesModal = ({ onClose }) => {
                               }}>
                                 <div style={{
                                   padding: '6px 10px',
-                                  borderBottom: '1px solid rgba(255,255,255,0.06)',
+                                  borderBottom: `1px solid ${theme.border}`,
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'space-between',
                                 }}>
-                                  <span style={{ fontSize: '10px', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                  <span style={{ fontSize: '10px', color: theme.textTertiary, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                     Library matches
                                   </span>
-                                  <span style={{ fontSize: '10px', color: '#52525b' }}>
+                                  <span style={{ fontSize: '10px', color: theme.textMuted }}>
                                     ↑↓ navigate · Enter select
                                   </span>
                                 </div>
@@ -661,13 +691,13 @@ const OutcomesModal = ({ onClose }) => {
                                     onMouseEnter={() => setAutocompleteIndex(idx)}
                                   >
                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                                      <span style={{ fontSize: '13px', fontWeight: 500, color: '#E4E4E7' }}>{item.name}</span>
+                                      <span style={{ fontSize: '13px', fontWeight: 500, color: theme.text }}>{item.name}</span>
                                       <div style={{ display: 'flex', gap: '4px' }}>
                                         <OutcomeTypeTag type={item.outcomeType} small />
                                         <VariableTypeTag type={item.variableType} small />
                                       </div>
                                     </div>
-                                    <div style={{ fontSize: '11px', color: '#71717A' }}>
+                                    <div style={{ fontSize: '11px', color: theme.textTertiary }}>
                                       {item.description}
                                       {item.limits && <span style={{ marginLeft: '8px', color: '#2DD4BF', fontFamily: 'monospace' }}>{item.limits}</span>}
                                     </div>
@@ -714,7 +744,7 @@ const OutcomesModal = ({ onClose }) => {
                               className="outcome-field"
                               style={{ width: '100%', textAlign: 'center' }}
                             />
-                            <span style={{ color: '#52525b', fontSize: '12px', flexShrink: 0 }}>to</span>
+                            <span style={{ color: theme.textMuted, fontSize: '12px', flexShrink: 0 }}>to</span>
                             <input
                               type="number"
                               value={outcome.max ?? ''}
@@ -746,7 +776,7 @@ const OutcomesModal = ({ onClose }) => {
                           onChange={(e) => updateOutcome(outcome.id, 'description', e.target.value)}
                           placeholder="Optional notes..."
                           className="outcome-field"
-                          style={{ width: '100%', color: '#A1A1AA' }}
+                          style={{ width: '100%', color: theme.textSecondary }}
                         />
                       </td>
                       <td style={{ padding: '8px 16px', textAlign: 'center' }}>
@@ -758,7 +788,7 @@ const OutcomesModal = ({ onClose }) => {
                             border: 'none',
                             borderRadius: '4px',
                             cursor: 'pointer',
-                            color: '#52525b',
+                            color: theme.textMuted,
                             opacity: hoveredRow === outcome.id ? 1 : 0,
                             transition: 'all 0.15s ease',
                             display: 'flex',
@@ -766,12 +796,12 @@ const OutcomesModal = ({ onClose }) => {
                             justifyContent: 'center',
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                            e.currentTarget.style.background = theme.deleteButtonHoverBg;
                             e.currentTarget.style.color = '#EF4444';
                           }}
                           onMouseLeave={(e) => {
                             e.currentTarget.style.background = 'transparent';
-                            e.currentTarget.style.color = '#52525b';
+                            e.currentTarget.style.color = theme.textMuted;
                           }}
                         >
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -787,7 +817,7 @@ const OutcomesModal = ({ onClose }) => {
               )}
               {/* Empty rows to fill minimum height */}
               {outcomes.length > 0 && outcomes.length < 8 && Array.from({ length: 8 - outcomes.length }).map((_, i) => (
-                <tr key={`empty-${i}`} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
+                <tr key={`empty-${i}`} style={{ borderBottom: `1px solid ${theme.borderLight}` }}>
                   <td colSpan="6" style={{ padding: '20px 16px' }}></td>
                 </tr>
               ))}
@@ -798,7 +828,7 @@ const OutcomesModal = ({ onClose }) => {
         {/* Footer */}
         <div style={{
           padding: '16px 24px',
-          borderTop: '1px solid rgba(255,255,255,0.06)',
+          borderTop: `1px solid ${theme.border}`,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -808,14 +838,14 @@ const OutcomesModal = ({ onClose }) => {
             display: 'flex',
             gap: '16px',
             fontSize: '11px',
-            color: '#52525b',
+            color: theme.textMuted,
           }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <kbd style={{ padding: '2px 5px', borderRadius: '3px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', fontSize: '10px' }}>⌘N</kbd>
+              <kbd style={{ padding: '2px 5px', borderRadius: '3px', background: theme.cardBgHover, border: `1px solid ${theme.inputBorder}`, fontSize: '10px' }}>⌘N</kbd>
               New
             </span>
             <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <kbd style={{ padding: '2px 5px', borderRadius: '3px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', fontSize: '10px' }}>⌘L</kbd>
+              <kbd style={{ padding: '2px 5px', borderRadius: '3px', background: theme.cardBgHover, border: `1px solid ${theme.inputBorder}`, fontSize: '10px' }}>⌘L</kbd>
               Library
             </span>
           </div>
@@ -828,8 +858,8 @@ const OutcomesModal = ({ onClose }) => {
                 fontSize: '13px',
                 fontWeight: 500,
                 background: 'transparent',
-                color: '#71717A',
-                border: '1px solid rgba(255,255,255,0.1)',
+                color: theme.textTertiary,
+                border: `1px solid ${theme.border}`,
                 borderRadius: '6px',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
@@ -852,9 +882,9 @@ const OutcomesModal = ({ onClose }) => {
                 fontWeight: 600,
                 background: outcomes.length > 0 
                   ? `linear-gradient(135deg, ${themeColor} 0%, #EC4899 100%)`
-                  : 'rgba(255,255,255,0.05)',
-                color: outcomes.length > 0 ? '#0a0a0f' : '#52525b',
-                border: outcomes.length > 0 ? 'none' : '1px solid rgba(255,255,255,0.1)',
+                  : theme.cardBgHover,
+                color: outcomes.length > 0 ? '#ffffff' : theme.textMuted,
+                border: outcomes.length > 0 ? 'none' : `1px solid ${theme.borderLight}`,
                 borderRadius: '6px',
                 cursor: outcomes.length > 0 ? 'pointer' : 'not-allowed',
                 transition: 'all 0.15s ease',
@@ -890,8 +920,8 @@ const OutcomesModal = ({ onClose }) => {
             top: 0,
             bottom: 0,
             width: '480px',
-            background: '#0f0f14',
-            borderLeft: '1px solid rgba(255,255,255,0.08)',
+            background: theme.modalBg,
+            borderLeft: `1px solid ${theme.inputBorder}`,
             boxShadow: '-10px 0 40px rgba(0,0,0,0.4)',
             display: 'flex',
             flexDirection: 'column',
@@ -901,7 +931,7 @@ const OutcomesModal = ({ onClose }) => {
             {/* Library Header */}
             <div style={{
               padding: '20px',
-              borderBottom: '1px solid rgba(255,255,255,0.06)',
+              borderBottom: `1px solid ${theme.border}`,
             }}>
               <div style={{
                 display: 'flex',
@@ -909,7 +939,7 @@ const OutcomesModal = ({ onClose }) => {
                 alignItems: 'center',
                 marginBottom: '16px',
               }}>
-                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: '#E4E4E7' }}>
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: theme.text }}>
                   Outcome Library
                 </h3>
                 <button
@@ -920,11 +950,11 @@ const OutcomesModal = ({ onClose }) => {
                   }}
                   style={{
                     padding: '6px',
-                    background: 'rgba(255,255,255,0.05)',
+                    background: theme.cardBgHover,
                     border: 'none',
                     borderRadius: '5px',
                     cursor: 'pointer',
-                    color: '#71717A',
+                    color: theme.textTertiary,
                   }}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -967,13 +997,13 @@ const OutcomesModal = ({ onClose }) => {
                       fontWeight: 500,
                       background: (cat === 'All' && !searchQuery) || searchQuery.toLowerCase() === cat.toLowerCase()
                         ? `rgba(${themeColorRgb}, 0.15)`
-                        : 'rgba(255,255,255,0.03)',
+                        : theme.inputBg,
                       color: (cat === 'All' && !searchQuery) || searchQuery.toLowerCase() === cat.toLowerCase()
                         ? themeColor
-                        : '#71717A',
+                        : theme.textTertiary,
                       border: (cat === 'All' && !searchQuery) || searchQuery.toLowerCase() === cat.toLowerCase()
                         ? `1px solid rgba(${themeColorRgb}, 0.3)`
-                        : '1px solid rgba(255,255,255,0.08)',
+                        : `1px solid ${theme.inputBorder}`,
                       borderRadius: '4px',
                       cursor: 'pointer',
                       transition: 'all 0.15s ease',
@@ -996,8 +1026,8 @@ const OutcomesModal = ({ onClose }) => {
                     style={{
                       padding: '12px 14px',
                       marginBottom: '6px',
-                      background: isSelected ? `rgba(${themeColorRgb}, 0.08)` : 'rgba(255,255,255,0.02)',
-                      border: `1px solid ${isSelected ? `rgba(${themeColorRgb}, 0.3)` : 'rgba(255,255,255,0.04)'}`,
+                      background: isSelected ? `rgba(${themeColorRgb}, 0.08)` : theme.cardBg,
+                      border: `1px solid ${isSelected ? `rgba(${themeColorRgb}, 0.3)` : theme.borderLight}`,
                       borderRadius: '8px',
                       cursor: 'pointer',
                       display: 'flex',
@@ -1007,14 +1037,14 @@ const OutcomesModal = ({ onClose }) => {
                     }}
                     onMouseEnter={(e) => {
                       if (!isSelected) {
-                        e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
-                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+                        e.currentTarget.style.background = theme.borderLight;
+                        e.currentTarget.style.borderColor = theme.inputBorder;
                       }
                     }}
                     onMouseLeave={(e) => {
                       if (!isSelected) {
-                        e.currentTarget.style.background = 'rgba(255,255,255,0.02)';
-                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)';
+                        e.currentTarget.style.background = theme.cardBg;
+                        e.currentTarget.style.borderColor = theme.borderLight;
                       }
                     }}
                   >
@@ -1022,7 +1052,7 @@ const OutcomesModal = ({ onClose }) => {
                       width: '18px',
                       height: '18px',
                       borderRadius: '5px',
-                      border: isSelected ? 'none' : '2px solid rgba(255,255,255,0.15)',
+                      border: isSelected ? 'none' : `2px solid ${theme.borderStrong}`,
                       background: isSelected ? themeColor : 'transparent',
                       display: 'flex',
                       alignItems: 'center',
@@ -1039,14 +1069,14 @@ const OutcomesModal = ({ onClose }) => {
                     
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                        <span style={{ fontSize: '13px', fontWeight: 600, color: '#E4E4E7' }}>{item.name}</span>
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: theme.text }}>{item.name}</span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <OutcomeTypeTag type={item.outcomeType} small />
                           <VariableTypeTag type={item.variableType} small />
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: '12px', color: '#71717A' }}>{item.description}</span>
+                        <span style={{ fontSize: '12px', color: theme.textTertiary }}>{item.description}</span>
                         {item.limits && (
                           <span style={{ fontSize: '11px', color: '#2DD4BF', fontWeight: 500, fontFamily: 'monospace' }}>{item.limits}</span>
                         )}
@@ -1057,9 +1087,9 @@ const OutcomesModal = ({ onClose }) => {
                             <span key={i} style={{
                               padding: '2px 7px',
                               borderRadius: '4px',
-                              background: 'rgba(255,255,255,0.06)',
+                              background: theme.border,
                               fontSize: '10px',
-                              color: '#A1A1AA',
+                              color: theme.textSecondary,
                             }}>
                               {level}
                             </span>
@@ -1068,9 +1098,9 @@ const OutcomesModal = ({ onClose }) => {
                             <span style={{
                               padding: '2px 7px',
                               borderRadius: '4px',
-                              background: 'rgba(255,255,255,0.06)',
+                              background: theme.border,
                               fontSize: '10px',
-                              color: '#71717A',
+                              color: theme.textTertiary,
                             }}>
                               +{item.levels.length - 4} more
                             </span>
@@ -1087,7 +1117,7 @@ const OutcomesModal = ({ onClose }) => {
                   padding: '40px 20px',
                   textAlign: 'center',
                 }}>
-                  <p style={{ fontSize: '13px', color: '#52525b', margin: 0 }}>
+                  <p style={{ fontSize: '13px', color: theme.textMuted, margin: 0 }}>
                     No outcomes found matching "{searchQuery}"
                   </p>
                 </div>
@@ -1097,12 +1127,12 @@ const OutcomesModal = ({ onClose }) => {
             {/* Library Footer */}
             <div style={{
               padding: '16px 20px',
-              borderTop: '1px solid rgba(255,255,255,0.06)',
+              borderTop: `1px solid ${theme.border}`,
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
             }}>
-              <span style={{ fontSize: '12px', color: '#71717A' }}>
+              <span style={{ fontSize: '12px', color: theme.textTertiary }}>
                 {selectedLibraryItems.length} selected
               </span>
               <button
@@ -1114,9 +1144,9 @@ const OutcomesModal = ({ onClose }) => {
                   fontWeight: 600,
                   background: selectedLibraryItems.length > 0 
                     ? `linear-gradient(135deg, ${themeColor} 0%, #EC4899 100%)`
-                    : 'rgba(255,255,255,0.05)',
-                  color: selectedLibraryItems.length > 0 ? '#0a0a0f' : '#52525b',
-                  border: selectedLibraryItems.length > 0 ? 'none' : '1px solid rgba(255,255,255,0.1)',
+                    : theme.cardBgHover,
+                  color: selectedLibraryItems.length > 0 ? '#ffffff' : theme.textMuted,
+                  border: selectedLibraryItems.length > 0 ? 'none' : `1px solid ${theme.borderLight}`,
                   borderRadius: '6px',
                   cursor: selectedLibraryItems.length > 0 ? 'pointer' : 'not-allowed',
                   display: 'flex',

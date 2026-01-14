@@ -12,7 +12,7 @@ import DataUploadModal from './pages/upload';
 const SetupFlow = () => {
   const navigate = useNavigate();
   const { inputs, outcomes, combinations, constraints, objectives } = useData();
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
 
   const [categoryName, setCategoryName] = useState('');
   const [isEditingCategory, setIsEditingCategory] = useState(false);
@@ -102,47 +102,78 @@ const SetupFlow = () => {
 
   // Node positions - evenly distributed pentagon
   const nodes = [
-    { 
-      id: 'inputs', 
-      label: 'Inputs', 
+    {
+      id: 'inputs',
+      label: 'Inputs',
       x: 0, y: -160,
-      color: '#2DD4BF',
+      color: theme.accentInputs,
+      colorDark: '#2DD4BF',
+      colorLight: '#0d9488',
       description: 'Click to configure',
       required: true
     },
-    { 
-      id: 'outcomes', 
-      label: 'Outcomes', 
+    {
+      id: 'outcomes',
+      label: 'Outcomes',
       x: 152, y: -49,
-      color: '#F472B6',
+      color: theme.accentOutcomes,
+      colorDark: '#F472B6',
+      colorLight: '#db2777',
       description: 'Click to configure',
       required: true
     },
-    { 
-      id: 'combinations', 
-      label: 'Combinations', 
+    {
+      id: 'combinations',
+      label: 'Combinations',
       x: 94, y: 129,
-      color: '#A78BFA',
+      color: theme.accentCombinations,
+      colorDark: '#A78BFA',
+      colorLight: '#7c3aed',
       description: 'Click to configure',
       required: false
     },
-    { 
-      id: 'constraints', 
-      label: 'Constraints', 
+    {
+      id: 'constraints',
+      label: 'Constraints',
       x: -94, y: 129,
-      color: '#FB923C',
+      color: theme.accentConstraints,
+      colorDark: '#FB923C',
+      colorLight: '#ea580c',
       description: 'Click to configure',
       required: false
     },
-    { 
-      id: 'objectives', 
-      label: 'Objectives', 
+    {
+      id: 'objectives',
+      label: 'Objectives',
       x: -152, y: -49,
-      color: '#60A5FA',
+      color: theme.accentObjectives,
+      colorDark: '#60A5FA',
+      colorLight: '#2563eb',
       description: 'Click to configure',
       required: false
     },
   ];
+
+  // Helper to get RGB values for colored shadows
+  const getRgbFromHex = (hex: string) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : null;
+  };
+
+  const getNodeHoverShadow = (colorHex: string) => {
+    const rgb = getRgbFromHex(colorHex);
+    if (!rgb) return 'none';
+
+    if (isDarkMode) {
+      return `0 0 30px ${colorHex}20`;
+    } else {
+      return `0 2px 8px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2), 0 4px 16px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.12)`;
+    }
+  };
 
   const NodeIcon = ({ id, color }) => {
     const iconStyle = { width: 28, height: 28, color };
@@ -234,18 +265,29 @@ const SetupFlow = () => {
           50% { box-shadow: 0 0 30px currentColor, 0 0 60px currentColor; }
         }
         
-        @keyframes completeButtonGlow {
-          0%, 100% { 
-            box-shadow: 0 0 20px rgba(34, 197, 94, 0.6), 
-                        0 0 40px rgba(34, 197, 94, 0.4), 
+        @keyframes completeButtonGlowDark {
+          0%, 100% {
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.6),
+                        0 0 40px rgba(34, 197, 94, 0.4),
                         0 0 60px rgba(34, 197, 94, 0.2),
                         0 4px 20px rgba(0, 0, 0, 0.3);
           }
-          50% { 
-            box-shadow: 0 0 30px rgba(34, 197, 94, 0.8), 
-                        0 0 60px rgba(34, 197, 94, 0.5), 
+          50% {
+            box-shadow: 0 0 30px rgba(34, 197, 94, 0.8),
+                        0 0 60px rgba(34, 197, 94, 0.5),
                         0 0 80px rgba(34, 197, 94, 0.3),
                         0 4px 30px rgba(0, 0, 0, 0.4);
+          }
+        }
+
+        @keyframes completeButtonGlowLight {
+          0%, 100% {
+            box-shadow: 0 2px 16px rgba(22, 163, 74, 0.4),
+                        0 4px 32px rgba(22, 163, 74, 0.2);
+          }
+          50% {
+            box-shadow: 0 2px 20px rgba(22, 163, 74, 0.5),
+                        0 4px 40px rgba(22, 163, 74, 0.3);
           }
         }
         
@@ -254,15 +296,21 @@ const SetupFlow = () => {
           100% { transform: translateX(100%); }
         }
         
-        .complete-button-active {
-          animation: completeButtonGlow 2s ease-in-out infinite;
+        .complete-button-active-dark {
+          animation: completeButtonGlowDark 2s ease-in-out infinite;
+        }
+
+        .complete-button-active-light {
+          animation: completeButtonGlowLight 2s ease-in-out infinite;
         }
         
-        .complete-button-active:hover {
+        .complete-button-active-dark:hover,
+        .complete-button-active-light:hover {
           transform: translateY(-2px) scale(1.02);
         }
-        
-        .complete-button-active::before {
+
+        .complete-button-active-dark::before,
+        .complete-button-active-light::before {
           content: '';
           position: absolute;
           top: 0;
@@ -285,7 +333,9 @@ const SetupFlow = () => {
       <div style={{
         position: 'fixed',
         inset: 0,
-        background: 'radial-gradient(ellipse at 50% 50%, rgba(45, 212, 191, 0.03) 0%, transparent 50%)',
+        background: isDarkMode
+          ? 'radial-gradient(ellipse at 50% 50%, rgba(45, 212, 191, 0.03) 0%, transparent 50%)'
+          : 'radial-gradient(ellipse at 50% 50%, rgba(13, 148, 136, 0.04) 0%, transparent 60%)',
         pointerEvents: 'none',
       }} />
 
@@ -295,7 +345,7 @@ const SetupFlow = () => {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        borderBottom: `1px solid ${theme.border}`,
         position: 'relative',
         zIndex: 100,
       }}>
@@ -306,16 +356,20 @@ const SetupFlow = () => {
             padding: '12px 24px',
             fontSize: '14px',
             fontWeight: 600,
-            background: flowStage === 'category' 
-              ? 'rgba(255,255,255,0.05)'
+            background: flowStage === 'category'
+              ? theme.inputBg
               : flowStage === 'data-upload'
-                ? 'linear-gradient(135deg, #2DD4BF 0%, #22D3EE 100%)'
-                : 'linear-gradient(135deg, #2DD4BF 0%, #22D3EE 100%)',
-            color: flowStage === 'category' 
-              ? '#52525b'
-              : '#0a0a0f',
-            border: flowStage === 'category' 
-              ? '1px solid rgba(255,255,255,0.1)'
+                ? isDarkMode
+                  ? 'linear-gradient(135deg, #2DD4BF 0%, #22D3EE 100%)'
+                  : 'linear-gradient(135deg, #0d9488 0%, #0891b2 100%)'
+                : isDarkMode
+                  ? 'linear-gradient(135deg, #2DD4BF 0%, #22D3EE 100%)'
+                  : 'linear-gradient(135deg, #0d9488 0%, #0891b2 100%)',
+            color: flowStage === 'category'
+              ? theme.textMuted
+              : '#ffffff',
+            border: flowStage === 'category'
+              ? `1px solid ${theme.border}`
               : 'none',
             borderRadius: '8px',
             cursor: flowStage === 'category' ? 'not-allowed' : 'pointer',
@@ -326,8 +380,12 @@ const SetupFlow = () => {
             boxShadow: flowStage === 'category'
               ? 'none'
               : flowStage === 'data-upload'
-                ? '0 0 30px rgba(45, 212, 191, 0.5), 0 0 60px rgba(45, 212, 191, 0.3), 0 4px 20px rgba(45, 212, 191, 0.4)'
-                : '0 4px 20px rgba(45, 212, 191, 0.3)',
+                ? isDarkMode
+                  ? '0 0 30px rgba(45, 212, 191, 0.5), 0 0 60px rgba(45, 212, 191, 0.3), 0 4px 20px rgba(45, 212, 191, 0.4)'
+                  : '0 2px 12px rgba(13, 148, 136, 0.3), 0 4px 24px rgba(13, 148, 136, 0.15)'
+                : isDarkMode
+                  ? '0 4px 20px rgba(45, 212, 191, 0.3)'
+                  : '0 2px 8px rgba(13, 148, 136, 0.2)',
             transform: flowStage === 'data-upload' ? 'scale(1.05)' : 'scale(1)',
           }}
         >
@@ -350,11 +408,11 @@ const SetupFlow = () => {
             alignItems: 'center',
             gap: '16px',
           }}>
-            <span style={{ fontSize: '13px', color: '#71717A' }}>Completeness</span>
+            <span style={{ fontSize: '13px', color: theme.textSecondary }}>Completeness</span>
             <div style={{
               width: '160px',
               height: '6px',
-              background: 'rgba(255,255,255,0.1)',
+              background: theme.border,
               borderRadius: '3px',
               overflow: 'hidden',
             }}>
@@ -366,9 +424,9 @@ const SetupFlow = () => {
                 transition: 'width 0.4s ease-out',
               }} />
             </div>
-            <span style={{ 
-              fontSize: '13px', 
-              color: '#E4E4E7', 
+            <span style={{
+              fontSize: '13px',
+              color: theme.text,
               fontWeight: 600,
               minWidth: '36px',
             }}>
@@ -380,22 +438,24 @@ const SetupFlow = () => {
           <button
             onClick={handleCompleteSetup}
             disabled={!canCompleteSetup}
-            className={canCompleteSetup ? 'complete-button-active' : ''}
+            className={canCompleteSetup ? (isDarkMode ? 'complete-button-active-dark' : 'complete-button-active-light') : ''}
             style={{
               position: 'relative',
               padding: '12px 28px',
               fontSize: '14px',
               fontWeight: 700,
               letterSpacing: '0.02em',
-              background: canCompleteSetup 
-                ? 'linear-gradient(135deg, #22C55E 0%, #16A34A 50%, #15803D 100%)'
-                : 'rgba(255,255,255,0.05)',
-              color: canCompleteSetup 
+              background: canCompleteSetup
+                ? isDarkMode
+                  ? 'linear-gradient(135deg, #22C55E 0%, #16A34A 50%, #15803D 100%)'
+                  : 'linear-gradient(135deg, #16a34a 0%, #15803d 50%, #166534 100%)'
+                : theme.inputBg,
+              color: canCompleteSetup
                 ? '#ffffff'
-                : '#52525b',
-              border: canCompleteSetup 
+                : theme.textMuted,
+              border: canCompleteSetup
                 ? 'none'
-                : '1px solid rgba(255,255,255,0.1)',
+                : `1px solid ${theme.border}`,
               borderRadius: '8px',
               cursor: canCompleteSetup ? 'pointer' : 'not-allowed',
               display: 'flex',
@@ -503,7 +563,7 @@ const SetupFlow = () => {
                   y1={startY}
                   x2={endX}
                   y2={endY}
-                  stroke="rgba(255,255,255,0.1)"
+                  stroke={theme.borderLight}
                   strokeWidth="1"
                 />
               );
@@ -518,12 +578,18 @@ const SetupFlow = () => {
               width: '140px',
               height: '140px',
               borderRadius: '50%',
-              background: isCategorySet 
-                ? 'linear-gradient(135deg, rgba(45, 212, 191, 0.1) 0%, rgba(167, 139, 250, 0.1) 100%)'
-                : 'rgba(255,255,255,0.02)',
-              border: isCategorySet 
-                ? '2px solid rgba(45, 212, 191, 0.6)'
-                : '2px dashed rgba(255,255,255,0.2)',
+              background: isCategorySet
+                ? isDarkMode
+                  ? 'linear-gradient(135deg, rgba(45, 212, 191, 0.1) 0%, rgba(167, 139, 250, 0.1) 100%)'
+                  : 'linear-gradient(135deg, rgba(13, 148, 136, 0.12) 0%, rgba(124, 58, 237, 0.12) 100%)'
+                : isDarkMode
+                  ? theme.cardBg
+                  : 'rgba(0,0,0,0.04)',
+              border: isCategorySet
+                ? isDarkMode
+                  ? '2px solid rgba(45, 212, 191, 0.6)'
+                  : '2px solid rgba(13, 148, 136, 0.5)'
+                : `2px dashed ${theme.border}`,
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -547,7 +613,7 @@ const SetupFlow = () => {
                   background: 'transparent',
                   border: 'none',
                   outline: 'none',
-                  color: '#E4E4E7',
+                  color: theme.text,
                   fontSize: '16px',
                   fontWeight: 600,
                   textAlign: 'center',
@@ -568,7 +634,7 @@ const SetupFlow = () => {
                 </span>
                 <span style={{
                   fontSize: '10px',
-                  color: 'rgba(45, 212, 191, 0.8)',
+                  color: isDarkMode ? 'rgba(45, 212, 191, 0.8)' : 'rgba(13, 148, 136, 0.8)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.15em',
                   marginTop: '8px',
@@ -583,12 +649,12 @@ const SetupFlow = () => {
                   width: '36px',
                   height: '36px',
                   borderRadius: '50%',
-                  border: '2px solid rgba(45, 212, 191, 0.4)',
+                  border: isDarkMode ? '2px solid rgba(45, 212, 191, 0.4)' : '2px solid rgba(13, 148, 136, 0.4)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   marginBottom: '8px',
-                  color: '#2DD4BF',
+                  color: theme.accentInputs,
                   fontSize: '20px',
                   fontWeight: 300,
                 }}>
@@ -596,7 +662,7 @@ const SetupFlow = () => {
                 </div>
                 <span style={{
                   fontSize: '13px',
-                  color: '#71717A',
+                  color: theme.textTertiary,
                   textAlign: 'center',
                 }}>
                   Add Category
@@ -650,18 +716,20 @@ const SetupFlow = () => {
                   width: '100px',
                   height: '100px',
                   borderRadius: '16px',
-                  background: 'rgba(255,255,255,0.03)',
-                  border: `1.5px solid ${status.complete ? node.color : 'rgba(255,255,255,0.1)'}`,
+                  background: theme.cardBg,
+                  border: isDarkMode
+                    ? `1.5px solid ${status.complete ? node.color : theme.border}`
+                    : `${status.complete ? '2px' : '1.5px'} solid ${status.complete ? node.color : theme.borderStrong}`,
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
                   position: 'relative',
                   boxShadow: isHovered && !disabled
-                    ? `0 0 30px ${node.color}20`
+                    ? getNodeHoverShadow(node.color)
                     : 'none',
                 }}>
-                  
+
                   {/* Status indicator - top right */}
                   <div style={{
                     position: 'absolute',
@@ -670,23 +738,27 @@ const SetupFlow = () => {
                     width: '18px',
                     height: '18px',
                     borderRadius: '50%',
-                    background: status.complete 
-                      ? '#22C55E' 
-                      : node.required 
-                        ? '#EF4444' 
-                        : '#3f3f46',
+                    background: status.complete
+                      ? theme.accentSuccess
+                      : node.required
+                        ? theme.accentError
+                        : theme.textTertiary,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    boxShadow: status.complete 
-                      ? '0 0 12px #22C55E, 0 0 24px rgba(34, 197, 94, 0.6)' 
-                      : node.required 
-                        ? '0 0 12px rgba(239, 68, 68, 0.6), 0 0 24px rgba(239, 68, 68, 0.3)'
+                    boxShadow: status.complete
+                      ? isDarkMode
+                        ? '0 0 12px #22C55E, 0 0 24px rgba(34, 197, 94, 0.6)'
+                        : '0 0 8px rgba(22, 163, 74, 0.4), 0 0 16px rgba(22, 163, 74, 0.2)'
+                      : node.required
+                        ? isDarkMode
+                          ? '0 0 12px rgba(239, 68, 68, 0.6), 0 0 24px rgba(239, 68, 68, 0.3)'
+                          : '0 0 8px rgba(220, 38, 38, 0.4), 0 0 16px rgba(220, 38, 38, 0.2)'
                         : 'none',
-                    border: '2px solid #0a0a0f',
+                    border: `2px solid ${theme.background}`,
                   }}>
                     {status.complete && (
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#0a0a0f" strokeWidth="3">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={theme.background} strokeWidth="3">
                         <polyline points="20 6 9 17 4 12" />
                       </svg>
                     )}
@@ -697,16 +769,16 @@ const SetupFlow = () => {
                   <span style={{
                     fontSize: '12px',
                     fontWeight: 500,
-                    color: '#E4E4E7',
+                    color: theme.text,
                     marginTop: '8px',
                   }}>
                     {node.label}
                   </span>
-                  
+
                   {node.required && (
                     <span style={{
                       fontSize: '9px',
-                      color: '#71717A',
+                      color: theme.textSecondary,
                       textTransform: 'uppercase',
                       letterSpacing: '0.1em',
                       marginTop: '2px',
@@ -723,17 +795,19 @@ const SetupFlow = () => {
                     top: '110%',
                     left: '50%',
                     transform: 'translateX(-50%)',
-                    background: 'rgba(20, 20, 28, 0.98)',
-                    border: '1px solid rgba(255,255,255,0.1)',
+                    background: theme.modalBg,
+                    border: isDarkMode ? `1px solid ${theme.border}` : `2px solid ${theme.borderLight}`,
                     borderRadius: '8px',
                     padding: '10px 14px',
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                    boxShadow: isDarkMode
+                      ? '0 8px 32px rgba(0,0,0,0.5)'
+                      : '0 8px 24px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.08)',
                     zIndex: 100,
                     animation: 'slideUp 0.2s ease-out',
                   }}>
                     <p style={{
                       fontSize: '12px',
-                      color: '#A1A1AA',
+                      color: theme.textSecondary,
                       margin: 0,
                       width: '160px',
                       textAlign: 'center',
@@ -766,14 +840,14 @@ const SetupFlow = () => {
               </h2>
               <p style={{
                 fontSize: '15px',
-                color: '#71717A',
+                color: theme.textTertiary,
                 margin: 0,
               }}>
                 Click the center to name your category
               </p>
             </>
           )}
-          
+
           {flowStage === 'data-upload' && (
             <>
               <h2 style={{
@@ -786,13 +860,13 @@ const SetupFlow = () => {
               </h2>
               <p style={{
                 fontSize: '15px',
-                color: '#71717A',
+                color: theme.textTertiary,
                 margin: '0 0 32px 0',
                 maxWidth: '400px',
               }}>
                 Use the upload button above to import data, or skip to configure manually
               </p>
-              
+
               <button
                 onClick={handleSkipUpload}
                 style={{
@@ -800,28 +874,28 @@ const SetupFlow = () => {
                   fontSize: '14px',
                   fontWeight: 500,
                   background: 'transparent',
-                  color: '#71717A',
-                  border: '1px solid rgba(255,255,255,0.15)',
+                  color: theme.textTertiary,
+                  border: `1px solid ${theme.border}`,
                   borderRadius: '8px',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
                 }}
                 onMouseEnter={(e) => {
                   const target = e.target as HTMLButtonElement;
-                  target.style.borderColor = 'rgba(255,255,255,0.3)';
-                  target.style.color = '#A1A1AA';
+                  target.style.borderColor = theme.borderStrong;
+                  target.style.color = theme.textSecondary;
                 }}
                 onMouseLeave={(e) => {
                   const target = e.target as HTMLButtonElement;
-                  target.style.borderColor = 'rgba(255,255,255,0.15)';
-                  target.style.color = '#71717A';
+                  target.style.borderColor = theme.border;
+                  target.style.color = theme.textTertiary;
                 }}
               >
                 Skip for now
               </button>
             </>
           )}
-          
+
           {flowStage === 'configure' && (
             <>
               <h2 style={{
@@ -834,10 +908,10 @@ const SetupFlow = () => {
               </h2>
               <p style={{
                 fontSize: '15px',
-                color: '#71717A',
+                color: theme.textTertiary,
                 margin: 0,
               }}>
-                Select a node to add data. <span style={{ color: '#EF4444' }}>Red</span> indicators show required configurations.
+                Select a node to add data. <span style={{ color: theme.accentError }}>Red</span> indicators show required configurations.
               </p>
             </>
           )}
@@ -859,29 +933,33 @@ const SetupFlow = () => {
                 width: '12px',
                 height: '12px',
                 borderRadius: '50%',
-                background: '#2DD4BF',
-                boxShadow: '0 0 8px #2DD4BF, 0 0 16px rgba(45, 212, 191, 0.5)',
+                background: theme.accentSuccess,
+                boxShadow: isDarkMode
+                  ? '0 0 8px #22C55E, 0 0 16px rgba(34, 197, 94, 0.5)'
+                  : '0 0 6px rgba(22, 163, 74, 0.4), 0 0 12px rgba(22, 163, 74, 0.2)',
               }} />
-              <span style={{ fontSize: '12px', color: '#71717A' }}>Complete</span>
+              <span style={{ fontSize: '12px', color: theme.textTertiary }}>Complete</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{
                 width: '12px',
                 height: '12px',
                 borderRadius: '50%',
-                background: '#EF4444',
-                boxShadow: '0 0 8px #EF4444, 0 0 16px rgba(239, 68, 68, 0.5)',
+                background: theme.accentError,
+                boxShadow: isDarkMode
+                  ? '0 0 8px #EF4444, 0 0 16px rgba(239, 68, 68, 0.5)'
+                  : '0 0 6px rgba(220, 38, 38, 0.4), 0 0 12px rgba(220, 38, 38, 0.2)',
               }} />
-              <span style={{ fontSize: '12px', color: '#71717A' }}>Required</span>
+              <span style={{ fontSize: '12px', color: theme.textTertiary }}>Required</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{
                 width: '12px',
                 height: '12px',
                 borderRadius: '50%',
-                background: '#3f3f46',
+                background: theme.textTertiary,
               }} />
-              <span style={{ fontSize: '12px', color: '#71717A' }}>Optional</span>
+              <span style={{ fontSize: '12px', color: theme.textTertiary }}>Optional</span>
             </div>
           </div>
         )}

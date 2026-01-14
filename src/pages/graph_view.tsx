@@ -30,19 +30,19 @@ interface GraphViewProps {
   onNodeClick: (nodeId: string) => void;
 }
 
-// All possible node definitions
-const ALL_NODES = [
-  { id: 'inputs', label: 'Inputs', color: '#2DD4BF', description: 'View and manage inputs' },
-  { id: 'outcomes', label: 'Outcomes', color: '#F472B6', description: 'View and manage outcomes' },
-  { id: 'combinations', label: 'Combinations', color: '#A78BFA', description: 'View combinations' },
-  { id: 'constraints', label: 'Constraints', color: '#FB923C', description: 'View constraints' },
-  { id: 'objectives', label: 'Objectives', color: '#60A5FA', description: 'View objectives' },
-  { id: 'competitors', label: 'Competitors', color: '#EC4899', description: 'View competitors' },
-  { id: 'packaging', label: 'Packaging', color: '#8B5CF6', description: 'View packaging options' },
-  { id: 'data', label: 'Data', color: '#14B8A6', description: 'View data sources' },
-  { id: 'manufacturingSites', label: 'Mfg Sites', color: '#F59E0B', description: 'View manufacturing sites' },
-  { id: 'suppliers', label: 'Suppliers', color: '#10B981', description: 'View suppliers' },
-  { id: 'distributionChannels', label: 'Distribution', color: '#6366F1', description: 'View distribution channels' },
+// All possible node definitions - function to support theme-aware colors
+const getAllNodes = (isDarkMode: boolean) => [
+  { id: 'inputs', label: 'Inputs', color: isDarkMode ? '#2DD4BF' : '#0f766e', description: 'View and manage inputs' },
+  { id: 'outcomes', label: 'Outcomes', color: isDarkMode ? '#F472B6' : '#be185d', description: 'View and manage outcomes' },
+  { id: 'combinations', label: 'Combinations', color: isDarkMode ? '#A78BFA' : '#6d28d9', description: 'View combinations' },
+  { id: 'constraints', label: 'Constraints', color: isDarkMode ? '#FB923C' : '#c2410c', description: 'View constraints' },
+  { id: 'objectives', label: 'Objectives', color: isDarkMode ? '#60A5FA' : '#1d4ed8', description: 'View objectives' },
+  { id: 'competitors', label: 'Competitors', color: isDarkMode ? '#EC4899' : '#be185d', description: 'View competitors' },
+  { id: 'packaging', label: 'Packaging', color: isDarkMode ? '#8B5CF6' : '#6d28d9', description: 'View packaging options' },
+  { id: 'data', label: 'Data', color: isDarkMode ? '#14B8A6' : '#0f766e', description: 'View data sources' },
+  { id: 'manufacturingSites', label: 'Mfg Sites', color: isDarkMode ? '#F59E0B' : '#d97706', description: 'View manufacturing sites' },
+  { id: 'suppliers', label: 'Suppliers', color: isDarkMode ? '#10B981' : '#15803d', description: 'View suppliers' },
+  { id: 'distributionChannels', label: 'Distribution', color: isDarkMode ? '#6366F1' : '#4f46e5', description: 'View distribution channels' },
 ];
 
 const DEFAULT_VISIBILITY: Record<string, boolean> = {
@@ -70,7 +70,7 @@ const GraphView: React.FC<GraphViewProps> = ({
   connections = [],
   onNodeClick,
 }) => {
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   const viewportRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -121,6 +121,9 @@ const GraphView: React.FC<GraphViewProps> = ({
   const [minimapHovered, setMinimapHovered] = useState(false);
   const [minimapDragging, setMinimapDragging] = useState(false);
   const minimapRef = useRef<SVGSVGElement>(null);
+
+  // All nodes with theme-aware colors
+  const ALL_NODES = useMemo(() => getAllNodes(isDarkMode), [isDarkMode]);
 
   // Persist visibility to localStorage
   useEffect(() => {
@@ -907,15 +910,14 @@ const GraphView: React.FC<GraphViewProps> = ({
         alignItems: 'center',
         gap: '12px',
         zIndex: 100,
-        background: 'rgba(10, 10, 15, 0.9)',
-        backdropFilter: 'blur(12px)',
+        background: theme.overlayBgStrong,
+        backdropFilter: isDarkMode ? 'blur(12px)' : 'none',
         padding: '10px 16px',
         borderRadius: '12px',
         border: `1px solid ${theme.border}`,
-        boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
       }}>
         <div style={{ position: 'relative' }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#52525b" strokeWidth="2" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={theme.textMuted} strokeWidth="2" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
             <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
           <input
@@ -927,7 +929,7 @@ const GraphView: React.FC<GraphViewProps> = ({
               width: '180px',
               padding: '8px 10px 8px 32px',
               fontSize: '12px',
-              background: 'rgba(255,255,255,0.05)',
+              background: theme.inputBg,
               border: `1px solid ${theme.border}`,
               borderRadius: '6px',
               color: theme.text,
@@ -946,7 +948,7 @@ const GraphView: React.FC<GraphViewProps> = ({
                 padding: '6px 12px',
                 fontSize: '11px',
                 fontWeight: 500,
-                background: filterStatus === status ? 'rgba(45, 212, 191, 0.15)' : 'transparent',
+                background: filterStatus === status ? 'rgba(45, 212, 191, 0.15)' : theme.cardBg,
                 color: filterStatus === status ? '#2DD4BF' : theme.textTertiary,
                 border: filterStatus === status ? '1px solid rgba(45, 212, 191, 0.3)' : `1px solid ${theme.border}`,
                 borderRadius: '6px',
@@ -975,8 +977,8 @@ const GraphView: React.FC<GraphViewProps> = ({
             onClick={() => setShowConnectionMenu(!showConnectionMenu)}
             style={{
               padding: '10px 14px',
-              background: 'rgba(10, 10, 15, 0.9)',
-              backdropFilter: 'blur(12px)',
+              background: theme.overlayBgStrong,
+              backdropFilter: isDarkMode ? 'blur(12px)' : 'none',
               border: `1px solid ${theme.border}`,
               borderRadius: '10px',
               color: theme.textSecondary,
@@ -1000,13 +1002,13 @@ const GraphView: React.FC<GraphViewProps> = ({
               top: '100%',
               right: 0,
               marginTop: '8px',
-              background: 'rgba(10, 10, 15, 0.98)',
-              backdropFilter: 'blur(12px)',
+              background: theme.overlayBgStrong,
+              backdropFilter: isDarkMode ? 'blur(12px)' : 'none',
               border: `1px solid ${theme.border}`,
               borderRadius: '10px',
               padding: '8px',
               minWidth: '160px',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+              boxShadow: theme.shadowMd,
               animation: 'fadeIn 0.15s ease-out',
             }}>
               <label style={{
@@ -1020,7 +1022,7 @@ const GraphView: React.FC<GraphViewProps> = ({
                 borderRadius: '6px',
                 transition: 'background 0.1s',
               }}
-              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+              onMouseEnter={(e) => e.currentTarget.style.background = theme.cardBgHover}
               onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
               >
                 <input
@@ -1042,7 +1044,7 @@ const GraphView: React.FC<GraphViewProps> = ({
                 borderRadius: '6px',
                 transition: 'background 0.1s',
               }}
-              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+              onMouseEnter={(e) => e.currentTarget.style.background = theme.cardBgHover}
               onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
               >
                 <input
@@ -1063,8 +1065,8 @@ const GraphView: React.FC<GraphViewProps> = ({
             onClick={() => setShowVisibilityMenu(!showVisibilityMenu)}
             style={{
               padding: '10px 14px',
-              background: 'rgba(10, 10, 15, 0.9)',
-              backdropFilter: 'blur(12px)',
+              background: theme.overlayBgStrong,
+              backdropFilter: isDarkMode ? 'blur(12px)' : 'none',
               border: `1px solid ${theme.border}`,
               borderRadius: '10px',
               color: theme.textSecondary,
@@ -1092,13 +1094,13 @@ const GraphView: React.FC<GraphViewProps> = ({
               top: '100%',
               right: 0,
               marginTop: '8px',
-              background: 'rgba(10, 10, 15, 0.98)',
-              backdropFilter: 'blur(12px)',
+              background: theme.overlayBgStrong,
+              backdropFilter: isDarkMode ? 'blur(12px)' : 'none',
               border: `1px solid ${theme.border}`,
               borderRadius: '10px',
               padding: '8px 0',
               minWidth: '180px',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+              boxShadow: theme.shadowMd,
               animation: 'fadeIn 0.15s ease-out',
             }}>
               <div style={{ padding: '6px 12px 8px', fontSize: '10px', color: theme.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -1115,7 +1117,7 @@ const GraphView: React.FC<GraphViewProps> = ({
                     cursor: 'pointer',
                     transition: 'background 0.1s',
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                  onMouseEnter={(e) => e.currentTarget.style.background = theme.cardBgHover}
                   onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                 >
                   <input
@@ -1145,7 +1147,7 @@ const GraphView: React.FC<GraphViewProps> = ({
                     cursor: 'pointer',
                     transition: 'background 0.1s',
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                  onMouseEnter={(e) => e.currentTarget.style.background = theme.cardBgHover}
                   onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                 >
                   <input
@@ -1169,7 +1171,7 @@ const GraphView: React.FC<GraphViewProps> = ({
                     padding: '6px 10px',
                     fontSize: '10px',
                     fontWeight: 500,
-                    background: 'rgba(255,255,255,0.05)',
+                    background: theme.cardBg,
                     border: `1px solid ${theme.border}`,
                     borderRadius: '4px',
                     color: theme.textSecondary,
@@ -1185,7 +1187,7 @@ const GraphView: React.FC<GraphViewProps> = ({
                     padding: '6px 10px',
                     fontSize: '10px',
                     fontWeight: 500,
-                    background: 'rgba(255,255,255,0.05)',
+                    background: theme.cardBg,
                     border: `1px solid ${theme.border}`,
                     borderRadius: '4px',
                     color: theme.textSecondary,
@@ -1211,8 +1213,8 @@ const GraphView: React.FC<GraphViewProps> = ({
         zIndex: 100,
       }}>
         <div style={{
-          background: 'rgba(10, 10, 15, 0.9)',
-          backdropFilter: 'blur(12px)',
+          background: theme.overlayBgStrong,
+          backdropFilter: isDarkMode ? 'blur(12px)' : 'none',
           borderRadius: '10px',
           border: `1px solid ${theme.border}`,
           padding: '8px',
@@ -1220,23 +1222,23 @@ const GraphView: React.FC<GraphViewProps> = ({
           flexDirection: 'column',
           gap: '4px',
         }}>
-          <button onClick={handleZoomIn} style={{ width: '32px', height: '32px', background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '6px', color: theme.text, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', fontWeight: 300 }}>+</button>
+          <button onClick={handleZoomIn} style={{ width: '32px', height: '32px', background: isDarkMode ? theme.cardBg : '#ffffff', border: isDarkMode ? 'none' : `1.5px solid ${theme.border}`, borderRadius: '6px', color: theme.text, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', fontWeight: 300 }}>+</button>
           <div style={{ textAlign: 'center', fontSize: '10px', color: theme.textTertiary, fontFamily: "'JetBrains Mono', monospace", padding: '4px 0' }}>{Math.round(zoom * 100)}%</div>
-          <button onClick={handleZoomOut} style={{ width: '32px', height: '32px', background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '6px', color: theme.text, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', fontWeight: 300 }}>−</button>
+          <button onClick={handleZoomOut} style={{ width: '32px', height: '32px', background: isDarkMode ? theme.cardBg : '#ffffff', border: isDarkMode ? 'none' : `1.5px solid ${theme.border}`, borderRadius: '6px', color: theme.text, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', fontWeight: 300 }}>−</button>
         </div>
-        <button onClick={handleZoomReset} style={{ padding: '8px 12px', background: 'rgba(10, 10, 15, 0.9)', backdropFilter: 'blur(12px)', border: `1px solid ${theme.border}`, borderRadius: '8px', color: theme.textSecondary, cursor: 'pointer', fontSize: '10px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Reset</button>
+        <button onClick={handleZoomReset} style={{ padding: '8px 12px', background: theme.modalBg, backdropFilter: 'blur(12px)', border: `1px solid ${theme.border}`, borderRadius: '8px', color: theme.textSecondary, cursor: 'pointer', fontSize: '10px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Reset</button>
       </div>
 
       {/* Mini-map - Bottom left (FIXED to viewport, expands on hover, click/drag to navigate) */}
-      <div 
+      <div
         style={{
           position: 'fixed',
           bottom: '20px',
           left: '20px',
           width: minimapHovered ? '200px' : '120px',
           height: minimapHovered ? '200px' : '120px',
-          background: 'rgba(10, 10, 15, 0.95)',
-          backdropFilter: 'blur(12px)',
+          background: theme.overlayBgStrong,
+          backdropFilter: isDarkMode ? 'blur(12px)' : 'none',
           borderRadius: '10px',
           border: `1px solid ${minimapHovered ? 'rgba(45, 212, 191, 0.4)' : theme.border}`,
           overflow: 'hidden',
@@ -1300,7 +1302,7 @@ const GraphView: React.FC<GraphViewProps> = ({
                       cx={WORLD_CENTER + node.x}
                       cy={WORLD_CENTER + node.y}
                       r={Math.max(node.nodeSize / 3, dynamicWidth / 80)}
-                      fill={status.complete ? '#22C55E' : '#3f3f46'}
+                      fill={status.complete ? '#22C55E' : (isDarkMode ? theme.textMuted : '#64748b')}
                       opacity={getNodeOpacity(node.id)}
                     />
                     {/* Show expanded items as tiny dots */}
@@ -1337,8 +1339,8 @@ const GraphView: React.FC<GraphViewProps> = ({
                     y={viewportWorldY}
                     width={viewportWorldWidth}
                     height={viewportWorldHeight}
-                    fill="rgba(255,255,255,0.05)"
-                    stroke="rgba(255,255,255,0.6)"
+                    fill={isDarkMode ? theme.cardBg : 'rgba(248, 250, 252, 0.3)'}
+                    stroke={theme.border}
                     strokeWidth={Math.max(4, scaleFactor / 15)}
                     rx={scaleFactor / 20}
                   />
@@ -1372,8 +1374,8 @@ const GraphView: React.FC<GraphViewProps> = ({
         transform: 'translateX(-50%)',
         display: 'flex',
         gap: '24px',
-        background: 'rgba(10, 10, 15, 0.9)',
-        backdropFilter: 'blur(12px)',
+        background: theme.overlayBgStrong,
+        backdropFilter: isDarkMode ? 'blur(12px)' : 'none',
         padding: '10px 20px',
         borderRadius: '10px',
         border: `1px solid ${theme.border}`,
@@ -1384,7 +1386,7 @@ const GraphView: React.FC<GraphViewProps> = ({
           <span style={{ fontSize: '11px', color: theme.textTertiary }}>Complete</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#3f3f46' }} />
+          <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: theme.textMuted }} />
           <span style={{ fontSize: '11px', color: theme.textTertiary }}>Not configured</span>
         </div>
         <div style={{ fontSize: '11px', color: theme.textMuted }}>
@@ -1476,7 +1478,7 @@ const GraphView: React.FC<GraphViewProps> = ({
                     y1={startY}
                     x2={endX}
                     y2={endY}
-                    stroke="rgba(255,255,255,0.25)"
+                    stroke={theme.border}
                     strokeWidth="1.5"
                     style={{ opacity: opacity * 0.7, transition: 'all 0.4s ease-out' }}
                   />
@@ -1610,8 +1612,8 @@ const GraphView: React.FC<GraphViewProps> = ({
                 width: '140px',
                 height: '140px',
                 borderRadius: '50%',
-                background: 'linear-gradient(135deg, rgba(45, 212, 191, 0.1) 0%, rgba(167, 139, 250, 0.1) 100%)',
-                border: '2px solid rgba(45, 212, 191, 0.6)',
+                background: isDarkMode ? 'linear-gradient(135deg, rgba(45, 212, 191, 0.1) 0%, rgba(167, 139, 250, 0.1) 100%)' : 'linear-gradient(135deg, rgba(14, 116, 110, 0.08) 0%, rgba(109, 40, 217, 0.08) 100%)',
+                border: `2px solid ${isDarkMode ? 'rgba(45, 212, 191, 0.6)' : '#0f766e'}`,
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -1632,7 +1634,7 @@ const GraphView: React.FC<GraphViewProps> = ({
               </span>
               <span style={{
                 fontSize: '10px',
-                color: 'rgba(45, 212, 191, 0.8)',
+                color: isDarkMode ? 'rgba(45, 212, 191, 0.8)' : '#0f766e',
                 textTransform: 'uppercase',
                 letterSpacing: '0.15em',
                 marginTop: '8px',
@@ -1679,8 +1681,8 @@ const GraphView: React.FC<GraphViewProps> = ({
                       width: `${nodeSize}px`,
                       height: `${nodeSize}px`,
                       borderRadius: `${Math.max(8, nodeSize * 0.16)}px`,
-                      background: 'rgba(255,255,255,0.03)',
-                      border: `1.5px solid ${status.complete ? node.color : 'rgba(255,255,255,0.1)'}`,
+                      background: theme.cardBg,
+                      border: `1.5px solid ${status.complete ? node.color : theme.borderLight}`,
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
@@ -1698,15 +1700,15 @@ const GraphView: React.FC<GraphViewProps> = ({
                         width: '18px',
                         height: '18px',
                         borderRadius: '50%',
-                        background: status.complete ? '#22C55E' : '#3f3f46',
+                        background: status.complete ? '#22C55E' : theme.textMuted,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         boxShadow: status.complete ? '0 0 12px #22C55E, 0 0 24px rgba(34, 197, 94, 0.6)' : 'none',
-                        border: '2px solid #0a0a0f',
+                        border: `2px solid ${theme.background}`,
                       }}>
                         {status.complete && (
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#0a0a0f" strokeWidth="3">
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={theme.background} strokeWidth="3">
                             <polyline points="20 6 9 17 4 12" />
                           </svg>
                         )}
@@ -1726,12 +1728,12 @@ const GraphView: React.FC<GraphViewProps> = ({
                           alignItems: 'center',
                           justifyContent: 'center',
                           padding: '0 6px',
-                          border: '2px solid #0a0a0f',
+                          border: `2px solid ${theme.background}`,
                         }}>
                           <span style={{
                             fontSize: '10px',
                             fontWeight: 700,
-                            color: '#0a0a0f',
+                            color: isDarkMode ? '#0a0a0f' : '#ffffff',
                             fontFamily: "'JetBrains Mono', monospace",
                           }}>
                             {status.items}
@@ -1750,8 +1752,8 @@ const GraphView: React.FC<GraphViewProps> = ({
                             width: '20px',
                             height: '20px',
                             borderRadius: '50%',
-                            background: isExpanded ? node.color : '#3f3f46',
-                            border: '2px solid #0a0a0f',
+                            background: isExpanded ? node.color : (isDarkMode ? '#3f3f46' : theme.borderStrong),
+                            border: `2px solid ${theme.background}`,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -1764,7 +1766,7 @@ const GraphView: React.FC<GraphViewProps> = ({
                             height="10"
                             viewBox="0 0 24 24"
                             fill="none"
-                            stroke={isExpanded ? '#0a0a0f' : '#a1a1aa'}
+                            stroke={isExpanded ? (isDarkMode ? '#0a0a0f' : '#ffffff') : (isDarkMode ? '#a1a1aa' : theme.textMuted)}
                             strokeWidth="3"
                             style={{ transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}
                           >
@@ -1792,8 +1794,8 @@ const GraphView: React.FC<GraphViewProps> = ({
                         top: '110%',
                         left: '50%',
                         transform: 'translateX(-50%)',
-                        background: 'rgba(20, 20, 28, 0.98)',
-                        border: '1px solid rgba(255,255,255,0.1)',
+                        background: theme.modalBg,
+                        border: `1px solid ${theme.border}`,
                         borderRadius: '8px',
                         padding: '10px 14px',
                         boxShadow: '0 8px 32px rgba(0,0,0,0.5)',

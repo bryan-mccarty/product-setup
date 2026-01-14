@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useData } from '../contexts/DataContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 const CombinationsModal = ({ onClose }) => {
   const { combinations, setCombinations, inputs } = useData();
+  const { theme, isDarkMode } = useTheme();
   const [expandedId, setExpandedId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [focusNewCombination, setFocusNewCombination] = useState(null);
@@ -378,14 +380,14 @@ const CombinationsModal = ({ onClose }) => {
           width: 5px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(255,255,255,0.02);
+          background: theme.cardBg;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(255,255,255,0.08);
+          background: theme.scrollbarThumb;
           border-radius: 3px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(255,255,255,0.12);
+          background: theme.borderStrong;
         }
         
         input::placeholder {
@@ -395,8 +397,8 @@ const CombinationsModal = ({ onClose }) => {
         .combo-field {
           padding: 8px 12px;
           font-size: 13px;
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(255,255,255,0.08);
+          background: theme.inputBg;
+          border: 1px solid ${theme.inputBorder};
           border-radius: 6px;
           color: #E4E4E7;
           outline: none;
@@ -409,7 +411,7 @@ const CombinationsModal = ({ onClose }) => {
           box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.1);
         }
         .combo-field:hover:not(:focus) {
-          border-color: rgba(255,255,255,0.12);
+          border-color: theme.borderStrong;
         }
         
         .coef-input {
@@ -417,8 +419,8 @@ const CombinationsModal = ({ onClose }) => {
           padding: 4px 6px;
           font-size: 12px;
           font-family: 'JetBrains Mono', monospace;
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.1);
+          background: theme.borderLight;
+          border: 1px solid ${theme.borderLight};
           border-radius: 4px;
           color: ${themeColor};
           text-align: right;
@@ -435,8 +437,8 @@ const CombinationsModal = ({ onClose }) => {
           align-items: center;
           gap: 6px;
           padding: 6px 10px;
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.08);
+          background: theme.borderLight;
+          border: 1px solid ${theme.inputBorder};
           border-radius: 6px;
           cursor: pointer;
           transition: all 0.12s ease;
@@ -463,8 +465,8 @@ const CombinationsModal = ({ onClose }) => {
           padding: 12px;
           font-size: 13px;
           font-family: 'JetBrains Mono', monospace;
-          background: rgba(0,0,0,0.3);
-          border: 1px solid rgba(255,255,255,0.1);
+          background: theme.cardBgDark;
+          border: 1px solid ${theme.borderLight};
           border-radius: 8px;
           color: #E4E4E7;
           outline: none;
@@ -528,7 +530,7 @@ const CombinationsModal = ({ onClose }) => {
         {/* Header */}
         <div style={{
           padding: '20px 24px',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          borderBottom: `1px solid ${theme.border}`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -558,7 +560,7 @@ const CombinationsModal = ({ onClose }) => {
                 margin: 0,
                 fontSize: '18px',
                 fontWeight: 600,
-                color: '#E4E4E7',
+                color: theme.text,
                 letterSpacing: '-0.02em',
               }}>
                 Linear Combinations
@@ -566,7 +568,7 @@ const CombinationsModal = ({ onClose }) => {
               <p style={{
                 margin: '3px 0 0 0',
                 fontSize: '12px',
-                color: '#71717A',
+                color: theme.textTertiary,
               }}>
                 {combinations.length} combination{combinations.length !== 1 ? 's' : ''} • Define weighted sums of continuous inputs
               </p>
@@ -580,7 +582,7 @@ const CombinationsModal = ({ onClose }) => {
               fontSize: '13px',
               fontWeight: 600,
               background: `linear-gradient(135deg, ${themeColor} 0%, #8B5CF6 100%)`,
-              color: '#0a0a0f',
+              color: '#ffffff',
               border: 'none',
               borderRadius: '8px',
               cursor: 'pointer',
@@ -607,7 +609,7 @@ const CombinationsModal = ({ onClose }) => {
             <kbd style={{
               padding: '2px 6px',
               borderRadius: '4px',
-              background: 'rgba(0,0,0,0.2)',
+              background: theme.cardBgDark,
               fontSize: '10px',
               fontWeight: 500,
             }}>⌘N</kbd>
@@ -653,14 +655,14 @@ const CombinationsModal = ({ onClose }) => {
                   margin: '0 0 8px 0',
                   fontSize: '15px',
                   fontWeight: 500,
-                  color: '#A1A1AA',
+                  color: theme.textSecondary,
                 }}>
                   No combinations yet
                 </p>
                 <p style={{
                   margin: 0,
                   fontSize: '13px',
-                  color: '#52525b',
+                  color: theme.textMuted,
                   maxWidth: '320px',
                   lineHeight: 1.5,
                 }}>
@@ -711,8 +713,8 @@ const CombinationsModal = ({ onClose }) => {
                     style={{
                       background: isExpanded 
                         ? `linear-gradient(135deg, rgba(${themeColorRgb}, 0.06) 0%, rgba(${themeColorRgb}, 0.02) 100%)`
-                        : 'rgba(255,255,255,0.02)',
-                      border: `1px solid ${isExpanded ? `rgba(${themeColorRgb}, 0.25)` : 'rgba(255,255,255,0.06)'}`,
+                        : `${theme.cardBg}`,
+                      border: `1px solid ${isExpanded ? `rgba(${themeColorRgb}, 0.25)` : `${theme.border}`}`,
                       borderRadius: '12px',
                       overflow: 'hidden',
                       transition: 'all 0.2s ease',
@@ -730,7 +732,7 @@ const CombinationsModal = ({ onClose }) => {
                         transition: 'background 0.15s ease',
                       }}
                       onMouseEnter={(e) => {
-                        if (!isExpanded) e.currentTarget.style.background = 'rgba(255,255,255,0.02)';
+                        if (!isExpanded) e.currentTarget.style.background = `${theme.cardBg}`;
                       }}
                       onMouseLeave={(e) => {
                         if (!isExpanded) e.currentTarget.style.background = 'transparent';
@@ -758,14 +760,14 @@ const CombinationsModal = ({ onClose }) => {
                           <div style={{ 
                             fontSize: '14px', 
                             fontWeight: 600, 
-                            color: combo.name ? '#E4E4E7' : '#52525b',
+                            color: combo.name ? theme.text : theme.textMuted,
                             marginBottom: '2px',
                           }}>
                             {combo.name || 'Untitled combination'}
                           </div>
                           <div style={{ 
                             fontSize: '12px', 
-                            color: '#71717A',
+                            color: theme.textTertiary,
                             fontFamily: combo.terms.length > 0 ? "'JetBrains Mono', monospace" : 'inherit',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
@@ -780,9 +782,9 @@ const CombinationsModal = ({ onClose }) => {
                         <span style={{
                           padding: '4px 8px',
                           borderRadius: '4px',
-                          background: 'rgba(255,255,255,0.04)',
+                          background: `${theme.borderLight}`,
                           fontSize: '11px',
-                          color: '#71717A',
+                          color: theme.textTertiary,
                           fontWeight: 500,
                         }}>
                           {combo.terms.length} term{combo.terms.length !== 1 ? 's' : ''}
@@ -808,7 +810,7 @@ const CombinationsModal = ({ onClose }) => {
                     {isExpanded && (
                       <div style={{
                         padding: '0 16px 16px 16px',
-                        borderTop: '1px solid rgba(255,255,255,0.04)',
+                        borderTop: `1px solid ${theme.borderLight}`,
                         animation: 'fadeIn 0.2s ease-out',
                       }}>
                         {/* Name & Description */}
@@ -823,7 +825,7 @@ const CombinationsModal = ({ onClose }) => {
                               display: 'block', 
                               fontSize: '11px', 
                               fontWeight: 600, 
-                              color: '#71717A', 
+                              color: theme.textTertiary, 
                               textTransform: 'uppercase',
                               letterSpacing: '0.05em',
                               marginBottom: '6px',
@@ -845,7 +847,7 @@ const CombinationsModal = ({ onClose }) => {
                               display: 'block', 
                               fontSize: '11px', 
                               fontWeight: 600, 
-                              color: '#71717A', 
+                              color: theme.textTertiary, 
                               textTransform: 'uppercase',
                               letterSpacing: '0.05em',
                               marginBottom: '6px',
@@ -874,7 +876,7 @@ const CombinationsModal = ({ onClose }) => {
                             <label style={{ 
                               fontSize: '11px', 
                               fontWeight: 600, 
-                              color: '#71717A', 
+                              color: theme.textTertiary, 
                               textTransform: 'uppercase',
                               letterSpacing: '0.05em',
                             }}>
@@ -884,7 +886,7 @@ const CombinationsModal = ({ onClose }) => {
                               {combo.terms.length > 0 && !directEntryMode[combo.id] && (
                                 <div style={{
                                   fontSize: '11px',
-                                  color: '#52525b',
+                                  color: theme.textMuted,
                                   fontFamily: "'JetBrains Mono', monospace",
                                 }}>
                                   = Σ (coef × input)
@@ -902,11 +904,11 @@ const CombinationsModal = ({ onClose }) => {
                                   fontWeight: 600,
                                   background: directEntryMode[combo.id] 
                                     ? `rgba(${themeColorRgb}, 0.15)` 
-                                    : 'rgba(255,255,255,0.04)',
-                                  color: directEntryMode[combo.id] ? themeColor : '#71717A',
+                                    : `${theme.borderLight}`,
+                                  color: directEntryMode[combo.id] ? themeColor : theme.textTertiary,
                                   border: `1px solid ${directEntryMode[combo.id] 
                                     ? `rgba(${themeColorRgb}, 0.3)` 
-                                    : 'rgba(255,255,255,0.08)'}`,
+                                    : `${theme.inputBorder}`}`,
                                   borderRadius: '4px',
                                   cursor: 'pointer',
                                   display: 'flex',
@@ -958,15 +960,15 @@ const CombinationsModal = ({ onClose }) => {
                                   <div className="mention-dropdown" style={{ top: '100%', marginTop: '4px' }}>
                                     <div style={{
                                       padding: '6px 12px',
-                                      borderBottom: '1px solid rgba(255,255,255,0.06)',
+                                      borderBottom: `1px solid ${theme.border}`,
                                       display: 'flex',
                                       alignItems: 'center',
                                       justifyContent: 'space-between',
                                     }}>
-                                      <span style={{ fontSize: '10px', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                      <span style={{ fontSize: '10px', color: theme.textTertiary, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                         Select input
                                       </span>
-                                      <span style={{ fontSize: '10px', color: '#52525b' }}>
+                                      <span style={{ fontSize: '10px', color: theme.textMuted }}>
                                         ↑↓ navigate · Enter/Tab select
                                       </span>
                                     </div>
@@ -980,7 +982,7 @@ const CombinationsModal = ({ onClose }) => {
                                         }}
                                         onMouseEnter={() => setMentionIndex(idx)}
                                       >
-                                        <span style={{ fontSize: '13px', fontWeight: 500, color: '#E4E4E7' }}>
+                                        <span style={{ fontSize: '13px', fontWeight: 500, color: theme.text }}>
                                           @{input.name}
                                         </span>
                                         <InputTypeChip type={input.inputType} />
@@ -993,10 +995,10 @@ const CombinationsModal = ({ onClose }) => {
                               <div style={{
                                 marginTop: '8px',
                                 padding: '8px 10px',
-                                background: 'rgba(255,255,255,0.02)',
+                                background: `${theme.cardBg}`,
                                 borderRadius: '6px',
                                 fontSize: '11px',
-                                color: '#52525b',
+                                color: theme.textMuted,
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '16px',
@@ -1004,7 +1006,7 @@ const CombinationsModal = ({ onClose }) => {
                                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                   <kbd style={{ 
                                     padding: '1px 4px', 
-                                    background: 'rgba(255,255,255,0.06)', 
+                                    background: `${theme.border}`, 
                                     borderRadius: '3px',
                                     fontFamily: "'JetBrains Mono', monospace",
                                     fontSize: '11px',
@@ -1012,7 +1014,7 @@ const CombinationsModal = ({ onClose }) => {
                                   }}>@</kbd>
                                   to insert input
                                 </span>
-                                <span>Use <code style={{ color: '#71717A' }}>+</code> <code style={{ color: '#71717A' }}>-</code> <code style={{ color: '#71717A' }}>*</code> for operators</span>
+                                <span>Use <code style={{ color: theme.textTertiary }}>+</code> <code style={{ color: theme.textTertiary }}>-</code> <code style={{ color: theme.textTertiary }}>*</code> for operators</span>
                               </div>
                             </div>
                           ) : (
@@ -1031,7 +1033,7 @@ const CombinationsModal = ({ onClose }) => {
                                     <React.Fragment key={term.inputId}>
                                       {idx > 0 && (
                                         <span style={{ 
-                                          color: '#52525b', 
+                                          color: theme.textMuted, 
                                           fontSize: '14px',
                                           fontWeight: 500,
                                           padding: '0 2px',
@@ -1048,14 +1050,14 @@ const CombinationsModal = ({ onClose }) => {
                                         />
                                         <span style={{ 
                                           fontSize: '11px', 
-                                          color: '#71717A',
+                                          color: theme.textTertiary,
                                           fontFamily: "'JetBrains Mono', monospace",
                                         }}>
                                           ·
                                         </span>
                                         <span style={{ 
                                           fontSize: '12px', 
-                                          color: '#A1A1AA',
+                                          color: theme.textSecondary,
                                           fontWeight: 500,
                                         }}>
                                           {term.inputName}
@@ -1068,11 +1070,11 @@ const CombinationsModal = ({ onClose }) => {
                                           style={{
                                             padding: '2px',
                                             marginLeft: '2px',
-                                            background: 'rgba(255,255,255,0.06)',
+                                            background: `${theme.border}`,
                                             border: 'none',
                                             borderRadius: '4px',
                                             cursor: 'pointer',
-                                            color: '#52525b',
+                                            color: theme.textMuted,
                                             display: 'flex',
                                             alignItems: 'center',
                                             transition: 'all 0.15s ease',
@@ -1082,8 +1084,8 @@ const CombinationsModal = ({ onClose }) => {
                                             e.currentTarget.style.color = '#EF4444';
                                           }}
                                           onMouseLeave={(e) => {
-                                            e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
-                                            e.currentTarget.style.color = '#52525b';
+                                            e.currentTarget.style.background = `${theme.border}`;
+                                            e.currentTarget.style.color = theme.textMuted;
                                           }}
                                           title="Remove term"
                                         >
@@ -1129,7 +1131,7 @@ const CombinationsModal = ({ onClose }) => {
                                 style={{ 
                                   width: '100%', 
                                   paddingLeft: '36px',
-                                  background: 'rgba(255,255,255,0.02)',
+                                  background: `${theme.cardBg}`,
                                 }}
                                 onClick={(e) => e.stopPropagation()}
                               />
@@ -1157,14 +1159,14 @@ const CombinationsModal = ({ onClose }) => {
                                     <line x1="12" y1="5" x2="12" y2="19" />
                                     <line x1="5" y1="12" x2="19" y2="12" />
                                   </svg>
-                                  <span style={{ fontSize: '12px', color: '#E4E4E7', fontWeight: 500 }}>
+                                  <span style={{ fontSize: '12px', color: theme.text, fontWeight: 500 }}>
                                     {input.name}
                                   </span>
                                   <InputTypeChip type={input.inputType} />
                                 </div>
                               ))}
                               {filteredInputs.length === 0 && (
-                                <span style={{ fontSize: '12px', color: '#52525b', padding: '8px 0' }}>
+                                <span style={{ fontSize: '12px', color: theme.textMuted, padding: '8px 0' }}>
                                   {searchQuery ? 'No matching inputs' : 'All inputs added'}
                                 </span>
                               )}
@@ -1181,7 +1183,7 @@ const CombinationsModal = ({ onClose }) => {
                           alignItems: 'center',
                           marginTop: '20px',
                           paddingTop: '16px',
-                          borderTop: '1px solid rgba(255,255,255,0.04)',
+                          borderTop: `1px solid ${theme.borderLight}`,
                         }}>
                           <div style={{ display: 'flex', gap: '8px' }}>
                             <button
@@ -1193,9 +1195,9 @@ const CombinationsModal = ({ onClose }) => {
                                 padding: '6px 12px',
                                 fontSize: '12px',
                                 fontWeight: 500,
-                                background: 'rgba(255,255,255,0.04)',
-                                color: '#71717A',
-                                border: '1px solid rgba(255,255,255,0.08)',
+                                background: `${theme.borderLight}`,
+                                color: theme.textTertiary,
+                                border: `1px solid ${theme.inputBorder}`,
                                 borderRadius: '6px',
                                 cursor: 'pointer',
                                 display: 'flex',
@@ -1204,12 +1206,12 @@ const CombinationsModal = ({ onClose }) => {
                                 transition: 'all 0.15s ease',
                               }}
                               onMouseEnter={(e) => {
-                                e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
-                                e.currentTarget.style.color = '#A1A1AA';
+                                e.currentTarget.style.background = `${theme.border}`;
+                                e.currentTarget.style.color = theme.textSecondary;
                               }}
                               onMouseLeave={(e) => {
-                                e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
-                                e.currentTarget.style.color = '#71717A';
+                                e.currentTarget.style.background = `${theme.borderLight}`;
+                                e.currentTarget.style.color = theme.textTertiary;
                               }}
                             >
                               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1228,8 +1230,8 @@ const CombinationsModal = ({ onClose }) => {
                                 fontSize: '12px',
                                 fontWeight: 500,
                                 background: 'transparent',
-                                color: '#71717A',
-                                border: '1px solid rgba(255,255,255,0.08)',
+                                color: theme.textTertiary,
+                                border: `1px solid ${theme.inputBorder}`,
                                 borderRadius: '6px',
                                 cursor: 'pointer',
                                 display: 'flex',
@@ -1244,8 +1246,8 @@ const CombinationsModal = ({ onClose }) => {
                               }}
                               onMouseLeave={(e) => {
                                 e.currentTarget.style.background = 'transparent';
-                                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
-                                e.currentTarget.style.color = '#71717A';
+                                e.currentTarget.style.borderColor = `${theme.inputBorder}`;
+                                e.currentTarget.style.color = theme.textTertiary;
                               }}
                             >
                               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1261,7 +1263,7 @@ const CombinationsModal = ({ onClose }) => {
                           {combo.terms.length > 0 && (
                             <div style={{
                               padding: '8px 12px',
-                              background: 'rgba(0,0,0,0.3)',
+                              background: theme.cardBgDark,
                               borderRadius: '6px',
                               fontSize: '12px',
                               fontFamily: "'JetBrains Mono', monospace",
@@ -1287,25 +1289,25 @@ const CombinationsModal = ({ onClose }) => {
         {/* Footer */}
         <div style={{
           padding: '16px 24px',
-          borderTop: '1px solid rgba(255,255,255,0.06)',
+          borderTop: `1px solid ${theme.border}`,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexShrink: 0,
-          background: 'rgba(0,0,0,0.2)',
+          background: theme.cardBgDark,
         }}>
           <div style={{
             display: 'flex',
             gap: '16px',
             fontSize: '11px',
-            color: '#52525b',
+            color: theme.textMuted,
           }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
               <kbd style={{ 
                 padding: '2px 6px', 
                 borderRadius: '4px', 
-                background: 'rgba(255,255,255,0.05)', 
-                border: '1px solid rgba(255,255,255,0.08)', 
+                background: `${theme.borderLight}`, 
+                border: `1px solid ${theme.inputBorder}`, 
                 fontSize: '10px' 
               }}>⌘N</kbd>
               New
@@ -1314,8 +1316,8 @@ const CombinationsModal = ({ onClose }) => {
               <kbd style={{ 
                 padding: '2px 6px', 
                 borderRadius: '4px', 
-                background: 'rgba(255,255,255,0.05)', 
-                border: '1px solid rgba(255,255,255,0.08)', 
+                background: `${theme.borderLight}`, 
+                border: `1px solid ${theme.inputBorder}`, 
                 fontSize: '10px' 
               }}>Esc</kbd>
               Collapse
@@ -1330,19 +1332,19 @@ const CombinationsModal = ({ onClose }) => {
                 fontSize: '13px',
                 fontWeight: 500,
                 background: 'transparent',
-                color: '#71717A',
-                border: '1px solid rgba(255,255,255,0.1)',
+                color: theme.textTertiary,
+                border: `1px solid ${theme.borderLight}`,
                 borderRadius: '8px',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
-                e.currentTarget.style.color = '#A1A1AA';
+                e.currentTarget.style.borderColor = theme.borderStrong;
+                e.currentTarget.style.color = theme.textSecondary;
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
-                e.currentTarget.style.color = '#71717A';
+                e.currentTarget.style.borderColor = theme.borderLight;
+                e.currentTarget.style.color = theme.textTertiary;
               }}
             >
               Cancel
@@ -1360,9 +1362,9 @@ const CombinationsModal = ({ onClose }) => {
                 fontWeight: 600,
                 background: combinations.length > 0
                   ? `linear-gradient(135deg, ${themeColor} 0%, #8B5CF6 100%)`
-                  : 'rgba(255,255,255,0.05)',
-                color: combinations.length > 0 ? '#0a0a0f' : '#52525b',
-                border: combinations.length > 0 ? 'none' : '1px solid rgba(255,255,255,0.1)',
+                  : `${theme.borderLight}`,
+                color: combinations.length > 0 ? '#ffffff' : theme.textMuted,
+                border: combinations.length > 0 ? 'none' : `1px solid ${theme.borderLight}`,
                 borderRadius: '8px',
                 cursor: combinations.length > 0 ? 'pointer' : 'not-allowed',
                 transition: 'all 0.15s ease',

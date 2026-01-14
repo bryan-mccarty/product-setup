@@ -60,7 +60,7 @@ const AppHeader: React.FC = () => {
       <button
         onClick={toggleTheme}
         style={{
-          padding: '6px 12px',
+          padding: '6px',
           fontSize: '13px',
           fontWeight: 500,
           background: theme.inputBg,
@@ -70,7 +70,9 @@ const AppHeader: React.FC = () => {
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
-          gap: '6px',
+          justifyContent: 'center',
+          height: '32px',
+          width: '32px',
           transition: 'all 0.2s ease',
         }}
         onMouseEnter={(e) => {
@@ -100,7 +102,6 @@ const AppHeader: React.FC = () => {
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
           </svg>
         )}
-        {isDarkMode ? 'Light' : 'Dark'}
       </button>
     </div>
   );

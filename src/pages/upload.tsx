@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useData } from '../contexts/DataContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 const DataUploadModal = ({ onClose, onSave }) => {
   const { setInputs, setOutcomes } = useData();
+  const { theme, isDarkMode } = useTheme();
   const [stage, setStage] = useState('upload'); // 'upload' | 'preview' | 'classify'
   const [uploadedFile, setUploadedFile] = useState(null);
   const [parsedData, setParsedData] = useState(null);
@@ -245,7 +247,7 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
     const colors = {
       'input': { bg: 'rgba(45, 212, 191, 0.15)', text: '#2DD4BF', border: 'rgba(45, 212, 191, 0.3)' },
       'outcome': { bg: 'rgba(244, 114, 182, 0.15)', text: '#F472B6', border: 'rgba(244, 114, 182, 0.3)' },
-      'unknown': { bg: 'rgba(113, 113, 122, 0.15)', text: '#A1A1AA', border: 'rgba(113, 113, 122, 0.3)' },
+      'unknown': { bg: 'rgba(113, 113, 122, 0.15)', text: theme.textSecondary, border: 'rgba(113, 113, 122, 0.3)' },
     };
     const c = colors[type] || colors['unknown'];
     return (
@@ -286,7 +288,7 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
       'Analytical': { bg: 'rgba(96, 165, 250, 0.12)', text: '#60A5FA', border: 'rgba(96, 165, 250, 0.25)' },
       'Sensory': { bg: 'rgba(251, 146, 60, 0.12)', text: '#FB923C', border: 'rgba(251, 146, 60, 0.25)' },
       'Consumer': { bg: 'rgba(244, 114, 182, 0.12)', text: '#F472B6', border: 'rgba(244, 114, 182, 0.25)' },
-      'Other': { bg: 'rgba(113, 113, 122, 0.12)', text: '#A1A1AA', border: 'rgba(113, 113, 122, 0.25)' },
+      'Other': { bg: 'rgba(113, 113, 122, 0.12)', text: theme.textSecondary, border: 'rgba(113, 113, 122, 0.25)' },
     };
     const colors = classification === 'input' ? inputColors : outcomeColors;
     const c = colors[type] || colors['Other'];
@@ -316,7 +318,7 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
           width: '40px',
           height: '4px',
           borderRadius: '2px',
-          background: 'rgba(255,255,255,0.1)',
+          background: theme.scrollbarThumb,
           overflow: 'hidden',
         }}>
           <div style={{
@@ -327,7 +329,7 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
             transition: 'width 0.3s ease',
           }} />
         </div>
-        <span style={{ fontSize: '10px', color: '#71717A', fontFamily: "'JetBrains Mono', monospace" }}>
+        <span style={{ fontSize: '10px', color: theme.textTertiary, fontFamily: "'JetBrains Mono', monospace" }}>
           {percent}%
         </span>
       </div>
@@ -402,23 +404,23 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
           width: 5px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(255,255,255,0.02);
+          background: theme.cardBg;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(255,255,255,0.08);
+          background: theme.scrollbarThumb;
           border-radius: 3px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(255,255,255,0.12);
+          background: theme.borderStrong;
         }
         
         .upload-field {
           padding: 8px 12px;
           font-size: 13px;
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(255,255,255,0.08);
+          background: theme.inputBg;
+          border: 1px solid ${theme.inputBorder};
           border-radius: 6px;
-          color: #E4E4E7;
+          color: theme.text;
           outline: none;
           font-family: inherit;
           transition: all 0.15s ease;
@@ -432,8 +434,8 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
         .table-cell {
           padding: 8px 12px;
           font-size: 12px;
-          color: #A1A1AA;
-          border-bottom: 1px solid rgba(255,255,255,0.04);
+          color: theme.textSecondary;
+          border-bottom: 1px solid ${theme.borderLight};
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -444,11 +446,11 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
           padding: 10px 12px;
           font-size: 11px;
           font-weight: 600;
-          color: #71717A;
+          color: theme.textTertiary;
           text-transform: uppercase;
           letter-spacing: 0.05em;
-          background: rgba(255,255,255,0.02);
-          border-bottom: 1px solid rgba(255,255,255,0.06);
+          background: theme.cardBg;
+          border-bottom: 1px solid ${theme.border};
           position: sticky;
           top: 0;
           z-index: 10;
@@ -458,16 +460,16 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
           display: flex;
           align-items: center;
           padding: 10px 14px;
-          background: rgba(255,255,255,0.015);
-          border: 1px solid rgba(255,255,255,0.06);
+          background: theme.rowHoverBg;
+          border: 1px solid ${theme.border};
           border-radius: 10px;
           margin-bottom: 8px;
           transition: all 0.15s ease;
           cursor: pointer;
         }
         .classification-row:hover {
-          background: rgba(255,255,255,0.025);
-          border-color: rgba(255,255,255,0.1);
+          background: theme.cardBgHover;
+          border-color: theme.borderLight;
         }
         .classification-row.confirmed {
           border-color: rgba(34, 197, 94, 0.3);
@@ -479,10 +481,10 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
           padding: 4px 24px 4px 8px;
           font-size: 10px;
           font-weight: 500;
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.1);
+          background: theme.borderLight;
+          border: 1px solid ${theme.borderLight};
           border-radius: 4px;
-          color: #A1A1AA;
+          color: theme.textSecondary;
           outline: none;
           cursor: pointer;
           background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2371717A' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
@@ -491,7 +493,7 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
           transition: all 0.15s ease;
         }
         select.subtype-select:hover {
-          border-color: rgba(255,255,255,0.2);
+          border-color: theme.borderStrong;
         }
         select.subtype-select:focus {
           border-color: rgba(34, 211, 238, 0.5);
@@ -503,7 +505,7 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
         width: stage === 'upload' ? '580px' : stage === 'preview' ? '1000px' : '900px',
         maxWidth: '95vw',
         maxHeight: '90vh',
-        background: 'linear-gradient(180deg, #111116 0%, #0c0c10 100%)',
+        background: theme.modalBg,
         borderRadius: '16px',
         border: `1px solid rgba(${themeColorRgb}, 0.2)`,
         boxShadow: `0 0 80px rgba(${themeColorRgb}, 0.08), 0 25px 80px rgba(0,0,0,0.6)`,
@@ -517,7 +519,7 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
         {/* Header */}
         <div style={{
           padding: '20px 24px',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          borderBottom: `1px solid ${theme.border}`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -545,7 +547,7 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
                 margin: 0,
                 fontSize: '18px',
                 fontWeight: 600,
-                color: '#E4E4E7',
+                color: theme.text,
                 letterSpacing: '-0.02em',
               }}>
                 {stage === 'upload' && 'Upload Formulation Data'}
@@ -555,7 +557,7 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
               <p style={{
                 margin: '3px 0 0 0',
                 fontSize: '12px',
-                color: '#71717A',
+                color: theme.textTertiary,
               }}>
                 {stage === 'upload' && 'Import your CSV file with formulation data'}
                 {stage === 'preview' && parsedData && `${parsedData.length} formulations • ${columns.length} columns detected`}
@@ -576,22 +578,22 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
                     ? `linear-gradient(135deg, ${themeColor}, ${secondaryColor})`
                     : idx < ['upload', 'preview', 'classify'].indexOf(stage)
                       ? 'rgba(34, 197, 94, 0.2)'
-                      : 'rgba(255,255,255,0.05)',
+                      : `${theme.borderLight}`,
                   border: stage === step 
                     ? 'none'
                     : idx < ['upload', 'preview', 'classify'].indexOf(stage)
                       ? '1px solid rgba(34, 197, 94, 0.4)'
-                      : '1px solid rgba(255,255,255,0.1)',
+                      : `1px solid ${theme.borderLight}`,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: '11px',
                   fontWeight: 600,
                   color: stage === step 
-                    ? '#0a0a0f' 
+                    ? '#ffffff' 
                     : idx < ['upload', 'preview', 'classify'].indexOf(stage)
                       ? '#22C55E'
-                      : '#52525b',
+                      : theme.textMuted,
                   transition: 'all 0.3s ease',
                 }}>
                   {idx < ['upload', 'preview', 'classify'].indexOf(stage) ? (
@@ -608,7 +610,7 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
                     height: '2px',
                     background: idx < ['upload', 'preview', 'classify'].indexOf(stage)
                       ? 'rgba(34, 197, 94, 0.4)'
-                      : 'rgba(255,255,255,0.08)',
+                      : `${theme.inputBorder}`,
                     borderRadius: '1px',
                     transition: 'background 0.3s ease',
                   }} />
@@ -657,10 +659,10 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
                   maxWidth: '420px',
                   padding: '48px 32px',
                   borderRadius: '16px',
-                  border: `2px dashed ${isDragging ? themeColor : 'rgba(255,255,255,0.15)'}`,
+                  border: `2px dashed ${isDragging ? themeColor : `${theme.borderStrong}`}`,
                   background: isDragging 
                     ? `rgba(${themeColorRgb}, 0.05)` 
-                    : 'rgba(255,255,255,0.02)',
+                    : `${theme.cardBg}`,
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
                   textAlign: 'center',
@@ -682,10 +684,10 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
                       </svg>
                     </div>
                     <div>
-                      <p style={{ margin: 0, fontSize: '14px', fontWeight: 500, color: '#E4E4E7' }}>
+                      <p style={{ margin: 0, fontSize: '14px', fontWeight: 500, color: theme.text }}>
                         Processing file...
                       </p>
-                      <p style={{ margin: '6px 0 0 0', fontSize: '12px', color: '#71717A' }}>
+                      <p style={{ margin: '6px 0 0 0', fontSize: '12px', color: theme.textTertiary }}>
                         Parsing CSV data
                       </p>
                     </div>
@@ -698,25 +700,25 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
                       borderRadius: '16px',
                       background: isDragging 
                         ? `rgba(${themeColorRgb}, 0.15)` 
-                        : 'rgba(255,255,255,0.04)',
-                      border: `1px solid ${isDragging ? `rgba(${themeColorRgb}, 0.3)` : 'rgba(255,255,255,0.08)'}`,
+                        : `${theme.borderLight}`,
+                      border: `1px solid ${isDragging ? `rgba(${themeColorRgb}, 0.3)` : `${theme.inputBorder}`}`,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       margin: '0 auto 20px auto',
                       transition: 'all 0.2s ease',
                     }}>
-                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={isDragging ? themeColor : '#71717A'} strokeWidth="1.5">
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={isDragging ? themeColor : theme.textTertiary} strokeWidth="1.5">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                         <polyline points="17 8 12 3 7 8" />
                         <line x1="12" y1="3" x2="12" y2="15" />
                       </svg>
                     </div>
                     
-                    <p style={{ margin: '0 0 8px 0', fontSize: '15px', fontWeight: 500, color: '#E4E4E7' }}>
+                    <p style={{ margin: '0 0 8px 0', fontSize: '15px', fontWeight: 500, color: theme.text }}>
                       {isDragging ? 'Drop your file here' : 'Drag & drop your CSV file'}
                     </p>
-                    <p style={{ margin: 0, fontSize: '13px', color: '#71717A' }}>
+                    <p style={{ margin: 0, fontSize: '13px', color: theme.textTertiary }}>
                       or <span style={{ color: themeColor, fontWeight: 500 }}>click to browse</span>
                     </p>
                     
@@ -724,10 +726,10 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
                       marginTop: '20px',
                       padding: '10px 14px',
                       borderRadius: '8px',
-                      background: 'rgba(255,255,255,0.03)',
-                      border: '1px solid rgba(255,255,255,0.06)',
+                      background: theme.inputBg,
+                      border: `1px solid ${theme.border}`,
                     }}>
-                      <p style={{ margin: 0, fontSize: '11px', color: '#52525b' }}>
+                      <p style={{ margin: 0, fontSize: '11px', color: theme.textMuted }}>
                         Expected format: CSV with columns for inputs (ingredients, processing conditions) and outcomes (measurements, sensory scores)
                       </p>
                     </div>
@@ -745,8 +747,8 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
                     fontSize: '13px',
                     fontWeight: 500,
                     background: 'transparent',
-                    color: '#71717A',
-                    border: '1px solid rgba(255,255,255,0.12)',
+                    color: theme.textTertiary,
+                    border: `1px solid ${theme.borderStrong}`,
                     borderRadius: '8px',
                     cursor: 'pointer',
                     display: 'flex',
@@ -755,12 +757,12 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
                     transition: 'all 0.15s ease',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)';
-                    e.currentTarget.style.color = '#A1A1AA';
+                    e.currentTarget.style.borderColor = theme.borderStrong;
+                    e.currentTarget.style.color = theme.textSecondary;
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)';
-                    e.currentTarget.style.color = '#71717A';
+                    e.currentTarget.style.borderColor = theme.borderStrong;
+                    e.currentTarget.style.color = theme.textTertiary;
                   }}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -786,7 +788,7 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
               <div style={{
                 padding: '16px 24px',
                 background: `linear-gradient(90deg, rgba(${themeColorRgb}, 0.06) 0%, rgba(${secondaryColorRgb}, 0.03) 100%)`,
-                borderBottom: '1px solid rgba(255,255,255,0.06)',
+                borderBottom: `1px solid ${theme.border}`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -812,16 +814,16 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
                   
                   <div style={{ display: 'flex', gap: '24px' }}>
                     <div>
-                      <span style={{ fontSize: '11px', color: '#52525b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Formulations</span>
-                      <p style={{ margin: '2px 0 0 0', fontSize: '18px', fontWeight: 600, color: '#E4E4E7' }}>{parsedData.length}</p>
+                      <span style={{ fontSize: '11px', color: theme.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Formulations</span>
+                      <p style={{ margin: '2px 0 0 0', fontSize: '18px', fontWeight: 600, color: theme.text }}>{parsedData.length}</p>
                     </div>
                     <div>
-                      <span style={{ fontSize: '11px', color: '#52525b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Columns</span>
-                      <p style={{ margin: '2px 0 0 0', fontSize: '18px', fontWeight: 600, color: '#E4E4E7' }}>{columns.length}</p>
+                      <span style={{ fontSize: '11px', color: theme.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Columns</span>
+                      <p style={{ margin: '2px 0 0 0', fontSize: '18px', fontWeight: 600, color: theme.text }}>{columns.length}</p>
                     </div>
                     <div>
-                      <span style={{ fontSize: '11px', color: '#52525b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>File</span>
-                      <p style={{ margin: '2px 0 0 0', fontSize: '13px', fontWeight: 500, color: '#A1A1AA', fontFamily: "'JetBrains Mono', monospace" }}>
+                      <span style={{ fontSize: '11px', color: theme.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em' }}>File</span>
+                      <p style={{ margin: '2px 0 0 0', fontSize: '13px', fontWeight: 500, color: theme.textSecondary, fontFamily: "'JetBrains Mono', monospace" }}>
                         {uploadedFile?.name}
                       </p>
                     </div>
@@ -848,14 +850,14 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
                   <tbody>
                     {parsedData.slice(0, 10).map((row, rowIdx) => (
                       <tr key={rowIdx} style={{ 
-                        background: rowIdx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)',
+                        background: rowIdx % 2 === 0 ? 'transparent' : theme.rowHoverBg,
                       }}>
                         {columns.map((col, colIdx) => (
                           <td key={colIdx} className="table-cell" style={{ 
                             textAlign: colIdx === 0 ? 'left' : 'right',
                             fontFamily: colIdx === 0 ? 'inherit' : "'JetBrains Mono', monospace",
                             fontWeight: colIdx === 0 ? 500 : 400,
-                            color: colIdx === 0 ? '#E4E4E7' : '#A1A1AA',
+                            color: colIdx === 0 ? theme.text : theme.textSecondary,
                           }}>
                             {row[col]}
                           </td>
@@ -869,10 +871,10 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
                   <div style={{
                     padding: '12px 24px',
                     textAlign: 'center',
-                    borderTop: '1px solid rgba(255,255,255,0.04)',
-                    background: 'rgba(255,255,255,0.02)',
+                    borderTop: `1px solid ${theme.borderLight}`,
+                    background: `${theme.cardBg}`,
                   }}>
-                    <span style={{ fontSize: '12px', color: '#52525b' }}>
+                    <span style={{ fontSize: '12px', color: theme.textMuted }}>
                       Showing 10 of {parsedData.length} formulations
                     </span>
                   </div>
@@ -920,10 +922,10 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
                     </svg>
                   </div>
                   
-                  <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: 600, color: '#E4E4E7' }}>
+                  <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: 600, color: theme.text }}>
                     AI Classifying Variables
                   </h3>
-                  <p style={{ margin: '0 0 32px 0', fontSize: '13px', color: '#71717A', textAlign: 'center' }}>
+                  <p style={{ margin: '0 0 32px 0', fontSize: '13px', color: theme.textTertiary, textAlign: 'center' }}>
                     Analyzing column names and data patterns to identify inputs and outcomes
                   </p>
                   
@@ -933,7 +935,7 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
                       justifyContent: 'space-between',
                       marginBottom: '8px',
                     }}>
-                      <span style={{ fontSize: '11px', color: '#71717A' }}>Analyzing...</span>
+                      <span style={{ fontSize: '11px', color: theme.textTertiary }}>Analyzing...</span>
                       <span style={{ fontSize: '11px', color: '#A78BFA', fontFamily: "'JetBrains Mono', monospace" }}>
                         {Math.min(100, Math.round(classificationProgress))}%
                       </span>
@@ -941,7 +943,7 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
                     <div style={{
                       height: '6px',
                       borderRadius: '3px',
-                      background: 'rgba(255,255,255,0.08)',
+                      background: `${theme.inputBorder}`,
                       overflow: 'hidden',
                     }}>
                       <div style={{
@@ -960,7 +962,7 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
                   {/* Stats Header */}
                   <div style={{
                     padding: '16px 24px',
-                    borderBottom: '1px solid rgba(255,255,255,0.06)',
+                    borderBottom: `1px solid ${theme.border}`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -982,7 +984,7 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
                           <line x1="9" y1="21" x2="9" y2="9" />
                         </svg>
                         <span style={{ fontSize: '13px', fontWeight: 600, color: '#2DD4BF' }}>{inputCount}</span>
-                        <span style={{ fontSize: '12px', color: '#71717A' }}>Inputs</span>
+                        <span style={{ fontSize: '12px', color: theme.textTertiary }}>Inputs</span>
                       </div>
                       
                       <div style={{
@@ -1000,7 +1002,7 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
                           <circle cx="12" cy="12" r="2" fill="#F472B6" />
                         </svg>
                         <span style={{ fontSize: '13px', fontWeight: 600, color: '#F472B6' }}>{outcomeCount}</span>
-                        <span style={{ fontSize: '12px', color: '#71717A' }}>Outcomes</span>
+                        <span style={{ fontSize: '12px', color: theme.textTertiary }}>Outcomes</span>
                       </div>
                     </div>
                     
@@ -1029,9 +1031,9 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
                           padding: '8px 14px',
                           fontSize: '12px',
                           fontWeight: 600,
-                          background: allConfirmed ? 'rgba(255,255,255,0.03)' : 'rgba(34, 197, 94, 0.1)',
-                          color: allConfirmed ? '#52525b' : '#22C55E',
-                          border: allConfirmed ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(34, 197, 94, 0.3)',
+                          background: allConfirmed ? theme.inputBg : 'rgba(34, 197, 94, 0.1)',
+                          color: allConfirmed ? theme.textMuted : '#22C55E',
+                          border: allConfirmed ? `1px solid ${theme.inputBorder}` : '1px solid rgba(34, 197, 94, 0.3)',
                           borderRadius: '6px',
                           cursor: allConfirmed ? 'not-allowed' : 'pointer',
                           display: 'flex',
@@ -1073,7 +1075,7 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
                             <line x1="9" y1="21" x2="9" y2="9" />
                           </svg>
                           <span style={{ fontSize: '13px', fontWeight: 600, color: '#2DD4BF' }}>Inputs</span>
-                          <span style={{ fontSize: '11px', color: '#71717A', marginLeft: 'auto' }}>
+                          <span style={{ fontSize: '11px', color: theme.textTertiary, marginLeft: 'auto' }}>
                             {classifications.filter(c => c.classification === 'input' && c.confirmed).length}/{inputCount} confirmed
                           </span>
                         </div>
@@ -1087,7 +1089,7 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
                           >
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                                <span style={{ fontSize: '13px', fontWeight: 500, color: '#E4E4E7' }}>
+                                <span style={{ fontSize: '13px', fontWeight: 500, color: theme.text }}>
                                   {item.name}
                                 </span>
                                 {!item.confirmed && (
@@ -1122,11 +1124,11 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
                                 onClick={(e) => { e.stopPropagation(); toggleClassification(item.id); }}
                                 style={{
                                   padding: '6px',
-                                  background: 'rgba(255,255,255,0.04)',
-                                  border: '1px solid rgba(255,255,255,0.1)',
+                                  background: `${theme.borderLight}`,
+                                  border: `1px solid ${theme.borderLight}`,
                                   borderRadius: '5px',
                                   cursor: 'pointer',
-                                  color: '#71717A',
+                                  color: theme.textTertiary,
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
@@ -1148,13 +1150,13 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
                                   padding: '6px 10px',
                                   background: item.confirmed 
                                     ? 'rgba(34, 197, 94, 0.15)' 
-                                    : 'rgba(255,255,255,0.04)',
+                                    : `${theme.borderLight}`,
                                   border: item.confirmed 
                                     ? '1px solid rgba(34, 197, 94, 0.3)' 
-                                    : '1px solid rgba(255,255,255,0.1)',
+                                    : `1px solid ${theme.borderLight}`,
                                   borderRadius: '5px',
                                   cursor: item.confirmed ? 'default' : 'pointer',
-                                  color: item.confirmed ? '#22C55E' : '#71717A',
+                                  color: item.confirmed ? '#22C55E' : theme.textTertiary,
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
@@ -1203,7 +1205,7 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
                             <circle cx="12" cy="12" r="2" fill="#F472B6" />
                           </svg>
                           <span style={{ fontSize: '13px', fontWeight: 600, color: '#F472B6' }}>Outcomes</span>
-                          <span style={{ fontSize: '11px', color: '#71717A', marginLeft: 'auto' }}>
+                          <span style={{ fontSize: '11px', color: theme.textTertiary, marginLeft: 'auto' }}>
                             {classifications.filter(c => c.classification === 'outcome' && c.confirmed).length}/{outcomeCount} confirmed
                           </span>
                         </div>
@@ -1217,7 +1219,7 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
                           >
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                                <span style={{ fontSize: '13px', fontWeight: 500, color: '#E4E4E7' }}>
+                                <span style={{ fontSize: '13px', fontWeight: 500, color: theme.text }}>
                                   {item.name}
                                 </span>
                                 {!item.confirmed && (
@@ -1253,11 +1255,11 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
                                 onClick={(e) => { e.stopPropagation(); toggleClassification(item.id); }}
                                 style={{
                                   padding: '6px',
-                                  background: 'rgba(255,255,255,0.04)',
-                                  border: '1px solid rgba(255,255,255,0.1)',
+                                  background: `${theme.borderLight}`,
+                                  border: `1px solid ${theme.borderLight}`,
                                   borderRadius: '5px',
                                   cursor: 'pointer',
-                                  color: '#71717A',
+                                  color: theme.textTertiary,
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
@@ -1279,13 +1281,13 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
                                   padding: '6px 10px',
                                   background: item.confirmed 
                                     ? 'rgba(34, 197, 94, 0.15)' 
-                                    : 'rgba(255,255,255,0.04)',
+                                    : `${theme.borderLight}`,
                                   border: item.confirmed 
                                     ? '1px solid rgba(34, 197, 94, 0.3)' 
-                                    : '1px solid rgba(255,255,255,0.1)',
+                                    : `1px solid ${theme.borderLight}`,
                                   borderRadius: '5px',
                                   cursor: item.confirmed ? 'default' : 'pointer',
-                                  color: item.confirmed ? '#22C55E' : '#71717A',
+                                  color: item.confirmed ? '#22C55E' : theme.textTertiary,
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
@@ -1326,12 +1328,12 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
         {/* Footer */}
         <div style={{
           padding: '16px 24px',
-          borderTop: '1px solid rgba(255,255,255,0.06)',
+          borderTop: `1px solid ${theme.border}`,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexShrink: 0,
-          background: 'rgba(0,0,0,0.2)',
+          background: theme.cardBgDark,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             {stage !== 'upload' && (
@@ -1345,8 +1347,8 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
                   fontSize: '13px',
                   fontWeight: 500,
                   background: 'transparent',
-                  color: '#71717A',
-                  border: '1px solid rgba(255,255,255,0.1)',
+                  color: theme.textTertiary,
+                  border: `1px solid ${theme.borderLight}`,
                   borderRadius: '8px',
                   cursor: 'pointer',
                   display: 'flex',
@@ -1355,12 +1357,12 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
                   transition: 'all 0.15s ease',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
-                  e.currentTarget.style.color = '#A1A1AA';
+                  e.currentTarget.style.borderColor = theme.borderStrong;
+                  e.currentTarget.style.color = theme.textSecondary;
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
-                  e.currentTarget.style.color = '#71717A';
+                  e.currentTarget.style.borderColor = theme.borderLight;
+                  e.currentTarget.style.color = theme.textTertiary;
                 }}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1379,8 +1381,8 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
                 fontSize: '13px',
                 fontWeight: 500,
                 background: 'transparent',
-                color: '#71717A',
-                border: '1px solid rgba(255,255,255,0.1)',
+                color: theme.textTertiary,
+                border: `1px solid ${theme.borderLight}`,
                 borderRadius: '8px',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
@@ -1397,7 +1399,7 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
                   fontSize: '13px',
                   fontWeight: 600,
                   background: `linear-gradient(135deg, ${themeColor} 0%, ${secondaryColor} 100%)`,
-                  color: '#0a0a0f',
+                  color: '#ffffff',
                   border: 'none',
                   borderRadius: '8px',
                   cursor: 'pointer',
@@ -1475,9 +1477,9 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
                   fontWeight: 600,
                   background: allConfirmed 
                     ? `linear-gradient(135deg, #22C55E 0%, #16A34A 100%)`
-                    : 'rgba(255,255,255,0.05)',
-                  color: allConfirmed ? '#0a0a0f' : '#52525b',
-                  border: allConfirmed ? 'none' : '1px solid rgba(255,255,255,0.1)',
+                    : `${theme.borderLight}`,
+                  color: allConfirmed ? '#ffffff' : theme.textMuted,
+                  border: allConfirmed ? 'none' : `1px solid ${theme.borderLight}`,
                   borderRadius: '8px',
                   cursor: allConfirmed ? 'pointer' : 'not-allowed',
                   display: 'flex',

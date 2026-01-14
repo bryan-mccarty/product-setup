@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useData } from '../contexts/DataContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 const InputsModal = ({ onClose }) => {
   // Get inputs and input library from global context
   const { inputs, setInputs, inputLibrary } = useData();
+  const { theme, isDarkMode } = useTheme();
 
   const [showLibrary, setShowLibrary] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -147,9 +149,21 @@ const InputsModal = ({ onClose }) => {
 
   const InputTypeTag = ({ type, small }) => {
     const colors = {
-      'Ingredient': { bg: 'rgba(45, 212, 191, 0.15)', text: '#2DD4BF', border: 'rgba(45, 212, 191, 0.3)' },
-      'Processing Condition': { bg: 'rgba(251, 146, 60, 0.15)', text: '#FB923C', border: 'rgba(251, 146, 60, 0.3)' },
-      'Other': { bg: 'rgba(167, 139, 250, 0.15)', text: '#A78BFA', border: 'rgba(167, 139, 250, 0.3)' },
+      'Ingredient': {
+        bg: isDarkMode ? 'rgba(45, 212, 191, 0.15)' : 'rgba(13, 148, 136, 0.15)',
+        text: theme.accentInputs,
+        border: isDarkMode ? 'rgba(45, 212, 191, 0.3)' : 'rgba(13, 148, 136, 0.35)'
+      },
+      'Processing Condition': {
+        bg: isDarkMode ? 'rgba(251, 146, 60, 0.15)' : 'rgba(234, 88, 12, 0.15)',
+        text: theme.accentConstraints,
+        border: isDarkMode ? 'rgba(251, 146, 60, 0.3)' : 'rgba(234, 88, 12, 0.35)'
+      },
+      'Other': {
+        bg: isDarkMode ? 'rgba(167, 139, 250, 0.15)' : 'rgba(124, 58, 237, 0.15)',
+        text: theme.accentCombinations,
+        border: isDarkMode ? 'rgba(167, 139, 250, 0.3)' : 'rgba(124, 58, 237, 0.35)'
+      },
     };
     const c = colors[type] || colors['Other'];
     return (
@@ -170,9 +184,21 @@ const InputsModal = ({ onClose }) => {
 
   const VariableTypeTag = ({ type, small }) => {
     const colors = {
-      'Continuous': { bg: 'rgba(96, 165, 250, 0.15)', text: '#60A5FA', border: 'rgba(96, 165, 250, 0.3)' },
-      'Ordinal': { bg: 'rgba(244, 114, 182, 0.15)', text: '#F472B6', border: 'rgba(244, 114, 182, 0.3)' },
-      'Nominal': { bg: 'rgba(251, 191, 36, 0.15)', text: '#FBBF24', border: 'rgba(251, 191, 36, 0.3)' },
+      'Continuous': {
+        bg: isDarkMode ? 'rgba(96, 165, 250, 0.15)' : 'rgba(37, 99, 235, 0.15)',
+        text: theme.accentObjectives,
+        border: isDarkMode ? 'rgba(96, 165, 250, 0.3)' : 'rgba(37, 99, 235, 0.35)'
+      },
+      'Ordinal': {
+        bg: isDarkMode ? 'rgba(244, 114, 182, 0.15)' : 'rgba(219, 39, 119, 0.15)',
+        text: theme.accentOutcomes,
+        border: isDarkMode ? 'rgba(244, 114, 182, 0.3)' : 'rgba(219, 39, 119, 0.35)'
+      },
+      'Nominal': {
+        bg: isDarkMode ? 'rgba(251, 191, 36, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+        text: isDarkMode ? '#FBBF24' : '#d97706',
+        border: isDarkMode ? 'rgba(251, 191, 36, 0.3)' : 'rgba(245, 158, 11, 0.35)'
+      },
     };
     const c = colors[type] || colors['Continuous'];
     return (
@@ -211,7 +237,7 @@ const InputsModal = ({ onClose }) => {
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0, 0, 0, 0.8)',
+        background: theme.modalOverlay,
         backdropFilter: 'blur(8px)',
         display: 'flex',
         alignItems: 'center',
@@ -242,15 +268,15 @@ const InputsModal = ({ onClose }) => {
           width: 6px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(255,255,255,0.02);
+          background: ${theme.scrollbarTrack};
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(255,255,255,0.1);
+          background: ${theme.scrollbarThumb};
           border-radius: 3px;
         }
-        
+
         input::placeholder, textarea::placeholder {
-          color: #52525b;
+          color: ${theme.placeholder};
         }
         
         select {
@@ -264,21 +290,21 @@ const InputsModal = ({ onClose }) => {
         .input-field {
           padding: 6px 10px;
           font-size: 13px;
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(255,255,255,0.08);
+          background: ${theme.inputBg};
+          border: 1px solid ${theme.inputBorder};
           border-radius: 5px;
-          color: #E4E4E7;
+          color: ${theme.text};
           outline: none;
           font-family: inherit;
           transition: border-color 0.15s, background 0.15s;
         }
         .input-field:focus {
           border-color: rgba(45, 212, 191, 0.5);
-          background: rgba(45, 212, 191, 0.05);
+          background: ${theme.inputFocusBg};
         }
         .input-field:disabled {
-          background: rgba(255,255,255,0.01);
-          color: #3f3f46;
+          background: ${theme.cardBg};
+          color: ${theme.textMuted};
           cursor: not-allowed;
         }
       `}</style>
@@ -289,9 +315,9 @@ const InputsModal = ({ onClose }) => {
         maxWidth: '95vw',
         height: '600px',
         maxHeight: '90vh',
-        background: '#0f0f14',
+        background: theme.modalBg,
         borderRadius: '16px',
-        border: '1px solid rgba(45, 212, 191, 0.2)',
+        border: `1px solid rgba(45, 212, 191, ${isDarkMode ? '0.2' : '0.18'})`,
         boxShadow: '0 0 60px rgba(45, 212, 191, 0.1), 0 25px 80px rgba(0,0,0,0.5)',
         display: 'flex',
         flexDirection: 'column',
@@ -302,7 +328,7 @@ const InputsModal = ({ onClose }) => {
         {/* Header */}
         <div style={{
           padding: '20px 24px',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          borderBottom: `1px solid ${theme.border}`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -313,8 +339,8 @@ const InputsModal = ({ onClose }) => {
               width: '40px',
               height: '40px',
               borderRadius: '10px',
-              background: 'rgba(45, 212, 191, 0.1)',
-              border: '1px solid rgba(45, 212, 191, 0.3)',
+              background: `rgba(45, 212, 191, ${isDarkMode ? '0.1' : '0.08'})`,
+              border: `1px solid rgba(45, 212, 191, ${isDarkMode ? '0.3' : '0.25'})`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -330,7 +356,7 @@ const InputsModal = ({ onClose }) => {
                 margin: 0,
                 fontSize: '18px',
                 fontWeight: 600,
-                color: '#E4E4E7',
+                color: theme.text,
                 letterSpacing: '-0.02em',
               }}>
                 Configure Inputs
@@ -338,7 +364,7 @@ const InputsModal = ({ onClose }) => {
               <p style={{
                 margin: '2px 0 0 0',
                 fontSize: '12px',
-                color: '#71717A',
+                color: theme.textTertiary,
               }}>
                 {inputs.length} input{inputs.length !== 1 ? 's' : ''} configured
               </p>
@@ -352,9 +378,9 @@ const InputsModal = ({ onClose }) => {
                 padding: '8px 14px',
                 fontSize: '13px',
                 fontWeight: 500,
-                background: 'rgba(255,255,255,0.03)',
-                color: '#A1A1AA',
-                border: '1px solid rgba(255,255,255,0.1)',
+                background: theme.cardBg,
+                color: theme.textSecondary,
+                border: `1px solid ${theme.border}`,
                 borderRadius: '6px',
                 cursor: 'pointer',
                 display: 'flex',
@@ -363,12 +389,12 @@ const InputsModal = ({ onClose }) => {
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
+                e.currentTarget.style.background = theme.cardBgHover;
+                e.currentTarget.style.borderColor = theme.borderStrong;
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+                e.currentTarget.style.background = theme.cardBg;
+                e.currentTarget.style.borderColor = theme.border;
               }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -379,9 +405,9 @@ const InputsModal = ({ onClose }) => {
               <kbd style={{
                 padding: '1px 5px',
                 borderRadius: '3px',
-                background: 'rgba(255,255,255,0.08)',
+                background: theme.inputBg,
                 fontSize: '10px',
-                color: '#71717A',
+                color: theme.textTertiary,
               }}>⌘L</kbd>
             </button>
             
@@ -438,18 +464,18 @@ const InputsModal = ({ onClose }) => {
           }}>
             <thead>
               <tr style={{
-                borderBottom: '1px solid rgba(255,255,255,0.06)',
+                borderBottom: `1px solid ${theme.border}`,
                 position: 'sticky',
                 top: 0,
-                background: '#0f0f14',
+                background: theme.modalBg,
                 zIndex: 10,
               }}>
-                <th style={{ padding: '10px 16px', textAlign: 'left', fontSize: '10px', fontWeight: 600, color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.08em', width: '20%' }}>Name</th>
-                <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '10px', fontWeight: 600, color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.08em', width: '14%' }}>Input Type</th>
-                <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '10px', fontWeight: 600, color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.08em', width: '13%' }}>Variable Type</th>
-                <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '10px', fontWeight: 600, color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.08em', width: '18%' }}>Levels</th>
-                <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '10px', fontWeight: 600, color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.08em', width: '10%' }}>Cost</th>
-                <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '10px', fontWeight: 600, color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.08em', width: '20%' }}>Description</th>
+                <th style={{ padding: '10px 16px', textAlign: 'left', fontSize: '10px', fontWeight: 600, color: theme.textTertiary, textTransform: 'uppercase', letterSpacing: '0.08em', width: '20%' }}>Name</th>
+                <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '10px', fontWeight: 600, color: theme.textTertiary, textTransform: 'uppercase', letterSpacing: '0.08em', width: '14%' }}>Input Type</th>
+                <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '10px', fontWeight: 600, color: theme.textTertiary, textTransform: 'uppercase', letterSpacing: '0.08em', width: '13%' }}>Variable Type</th>
+                <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '10px', fontWeight: 600, color: theme.textTertiary, textTransform: 'uppercase', letterSpacing: '0.08em', width: '18%' }}>Levels</th>
+                <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '10px', fontWeight: 600, color: theme.textTertiary, textTransform: 'uppercase', letterSpacing: '0.08em', width: '10%' }}>Cost</th>
+                <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '10px', fontWeight: 600, color: theme.textTertiary, textTransform: 'uppercase', letterSpacing: '0.08em', width: '20%' }}>Description</th>
                 <th style={{ padding: '10px 16px', width: '40px' }}></th>
               </tr>
             </thead>
@@ -484,14 +510,14 @@ const InputsModal = ({ onClose }) => {
                           margin: '0 0 6px 0',
                           fontSize: '14px',
                           fontWeight: 500,
-                          color: '#A1A1AA',
+                          color: theme.textSecondary,
                         }}>
                           No inputs configured
                         </p>
                         <p style={{
                           margin: 0,
                           fontSize: '13px',
-                          color: '#52525b',
+                          color: theme.textMuted,
                         }}>
                           Add inputs from the <button 
                             onClick={() => setShowLibrary(true)}
@@ -530,8 +556,8 @@ const InputsModal = ({ onClose }) => {
                       onMouseEnter={() => setHoveredRow(input.id)}
                       onMouseLeave={() => setHoveredRow(null)}
                       style={{
-                        borderBottom: '1px solid rgba(255,255,255,0.04)',
-                        background: hoveredRow === input.id ? 'rgba(255,255,255,0.015)' : 'transparent',
+                        borderBottom: `1px solid ${theme.borderLight}`,
+                        background: hoveredRow === input.id ? theme.rowHoverBg : 'transparent',
                         transition: 'background 0.1s ease',
                       }}
                     >
@@ -590,7 +616,7 @@ const InputsModal = ({ onClose }) => {
                               left: 0,
                               right: 0,
                               marginTop: '4px',
-                              background: '#1a1a22',
+                              background: theme.surfaceElevated,
                               border: '1px solid rgba(45, 212, 191, 0.3)',
                               borderRadius: '8px',
                               boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
@@ -610,7 +636,7 @@ const InputsModal = ({ onClose }) => {
                                 <span style={{ fontSize: '10px', fontWeight: 600, color: '#2DD4BF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                   Library matches
                                 </span>
-                                <span style={{ fontSize: '10px', color: '#71717A' }}>
+                                <span style={{ fontSize: '10px', color: theme.textTertiary }}>
                                   ↑↓ navigate · Enter select
                                 </span>
                               </div>
@@ -636,7 +662,7 @@ const InputsModal = ({ onClose }) => {
                                     gap: '8px',
                                     marginBottom: '4px',
                                   }}>
-                                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#E4E4E7' }}>
+                                    <span style={{ fontSize: '12px', fontWeight: 600, color: theme.text }}>
                                       {item.name}
                                     </span>
                                     <InputTypeTag type={item.inputType} small />
@@ -650,7 +676,7 @@ const InputsModal = ({ onClose }) => {
                                     justifyContent: 'space-between',
                                     gap: '8px',
                                   }}>
-                                    <span style={{ fontSize: '11px', color: '#71717A' }}>
+                                    <span style={{ fontSize: '11px', color: theme.textTertiary }}>
                                       {item.description}
                                     </span>
                                     {item.cost && (
@@ -659,7 +685,7 @@ const InputsModal = ({ onClose }) => {
                                       </span>
                                     )}
                                     {item.levels && item.levels.length > 0 && (
-                                      <span style={{ fontSize: '10px', color: '#A1A1AA' }}>
+                                      <span style={{ fontSize: '10px', color: theme.textSecondary }}>
                                         {item.levels.join(', ')}
                                       </span>
                                     )}
@@ -712,7 +738,7 @@ const InputsModal = ({ onClose }) => {
                       </td>
                       <td style={{ padding: '8px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <span style={{ color: isContinuous ? '#71717A' : '#3f3f46', fontSize: '13px' }}>$</span>
+                          <span style={{ color: isContinuous ? theme.textTertiary : theme.textMuted, fontSize: '13px' }}>$</span>
                           <input
                             type="number"
                             step="0.01"
@@ -732,7 +758,7 @@ const InputsModal = ({ onClose }) => {
                           onChange={(e) => updateInput(input.id, 'description', e.target.value)}
                           placeholder="Optional..."
                           className="input-field"
-                          style={{ width: '100%', color: '#A1A1AA' }}
+                          style={{ width: '100%', color: theme.textSecondary }}
                         />
                       </td>
                       <td style={{ padding: '8px 16px', textAlign: 'center' }}>
@@ -744,7 +770,7 @@ const InputsModal = ({ onClose }) => {
                             border: 'none',
                             borderRadius: '4px',
                             cursor: 'pointer',
-                            color: '#52525b',
+                            color: theme.textMuted,
                             opacity: hoveredRow === input.id ? 1 : 0,
                             transition: 'all 0.15s ease',
                             display: 'flex',
@@ -752,12 +778,12 @@ const InputsModal = ({ onClose }) => {
                             justifyContent: 'center',
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                            e.currentTarget.style.background = theme.deleteButtonHoverBg;
                             e.currentTarget.style.color = '#EF4444';
                           }}
                           onMouseLeave={(e) => {
                             e.currentTarget.style.background = 'transparent';
-                            e.currentTarget.style.color = '#52525b';
+                            e.currentTarget.style.color = theme.textMuted;
                           }}
                         >
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -773,7 +799,7 @@ const InputsModal = ({ onClose }) => {
               )}
               {/* Empty rows to fill minimum height */}
               {inputs.length > 0 && inputs.length < 8 && Array.from({ length: 8 - inputs.length }).map((_, i) => (
-                <tr key={`empty-${i}`} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
+                <tr key={`empty-${i}`} style={{ borderBottom: `1px solid ${theme.cardBg}` }}>
                   <td colSpan="7" style={{ padding: '20px 16px' }}></td>
                 </tr>
               ))}
@@ -784,7 +810,7 @@ const InputsModal = ({ onClose }) => {
         {/* Footer */}
         <div style={{
           padding: '16px 24px',
-          borderTop: '1px solid rgba(255,255,255,0.06)',
+          borderTop: `1px solid ${theme.border}`,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -794,14 +820,14 @@ const InputsModal = ({ onClose }) => {
             display: 'flex',
             gap: '16px',
             fontSize: '11px',
-            color: '#52525b',
+            color: theme.textMuted,
           }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <kbd style={{ padding: '2px 5px', borderRadius: '3px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', fontSize: '10px' }}>⌘N</kbd>
+              <kbd style={{ padding: '2px 5px', borderRadius: '3px', background: theme.cardBgHover, border: `1px solid ${theme.inputBorder}`, fontSize: '10px' }}>⌘N</kbd>
               New
             </span>
             <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <kbd style={{ padding: '2px 5px', borderRadius: '3px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', fontSize: '10px' }}>⌘L</kbd>
+              <kbd style={{ padding: '2px 5px', borderRadius: '3px', background: theme.cardBgHover, border: `1px solid ${theme.inputBorder}`, fontSize: '10px' }}>⌘L</kbd>
               Library
             </span>
           </div>
@@ -814,8 +840,8 @@ const InputsModal = ({ onClose }) => {
                 fontSize: '13px',
                 fontWeight: 500,
                 background: 'transparent',
-                color: '#71717A',
-                border: '1px solid rgba(255,255,255,0.1)',
+                color: theme.textTertiary,
+                border: `1px solid ${theme.border}`,
                 borderRadius: '6px',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
@@ -838,9 +864,9 @@ const InputsModal = ({ onClose }) => {
                 fontWeight: 600,
                 background: inputs.length > 0 
                   ? 'linear-gradient(135deg, #2DD4BF 0%, #22D3EE 100%)'
-                  : 'rgba(255,255,255,0.05)',
-                color: inputs.length > 0 ? '#0a0a0f' : '#52525b',
-                border: inputs.length > 0 ? 'none' : '1px solid rgba(255,255,255,0.1)',
+                  : theme.cardBgHover,
+                color: inputs.length > 0 ? '#0a0a0f' : theme.textMuted,
+                border: inputs.length > 0 ? 'none' : `1px solid ${theme.border}`,
                 borderRadius: '6px',
                 cursor: inputs.length > 0 ? 'pointer' : 'not-allowed',
                 transition: 'all 0.15s ease',
@@ -876,8 +902,8 @@ const InputsModal = ({ onClose }) => {
             top: 0,
             bottom: 0,
             width: '460px',
-            background: '#0f0f14',
-            borderLeft: '1px solid rgba(255,255,255,0.08)',
+            background: theme.modalBg,
+            borderLeft: `1px solid ${theme.inputBorder}`,
             boxShadow: '-10px 0 40px rgba(0,0,0,0.4)',
             display: 'flex',
             flexDirection: 'column',
@@ -887,7 +913,7 @@ const InputsModal = ({ onClose }) => {
             {/* Library Header */}
             <div style={{
               padding: '20px',
-              borderBottom: '1px solid rgba(255,255,255,0.06)',
+              borderBottom: `1px solid ${theme.border}`,
             }}>
               <div style={{
                 display: 'flex',
@@ -895,7 +921,7 @@ const InputsModal = ({ onClose }) => {
                 alignItems: 'center',
                 marginBottom: '16px',
               }}>
-                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: '#E4E4E7' }}>
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: theme.text }}>
                   Input Library
                 </h3>
                 <button
@@ -906,11 +932,11 @@ const InputsModal = ({ onClose }) => {
                   }}
                   style={{
                     padding: '6px',
-                    background: 'rgba(255,255,255,0.05)',
+                    background: theme.cardBgHover,
                     border: 'none',
                     borderRadius: '5px',
                     cursor: 'pointer',
-                    color: '#71717A',
+                    color: theme.textTertiary,
                   }}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -948,8 +974,8 @@ const InputsModal = ({ onClose }) => {
                     style={{
                       padding: '12px 14px',
                       marginBottom: '6px',
-                      background: isSelected ? 'rgba(45, 212, 191, 0.08)' : 'rgba(255,255,255,0.02)',
-                      border: `1px solid ${isSelected ? 'rgba(45, 212, 191, 0.3)' : 'rgba(255,255,255,0.04)'}`,
+                      background: isSelected ? 'rgba(45, 212, 191, 0.08)' : theme.cardBg,
+                      border: `1px solid ${isSelected ? 'rgba(45, 212, 191, 0.3)' : theme.borderLight}`,
                       borderRadius: '8px',
                       cursor: 'pointer',
                       display: 'flex',
@@ -959,14 +985,14 @@ const InputsModal = ({ onClose }) => {
                     }}
                     onMouseEnter={(e) => {
                       if (!isSelected) {
-                        e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
-                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+                        e.currentTarget.style.background = theme.borderLight;
+                        e.currentTarget.style.borderColor = theme.inputBorder;
                       }
                     }}
                     onMouseLeave={(e) => {
                       if (!isSelected) {
-                        e.currentTarget.style.background = 'rgba(255,255,255,0.02)';
-                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)';
+                        e.currentTarget.style.background = theme.cardBg;
+                        e.currentTarget.style.borderColor = theme.borderLight;
                       }
                     }}
                   >
@@ -974,7 +1000,7 @@ const InputsModal = ({ onClose }) => {
                       width: '18px',
                       height: '18px',
                       borderRadius: '5px',
-                      border: isSelected ? 'none' : '2px solid rgba(255,255,255,0.15)',
+                      border: isSelected ? 'none' : `2px solid ${theme.borderStrong}`,
                       background: isSelected ? '#2DD4BF' : 'transparent',
                       display: 'flex',
                       alignItems: 'center',
@@ -991,14 +1017,14 @@ const InputsModal = ({ onClose }) => {
                     
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                        <span style={{ fontSize: '13px', fontWeight: 600, color: '#E4E4E7' }}>{item.name}</span>
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: theme.text }}>{item.name}</span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <InputTypeTag type={item.inputType} small />
                           <VariableTypeTag type={item.variableType} small />
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: '12px', color: '#71717A' }}>{item.description}</span>
+                        <span style={{ fontSize: '12px', color: theme.textTertiary }}>{item.description}</span>
                         {item.cost && (
                           <span style={{ fontSize: '11px', color: '#2DD4BF', fontWeight: 500 }}>${item.cost.toFixed(2)}</span>
                         )}
@@ -1009,9 +1035,9 @@ const InputsModal = ({ onClose }) => {
                             <span key={i} style={{
                               padding: '2px 7px',
                               borderRadius: '4px',
-                              background: 'rgba(255,255,255,0.06)',
+                              background: theme.border,
                               fontSize: '10px',
-                              color: '#A1A1AA',
+                              color: theme.textSecondary,
                             }}>
                               {level}
                             </span>
@@ -1027,12 +1053,12 @@ const InputsModal = ({ onClose }) => {
             {/* Library Footer */}
             <div style={{
               padding: '16px 20px',
-              borderTop: '1px solid rgba(255,255,255,0.06)',
+              borderTop: `1px solid ${theme.border}`,
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
             }}>
-              <span style={{ fontSize: '12px', color: '#71717A' }}>
+              <span style={{ fontSize: '12px', color: theme.textTertiary }}>
                 {selectedLibraryItems.length} selected
               </span>
               <button
@@ -1044,9 +1070,9 @@ const InputsModal = ({ onClose }) => {
                   fontWeight: 600,
                   background: selectedLibraryItems.length > 0 
                     ? 'linear-gradient(135deg, #2DD4BF 0%, #22D3EE 100%)'
-                    : 'rgba(255,255,255,0.05)',
-                  color: selectedLibraryItems.length > 0 ? '#0a0a0f' : '#52525b',
-                  border: selectedLibraryItems.length > 0 ? 'none' : '1px solid rgba(255,255,255,0.1)',
+                    : theme.cardBgHover,
+                  color: selectedLibraryItems.length > 0 ? '#0a0a0f' : theme.textMuted,
+                  border: selectedLibraryItems.length > 0 ? 'none' : `1px solid ${theme.border}`,
                   borderRadius: '6px',
                   cursor: selectedLibraryItems.length > 0 ? 'pointer' : 'not-allowed',
                   display: 'flex',

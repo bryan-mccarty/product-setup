@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useData } from '../contexts/DataContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 const ObjectivesModal = ({ onClose }) => {
   // Get objectives, outcomes, and combinations from global context
   const { objectives, setObjectives, outcomes, combinations } = useData();
+  const { theme, isDarkMode } = useTheme();
   const [hoveredRow, setHoveredRow] = useState(null);
   const [focusNewRow, setFocusNewRow] = useState(null);
   const [activeAutocomplete, setActiveAutocomplete] = useState(null);
@@ -271,7 +273,7 @@ const ObjectivesModal = ({ onClose }) => {
       'Sensory': { bg: 'rgba(251, 146, 60, 0.15)', text: '#FB923C', border: 'rgba(251, 146, 60, 0.3)' },
       'Consumer': { bg: 'rgba(244, 114, 182, 0.15)', text: '#F472B6', border: 'rgba(244, 114, 182, 0.3)' },
       'Combination': { bg: 'rgba(167, 139, 250, 0.15)', text: '#A78BFA', border: 'rgba(167, 139, 250, 0.3)' },
-      'Other': { bg: 'rgba(113, 113, 122, 0.15)', text: '#A1A1AA', border: 'rgba(113, 113, 122, 0.3)' },
+      'Other': { bg: 'rgba(113, 113, 122, 0.15)', text: theme.textSecondary, border: 'rgba(113, 113, 122, 0.3)' },
     };
     const c = colors[type] || colors['Other'];
     return (
@@ -407,24 +409,24 @@ const ObjectivesModal = ({ onClose }) => {
           width: 5px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(255,255,255,0.02);
+          background: ${theme.cardBg};
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(255,255,255,0.08);
+          background: ${theme.scrollbarThumb};
           border-radius: 3px;
         }
-        
+
         input::placeholder {
-          color: #52525b;
+          color: ${theme.placeholder};
         }
-        
+
         .objective-field {
           padding: 7px 10px;
           font-size: 13px;
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(255,255,255,0.08);
+          background: ${theme.cardBg};
+          border: 1px solid ${theme.inputBorder};
           border-radius: 6px;
-          color: #E4E4E7;
+          color: ${theme.text};
           outline: none;
           font-family: inherit;
           transition: all 0.15s ease;
@@ -435,14 +437,14 @@ const ObjectivesModal = ({ onClose }) => {
           box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
         }
         .objective-field:hover:not(:focus) {
-          border-color: rgba(255,255,255,0.12);
+          border-color: ${theme.borderStrong};
         }
         .objective-field:disabled {
-          background: rgba(255,255,255,0.01);
-          color: #3f3f46;
+          background: ${theme.rowHoverBg};
+          color: ${theme.textMuted};
           cursor: not-allowed;
         }
-        
+
         select.objective-field {
           appearance: none;
           background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371717A' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
@@ -451,13 +453,13 @@ const ObjectivesModal = ({ onClose }) => {
           padding-right: 28px;
           cursor: pointer;
         }
-        
+
         .value-field {
           padding: 6px 8px;
           font-size: 12px;
           font-family: 'JetBrains Mono', monospace;
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.1);
+          background: ${theme.borderLight};
+          border: 1px solid ${theme.borderLight};
           border-radius: 5px;
           color: #60A5FA;
           text-align: center;
@@ -491,10 +493,10 @@ const ObjectivesModal = ({ onClose }) => {
         .tag-input {
           padding: 4px 8px;
           font-size: 11px;
-          background: rgba(255,255,255,0.03);
-          border: 1px dashed rgba(255,255,255,0.15);
+          background: theme.inputBg;
+          border: 1px dashed ${theme.borderStrong};
           border-radius: 4px;
-          color: #A1A1AA;
+          color: theme.textSecondary;
           outline: none;
           min-width: 60px;
           transition: all 0.15s ease;
@@ -507,8 +509,8 @@ const ObjectivesModal = ({ onClose }) => {
         
         .library-item {
           padding: 10px 12px;
-          background: rgba(255,255,255,0.02);
-          border: 1px solid rgba(255,255,255,0.04);
+          background: theme.cardBg;
+          border: 1px solid ${theme.borderLight};
           border-radius: 8px;
           cursor: pointer;
           transition: all 0.12s ease;
@@ -524,7 +526,7 @@ const ObjectivesModal = ({ onClose }) => {
           font-size: 9px;
           font-weight: 600;
           background: rgba(34, 197, 94, 0.08);
-          color: #52525b;
+          color: theme.placeholder;
           border: 1px dashed rgba(34, 197, 94, 0.2);
           border-radius: 4px;
           cursor: pointer;
@@ -545,7 +547,7 @@ const ObjectivesModal = ({ onClose }) => {
         maxWidth: '95vw',
         height: '700px',
         maxHeight: '92vh',
-        background: 'linear-gradient(180deg, #111116 0%, #0c0c10 100%)',
+        background: theme.modalBg,
         borderRadius: '16px',
         border: `1px solid rgba(${themeColorRgb}, 0.2)`,
         boxShadow: `0 0 80px rgba(${themeColorRgb}, 0.08), 0 25px 80px rgba(0,0,0,0.6)`,
@@ -558,7 +560,7 @@ const ObjectivesModal = ({ onClose }) => {
         {/* Header */}
         <div style={{
           padding: '20px 24px',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          borderBottom: `1px solid ${theme.border}`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -585,7 +587,7 @@ const ObjectivesModal = ({ onClose }) => {
                 margin: 0,
                 fontSize: '18px',
                 fontWeight: 600,
-                color: '#E4E4E7',
+                color: theme.text,
                 letterSpacing: '-0.02em',
               }}>
                 Configure Objectives
@@ -593,7 +595,7 @@ const ObjectivesModal = ({ onClose }) => {
               <p style={{
                 margin: '3px 0 0 0',
                 fontSize: '12px',
-                color: '#71717A',
+                color: theme.textTertiary,
               }}>
                 {objectives.length} objective{objectives.length !== 1 ? 's' : ''} • Define optimization goals on outcomes and combinations
               </p>
@@ -614,12 +616,12 @@ const ObjectivesModal = ({ onClose }) => {
             flex: '1 1 68%',
             display: 'flex',
             flexDirection: 'column',
-            borderRight: '1px solid rgba(255,255,255,0.06)',
+            borderRight: `1px solid ${theme.border}`,
             minWidth: 0,
           }}>
             <div style={{
               padding: '12px 16px',
-              borderBottom: '1px solid rgba(255,255,255,0.04)',
+              borderBottom: `1px solid ${theme.borderLight}`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -628,7 +630,7 @@ const ObjectivesModal = ({ onClose }) => {
               <span style={{
                 fontSize: '11px',
                 fontWeight: 600,
-                color: '#71717A',
+                color: theme.textTertiary,
                 textTransform: 'uppercase',
                 letterSpacing: '0.08em',
               }}>
@@ -642,7 +644,7 @@ const ObjectivesModal = ({ onClose }) => {
                     fontSize: '11px',
                     fontWeight: 600,
                     background: `linear-gradient(135deg, ${themeColor} 0%, #3B82F6 100%)`,
-                    color: '#0a0a0f',
+                    color: '#ffffff',
                     border: 'none',
                     borderRadius: '5px',
                     cursor: 'pointer',
@@ -660,7 +662,7 @@ const ObjectivesModal = ({ onClose }) => {
                   <kbd style={{
                     padding: '2px 5px',
                     borderRadius: '3px',
-                    background: 'rgba(0,0,0,0.2)',
+                    background: theme.cardBgDark,
                     fontSize: '9px',
                     fontWeight: 500,
                   }}>⌘N</kbd>
@@ -671,9 +673,9 @@ const ObjectivesModal = ({ onClose }) => {
                     padding: '5px 10px',
                     fontSize: '11px',
                     fontWeight: 500,
-                    background: 'rgba(255,255,255,0.03)',
-                    color: '#A1A1AA',
-                    border: '1px solid rgba(255,255,255,0.08)',
+                    background: theme.inputBg,
+                    color: theme.textSecondary,
+                    border: `1px solid ${theme.inputBorder}`,
                     borderRadius: '5px',
                     cursor: 'pointer',
                     display: 'flex',
@@ -682,10 +684,10 @@ const ObjectivesModal = ({ onClose }) => {
                     transition: 'all 0.15s ease',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+                    e.currentTarget.style.background = `${theme.border}`;
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+                    e.currentTarget.style.background = theme.inputBg;
                   }}
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -732,14 +734,14 @@ const ObjectivesModal = ({ onClose }) => {
                       margin: '0 0 8px 0',
                       fontSize: '14px',
                       fontWeight: 500,
-                      color: '#A1A1AA',
+                      color: theme.textSecondary,
                     }}>
                       No objectives defined
                     </p>
                     <p style={{
                       margin: 0,
                       fontSize: '12px',
-                      color: '#52525b',
+                      color: theme.textMuted,
                       maxWidth: '320px',
                       lineHeight: 1.5,
                     }}>
@@ -761,10 +763,10 @@ const ObjectivesModal = ({ onClose }) => {
                         onMouseEnter={() => setHoveredRow(objective.id)}
                         onMouseLeave={() => setHoveredRow(null)}
                         style={{
-                          background: hoveredRow === objective.id 
-                            ? 'rgba(255,255,255,0.025)' 
-                            : 'rgba(255,255,255,0.015)',
-                          border: '1px solid rgba(255,255,255,0.06)',
+                          background: hoveredRow === objective.id
+                            ? theme.cardBgHover
+                            : theme.cardBg,
+                          border: `1px solid ${theme.border}`,
                           borderRadius: '10px',
                           padding: '10px 12px',
                           transition: 'all 0.15s ease',
@@ -830,7 +832,7 @@ const ObjectivesModal = ({ onClose }) => {
                                   left: 0,
                                   width: '300px',
                                   marginTop: '4px',
-                                  background: '#1a1a22',
+                                  background: theme.surfaceElevated,
                                   border: `1px solid rgba(${themeColorRgb}, 0.3)`,
                                   borderRadius: '8px',
                                   boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
@@ -840,15 +842,15 @@ const ObjectivesModal = ({ onClose }) => {
                                 }}>
                                   <div style={{
                                     padding: '6px 10px',
-                                    borderBottom: '1px solid rgba(255,255,255,0.06)',
+                                    borderBottom: `1px solid ${theme.border}`,
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'space-between',
                                   }}>
-                                    <span style={{ fontSize: '9px', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                    <span style={{ fontSize: '9px', color: theme.textTertiary, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                       Select target
                                     </span>
-                                    <span style={{ fontSize: '9px', color: '#52525b' }}>
+                                    <span style={{ fontSize: '9px', color: theme.textMuted }}>
                                       ↑↓ nav · Enter select
                                     </span>
                                   </div>
@@ -866,14 +868,14 @@ const ObjectivesModal = ({ onClose }) => {
                                       onMouseEnter={() => setAutocompleteIndex(idx)}
                                     >
                                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2px' }}>
-                                        <span style={{ fontSize: '12px', fontWeight: 500, color: '#E4E4E7' }}>{item.name}</span>
+                                        <span style={{ fontSize: '12px', fontWeight: 500, color: theme.text }}>{item.name}</span>
                                         <div style={{ display: 'flex', gap: '4px' }}>
                                           <OutcomeTypeTag type={item.outcomeType} small />
                                           <VariableTypeTag type={item.variableType} small />
                                         </div>
                                       </div>
                                       {item.description && (
-                                        <div style={{ fontSize: '10px', color: '#71717A' }}>{item.description}</div>
+                                        <div style={{ fontSize: '10px', color: theme.textTertiary }}>{item.description}</div>
                                       )}
                                     </div>
                                   ))}
@@ -945,7 +947,7 @@ const ObjectivesModal = ({ onClose }) => {
                                         updateObjective(objective.id, 'showSuccessCriteria', false);
                                         updateObjective(objective.id, 'successCriteria1', '');
                                       }}
-                                      style={{ padding: '2px', background: 'transparent', border: 'none', cursor: 'pointer', color: '#52525b', display: 'flex' }}
+                                      style={{ padding: '2px', background: 'transparent', border: 'none', cursor: 'pointer', color: theme.textMuted, display: 'flex' }}
                                     >
                                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <line x1="18" y1="6" x2="6" y2="18" />
@@ -998,7 +1000,7 @@ const ObjectivesModal = ({ onClose }) => {
                                         updateObjective(objective.id, 'showSuccessCriteria', false);
                                         updateObjective(objective.id, 'successCriteria1', '');
                                       }}
-                                      style={{ padding: '2px', background: 'transparent', border: 'none', cursor: 'pointer', color: '#52525b', display: 'flex' }}
+                                      style={{ padding: '2px', background: 'transparent', border: 'none', cursor: 'pointer', color: theme.textMuted, display: 'flex' }}
                                     >
                                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <line x1="18" y1="6" x2="6" y2="18" />
@@ -1087,7 +1089,7 @@ const ObjectivesModal = ({ onClose }) => {
                                             updateObjective(objective.id, 'showSuccessCriteria', false);
                                             updateObjective(objective.id, 'successCriteria1', '');
                                           }}
-                                          style={{ padding: '2px', background: 'transparent', border: 'none', cursor: 'pointer', color: '#52525b', display: 'flex' }}
+                                          style={{ padding: '2px', background: 'transparent', border: 'none', cursor: 'pointer', color: theme.textMuted, display: 'flex' }}
                                         >
                                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                             <line x1="18" y1="6" x2="6" y2="18" />
@@ -1115,7 +1117,7 @@ const ObjectivesModal = ({ onClose }) => {
                                       className="value-field"
                                       style={{ width: '85px' }}
                                     />
-                                    <span style={{ color: '#52525b', fontSize: '10px' }}>–</span>
+                                    <span style={{ color: theme.textMuted, fontSize: '10px' }}>–</span>
                                     <input
                                       type="number"
                                       step="any"
@@ -1140,7 +1142,7 @@ const ObjectivesModal = ({ onClose }) => {
                                         <option key={idx} value={level}>{level}</option>
                                       ))}
                                     </select>
-                                    <span style={{ color: '#52525b', fontSize: '10px' }}>–</span>
+                                    <span style={{ color: theme.textMuted, fontSize: '10px' }}>–</span>
                                     <select
                                       value={objective.value2}
                                       onChange={(e) => updateObjective(objective.id, 'value2', e.target.value)}
@@ -1158,7 +1160,7 @@ const ObjectivesModal = ({ onClose }) => {
                             )}
                             
                             {!objective.objectiveType && (
-                              <span style={{ fontSize: '11px', color: '#52525b', fontStyle: 'italic' }}>
+                              <span style={{ fontSize: '11px', color: theme.textMuted, fontStyle: 'italic' }}>
                                 Select type
                               </span>
                             )}
@@ -1241,8 +1243,8 @@ const ObjectivesModal = ({ onClose }) => {
                                     left: 0,
                                     minWidth: '140px',
                                     marginTop: '4px',
-                                    background: '#1a1a22',
-                                    border: '1px solid rgba(255,255,255,0.15)',
+                                    background: theme.surfaceElevated,
+                                    border: `1px solid ${theme.borderStrong}`,
                                     borderRadius: '6px',
                                     boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
                                     zIndex: 100,
@@ -1256,7 +1258,7 @@ const ObjectivesModal = ({ onClose }) => {
                                         style={{
                                           padding: '6px 10px',
                                           cursor: 'pointer',
-                                          background: idx === tagAutocompleteIndex ? 'rgba(255,255,255,0.06)' : 'transparent',
+                                          background: idx === tagAutocompleteIndex ? `${theme.border}` : 'transparent',
                                           display: 'flex',
                                           alignItems: 'center',
                                           gap: '8px',
@@ -1269,7 +1271,7 @@ const ObjectivesModal = ({ onClose }) => {
                                           borderRadius: '2px',
                                           background: tag.color,
                                         }} />
-                                        <span style={{ fontSize: '11px', color: '#E4E4E7' }}>{tag.name}</span>
+                                        <span style={{ fontSize: '11px', color: theme.text }}>{tag.name}</span>
                                       </div>
                                     ))}
                                     {showCreateOption && (
@@ -1286,8 +1288,8 @@ const ObjectivesModal = ({ onClose }) => {
                                         style={{
                                           padding: '6px 10px',
                                           cursor: 'pointer',
-                                          background: suggestions.length === 0 ? 'rgba(255,255,255,0.06)' : 'transparent',
-                                          borderTop: suggestions.length > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                                          background: suggestions.length === 0 ? `${theme.border}` : 'transparent',
+                                          borderTop: suggestions.length > 0 ? `1px solid ${theme.border}` : 'none',
                                           display: 'flex',
                                           alignItems: 'center',
                                           gap: '6px',
@@ -1315,7 +1317,7 @@ const ObjectivesModal = ({ onClose }) => {
                               border: 'none',
                               borderRadius: '4px',
                               cursor: 'pointer',
-                              color: '#52525b',
+                              color: theme.textMuted,
                               opacity: hoveredRow === objective.id ? 1 : 0,
                               transition: 'all 0.15s ease',
                               display: 'flex',
@@ -1329,7 +1331,7 @@ const ObjectivesModal = ({ onClose }) => {
                             }}
                             onMouseLeave={(e) => {
                               e.currentTarget.style.background = 'transparent';
-                              e.currentTarget.style.color = '#52525b';
+                              e.currentTarget.style.color = theme.textMuted;
                             }}
                           >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1352,12 +1354,12 @@ const ObjectivesModal = ({ onClose }) => {
             flex: '1 1 32%',
             display: 'flex',
             flexDirection: 'column',
-            background: 'rgba(0,0,0,0.15)',
+            background: theme.sidebarBg,
             minWidth: 0,
           }}>
             <div style={{
               padding: '12px 16px',
-              borderBottom: '1px solid rgba(255,255,255,0.04)',
+              borderBottom: `1px solid ${theme.borderLight}`,
               flexShrink: 0,
             }}>
               <div style={{
@@ -1369,7 +1371,7 @@ const ObjectivesModal = ({ onClose }) => {
                 <span style={{
                   fontSize: '11px',
                   fontWeight: 600,
-                  color: '#71717A',
+                  color: theme.textTertiary,
                   textTransform: 'uppercase',
                   letterSpacing: '0.08em',
                 }}>
@@ -1429,7 +1431,7 @@ const ObjectivesModal = ({ onClose }) => {
                   onChange={(e) => setLibrarySearch(e.target.value)}
                   placeholder="Search outcomes & combinations..."
                   className="objective-field"
-                  style={{ width: '100%', paddingLeft: '32px', fontSize: '12px', background: 'rgba(255,255,255,0.02)' }}
+                  style={{ width: '100%', paddingLeft: '32px', fontSize: '12px', background: `${theme.cardBg}` }}
                 />
               </div>
 
@@ -1442,9 +1444,9 @@ const ObjectivesModal = ({ onClose }) => {
                       padding: '4px 10px',
                       fontSize: '10px',
                       fontWeight: 500,
-                      background: libraryFilter === filter ? `rgba(${themeColorRgb}, 0.15)` : 'rgba(255,255,255,0.03)',
-                      color: libraryFilter === filter ? themeColor : '#71717A',
-                      border: libraryFilter === filter ? `1px solid rgba(${themeColorRgb}, 0.3)` : '1px solid rgba(255,255,255,0.08)',
+                      background: libraryFilter === filter ? `rgba(${themeColorRgb}, 0.15)` : theme.inputBg,
+                      color: libraryFilter === filter ? themeColor : theme.textTertiary,
+                      border: libraryFilter === filter ? `1px solid rgba(${themeColorRgb}, 0.3)` : `1px solid ${theme.inputBorder}`,
                       borderRadius: '4px',
                       cursor: 'pointer',
                     }}
@@ -1482,14 +1484,14 @@ const ObjectivesModal = ({ onClose }) => {
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#E4E4E7' }}>{item.name}</span>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: theme.text }}>{item.name}</span>
                     <div style={{ display: 'flex', gap: '4px' }}>
                       <OutcomeTypeTag type={item.outcomeType} small />
                       <VariableTypeTag type={item.variableType} small />
                     </div>
                   </div>
                   {item.description && (
-                    <p style={{ margin: 0, fontSize: '11px', color: '#71717A' }}>{item.description}</p>
+                    <p style={{ margin: 0, fontSize: '11px', color: theme.textTertiary }}>{item.description}</p>
                   )}
                   {item.levels && (
                     <div style={{ display: 'flex', gap: '4px', marginTop: '6px', flexWrap: 'wrap' }}>
@@ -1497,9 +1499,9 @@ const ObjectivesModal = ({ onClose }) => {
                         <span key={i} style={{
                           padding: '2px 6px',
                           borderRadius: '3px',
-                          background: 'rgba(255,255,255,0.05)',
+                          background: `${theme.borderLight}`,
                           fontSize: '9px',
-                          color: '#A1A1AA',
+                          color: theme.textSecondary,
                         }}>
                           {level}
                         </span>
@@ -1508,9 +1510,9 @@ const ObjectivesModal = ({ onClose }) => {
                         <span style={{
                           padding: '2px 6px',
                           borderRadius: '3px',
-                          background: 'rgba(255,255,255,0.05)',
+                          background: `${theme.borderLight}`,
                           fontSize: '9px',
-                          color: '#71717A',
+                          color: theme.textTertiary,
                         }}>
                           +{item.levels.length - 3}
                         </span>
@@ -1522,7 +1524,7 @@ const ObjectivesModal = ({ onClose }) => {
               
               {getFilteredLibraryItems().length === 0 && (
                 <div style={{ padding: '40px 20px', textAlign: 'center' }}>
-                  <p style={{ fontSize: '12px', color: '#52525b', margin: 0 }}>
+                  <p style={{ fontSize: '12px', color: theme.textMuted, margin: 0 }}>
                     No items found matching "{librarySearch || libraryFilter}"
                   </p>
                 </div>
@@ -1534,16 +1536,16 @@ const ObjectivesModal = ({ onClose }) => {
         {/* Footer */}
         <div style={{
           padding: '16px 24px',
-          borderTop: '1px solid rgba(255,255,255,0.06)',
+          borderTop: `1px solid ${theme.border}`,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexShrink: 0,
-          background: 'rgba(0,0,0,0.2)',
+          background: theme.cardBgDark,
         }}>
-          <div style={{ display: 'flex', gap: '16px', fontSize: '11px', color: '#52525b' }}>
+          <div style={{ display: 'flex', gap: '16px', fontSize: '11px', color: theme.textMuted }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <kbd style={{ padding: '2px 6px', borderRadius: '4px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', fontSize: '10px' }}>⌘N</kbd>
+              <kbd style={{ padding: '2px 6px', borderRadius: '4px', background: `${theme.borderLight}`, border: `1px solid ${theme.inputBorder}`, fontSize: '10px' }}>⌘N</kbd>
               New Objective
             </span>
           </div>
@@ -1556,8 +1558,8 @@ const ObjectivesModal = ({ onClose }) => {
                 fontSize: '13px',
                 fontWeight: 500,
                 background: 'transparent',
-                color: '#71717A',
-                border: '1px solid rgba(255,255,255,0.1)',
+                color: theme.textTertiary,
+                border: `1px solid ${theme.borderLight}`,
                 borderRadius: '8px',
                 cursor: 'pointer',
               }}
@@ -1579,9 +1581,9 @@ const ObjectivesModal = ({ onClose }) => {
                 fontWeight: 600,
                 background: objectives.length > 0 
                   ? `linear-gradient(135deg, ${themeColor} 0%, #3B82F6 100%)`
-                  : 'rgba(255,255,255,0.05)',
-                color: objectives.length > 0 ? '#0a0a0f' : '#52525b',
-                border: objectives.length > 0 ? 'none' : '1px solid rgba(255,255,255,0.1)',
+                  : `${theme.borderLight}`,
+                color: objectives.length > 0 ? '#ffffff' : theme.textMuted,
+                border: objectives.length > 0 ? 'none' : `1px solid ${theme.borderLight}`,
                 borderRadius: '8px',
                 cursor: objectives.length > 0 ? 'pointer' : 'not-allowed',
                 boxShadow: objectives.length > 0 ? `0 2px 16px rgba(${themeColorRgb}, 0.35)` : 'none',
@@ -1611,8 +1613,8 @@ const ObjectivesModal = ({ onClose }) => {
             left: '50%',
             transform: 'translate(-50%, -50%)',
             width: '360px',
-            background: '#14141a',
-            border: '1px solid rgba(255,255,255,0.1)',
+            background: theme.surfaceElevated,
+            border: `1px solid ${theme.borderLight}`,
             borderRadius: '12px',
             boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
             zIndex: 1002,
@@ -1620,17 +1622,17 @@ const ObjectivesModal = ({ onClose }) => {
           }}>
             <div style={{
               padding: '16px 20px',
-              borderBottom: '1px solid rgba(255,255,255,0.06)',
+              borderBottom: `1px solid ${theme.border}`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
             }}>
-              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#E4E4E7' }}>
+              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: theme.text }}>
                 Create New Tag
               </h3>
               <button
                 onClick={() => { setShowTagModal(false); setNewTagName(''); }}
-                style={{ padding: '4px', background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '4px', cursor: 'pointer', color: '#71717A' }}
+                style={{ padding: '4px', background: `${theme.borderLight}`, border: 'none', borderRadius: '4px', cursor: 'pointer', color: theme.textTertiary }}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <line x1="18" y1="6" x2="6" y2="18" />
@@ -1641,7 +1643,7 @@ const ObjectivesModal = ({ onClose }) => {
             
             <div style={{ padding: '20px' }}>
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: theme.textTertiary, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
                   Tag Name
                 </label>
                 <input
@@ -1657,7 +1659,7 @@ const ObjectivesModal = ({ onClose }) => {
               </div>
               
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: theme.textTertiary, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
                   Color
                 </label>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -1681,7 +1683,7 @@ const ObjectivesModal = ({ onClose }) => {
               
               {newTagName && (
                 <div style={{ marginBottom: '20px' }}>
-                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: theme.textTertiary, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
                     Preview
                   </label>
                   <ObjectiveTag tag={{ name: newTagName, color: newTagColor }} small={false} />
@@ -1691,7 +1693,7 @@ const ObjectivesModal = ({ onClose }) => {
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
                 <button
                   onClick={() => { setShowTagModal(false); setNewTagName(''); }}
-                  style={{ padding: '8px 16px', fontSize: '13px', fontWeight: 500, background: 'transparent', color: '#71717A', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', cursor: 'pointer' }}
+                  style={{ padding: '8px 16px', fontSize: '13px', fontWeight: 500, background: 'transparent', color: theme.textTertiary, border: `1px solid ${theme.borderLight}`, borderRadius: '6px', cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
@@ -1702,8 +1704,8 @@ const ObjectivesModal = ({ onClose }) => {
                     padding: '8px 16px',
                     fontSize: '13px',
                     fontWeight: 600,
-                    background: newTagName.trim() ? `linear-gradient(135deg, ${themeColor} 0%, #3B82F6 100%)` : 'rgba(255,255,255,0.05)',
-                    color: newTagName.trim() ? '#0a0a0f' : '#52525b',
+                    background: newTagName.trim() ? `linear-gradient(135deg, ${themeColor} 0%, #3B82F6 100%)` : `${theme.borderLight}`,
+                    color: newTagName.trim() ? '#ffffff' : theme.textMuted,
                     border: 'none',
                     borderRadius: '6px',
                     cursor: newTagName.trim() ? 'pointer' : 'not-allowed',

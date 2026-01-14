@@ -14,12 +14,12 @@ interface ViewSwitcherProps {
 }
 
 const ViewSwitcher: React.FC<ViewSwitcherProps> = ({ views, activeView, onViewChange }) => {
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
 
   return (
     <div style={{
       display: 'flex',
-      background: 'rgba(255,255,255,0.03)',
+      background: isDarkMode ? 'rgba(255,255,255,0.03)' : theme.cardBgHover,
       borderRadius: '8px',
       padding: '4px',
       gap: '4px',
@@ -41,7 +41,7 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({ views, activeView, onViewCh
               color: isActive ? '#2DD4BF' : theme.textTertiary,
               border: isActive
                 ? '1px solid rgba(45, 212, 191, 0.3)'
-                : '1px solid transparent',
+                : `1px solid ${theme.border}`,
               borderRadius: '6px',
               cursor: 'pointer',
               display: 'flex',
@@ -52,7 +52,7 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({ views, activeView, onViewCh
             }}
             onMouseEnter={(e) => {
               if (!isActive) {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                e.currentTarget.style.background = isDarkMode ? 'rgba(255,255,255,0.05)' : theme.cardBgHover;
               }
             }}
             onMouseLeave={(e) => {
