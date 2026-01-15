@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 
 interface Project {
@@ -51,6 +52,7 @@ const ProjectsView: React.FC<ProjectsViewProps> = ({
   onPromoteIdea,
 }) => {
   const { theme } = useTheme();
+  const navigate = useNavigate();
 
   // Projects state
   const [searchQuery, setSearchQuery] = useState('');
@@ -225,7 +227,7 @@ const ProjectsView: React.FC<ProjectsViewProps> = ({
             ))}
           </div>
           <div style={{ flex: 1 }} />
-          <button style={{ padding: '7px 12px', fontSize: '11px', fontWeight: 600, background: 'linear-gradient(135deg, #2DD4BF 0%, #22D3EE 100%)', color: '#0a0a0f', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 2px 10px rgba(45, 212, 191, 0.3)' }}>
+          <button onClick={() => navigate('/project/new/step-1')} style={{ padding: '7px 12px', fontSize: '11px', fontWeight: 600, background: 'linear-gradient(135deg, #2DD4BF 0%, #22D3EE 100%)', color: '#0a0a0f', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 2px 10px rgba(45, 212, 191, 0.3)' }}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
             New Project
           </button>

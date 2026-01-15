@@ -33,6 +33,7 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({ views, activeView, onViewCh
             onClick={() => onViewChange(view.id)}
             style={{
               padding: '8px 16px',
+              width: '100px',
               fontSize: '13px',
               fontWeight: 500,
               background: isActive
@@ -46,6 +47,7 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({ views, activeView, onViewCh
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: '8px',
               transition: 'all 0.2s ease',
               fontFamily: 'inherit',

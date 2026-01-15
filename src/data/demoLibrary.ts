@@ -14,6 +14,13 @@ export interface Input {
   cost?: number | null;
   isDefault?: boolean;
   levels?: string[];
+  // Project-specific fields (for user-configured inputs)
+  minValue?: string;
+  maxValue?: string;
+  levelsText?: string;
+  status?: 'draft' | 'confirmed';
+  comment?: string;
+  source?: 'Product' | 'Library' | string;
 }
 
 export interface Outcome {
@@ -43,6 +50,13 @@ export interface Objective {
   value1: string;
   value2?: string;
   successCriteria: string;
+  // Fields for prioritization screen:
+  priority?: number;
+  weight?: number;
+  chips?: number;
+  isPrerequisite?: boolean;
+  dependsOn?: string[];
+  tags?: string[];
 }
 
 export interface Combination {
@@ -94,6 +108,33 @@ export interface Tag {
   id: string;
   name: string;
   color: string;
+  category?: 'constraint' | 'objective' | 'general';
+}
+
+// Project metadata for setup flow
+export interface ProjectMetadata {
+  id: string;
+  name: string;
+  category: string;
+  projectType?: string;
+  description: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+// Product category definition
+export interface ProductCategory {
+  value: string;
+  label: string;
+}
+
+// Calculation definition (for derived metrics)
+export interface Calculation {
+  id: string;
+  name: string;
+  description: string;
+  formula: string;
+  unit?: string;
 }
 
 // ============================================================================
@@ -192,17 +233,46 @@ export const DEFAULT_SUPPLIERS: Supplier[] = [
 // ============================================================================
 
 export const CONSTRAINT_TAGS: Tag[] = [
-  { id: 'tag-1', name: 'Regulatory', color: '#EF4444' },
-  { id: 'tag-2', name: 'Cost Control', color: '#22C55E' },
-  { id: 'tag-3', name: 'Quality', color: '#3B82F6' },
-  { id: 'tag-4', name: 'Safety', color: '#F59E0B' },
+  { id: 'ctag-1', name: 'Regulatory', color: '#EF4444', category: 'constraint' },
+  { id: 'ctag-2', name: 'Cost Control', color: '#22C55E', category: 'constraint' },
+  { id: 'ctag-3', name: 'Quality', color: '#3B82F6', category: 'constraint' },
+  { id: 'ctag-4', name: 'Safety', color: '#F59E0B', category: 'constraint' },
+  { id: 'ctag-5', name: 'Nutrition', color: '#A78BFA', category: 'constraint' },
 ];
 
 export const OBJECTIVE_TAGS: Tag[] = [
-  { id: 'tag-1', name: 'Primary', color: '#60A5FA' },
-  { id: 'tag-2', name: 'Secondary', color: '#A78BFA' },
-  { id: 'tag-3', name: 'Consumer Focus', color: '#F472B6' },
-  { id: 'tag-4', name: 'Cost Reduction', color: '#22C55E' },
+  { id: 'otag-1', name: 'Default', color: '#60A5FA', category: 'objective' },
+  { id: 'otag-2', name: 'Primary', color: '#60A5FA', category: 'objective' },
+  { id: 'otag-3', name: 'Secondary', color: '#A78BFA', category: 'objective' },
+  { id: 'otag-4', name: 'Consumer Focus', color: '#F472B6', category: 'objective' },
+  { id: 'otag-5', name: 'Cost Reduction', color: '#22C55E', category: 'objective' },
+];
+
+// ============================================================================
+// PRODUCT CATEGORIES
+// ============================================================================
+
+export const DEFAULT_PRODUCT_CATEGORIES: ProductCategory[] = [
+  { value: 'ketchup', label: 'Ketchup' },
+  { value: 'brownie_mix', label: 'Brownie Mix' },
+  { value: 'orange_juice', label: 'Orange Juice' },
+  { value: 'greek_yogurt', label: 'Greek Yogurt' },
+  { value: 'potato_chips', label: 'Potato Chips' },
+  { value: 'mayonnaise', label: 'Mayonnaise' },
+  { value: 'granola_bar', label: 'Granola Bar' },
+  { value: 'salad_dressing', label: 'Salad Dressing' },
+];
+
+// ============================================================================
+// CALCULATIONS LIBRARY
+// ============================================================================
+
+export const CALCULATIONS_LIBRARY: Calculation[] = [
+  { id: 'calc-1', name: 'Total Cost', description: 'Sum of all ingredient costs', formula: 'sum(ingredient_costs)', unit: '$' },
+  { id: 'calc-2', name: 'Sugar Percentage', description: 'Sugar as % of total weight', formula: '(sugar / total_weight) * 100', unit: '%' },
+  { id: 'calc-3', name: 'Fat Content', description: 'Total fat from all sources', formula: 'sum(fat_sources)', unit: 'g' },
+  { id: 'calc-4', name: 'Calorie Count', description: 'Estimated total calories', formula: '(protein*4 + carbs*4 + fat*9)', unit: 'kcal' },
+  { id: 'calc-5', name: 'Cost per Serving', description: 'Total cost divided by servings', formula: 'total_cost / servings', unit: '$/serving' },
 ];
 
 // ============================================================================

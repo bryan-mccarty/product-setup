@@ -4,6 +4,7 @@ import { useData } from '../contexts/DataContext';
 import DashboardHeader from '../components/DashboardHeader';
 import ProjectsView from './projects_view';
 import GraphView from './graph_view';
+import DataView from './data_view';
 import InputsModal from './inputs';
 import OutcomesModal from './outcomes';
 import CombinationsModal from './combinations';
@@ -11,7 +12,7 @@ import ConstraintsModal from './constraints';
 import ObjectivesModal from './objectives';
 
 const CPGCategoryDashboard = () => {
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   const {
     inputs,
     setInputs,
@@ -28,9 +29,9 @@ const CPGCategoryDashboard = () => {
   } = useData();
 
   // View state with localStorage persistence
-  const [activeView, setActiveView] = useState<'projects' | 'graph'>(() => {
+  const [activeView, setActiveView] = useState<'projects' | 'graph' | 'data'>(() => {
     try {
-      return (localStorage.getItem('dashboardView') as 'projects' | 'graph') || 'projects';
+      return (localStorage.getItem('dashboardView') as 'projects' | 'graph' | 'data') || 'projects';
     } catch {
       return 'projects';
     }
@@ -223,6 +224,16 @@ const CPGCategoryDashboard = () => {
           <line x1="7" y1="12" x2="9" y2="12" />
         </svg>
       )
+    },
+    {
+      id: 'data',
+      label: 'Data',
+      icon: (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M3 3v18h18" />
+          <path d="M7 16l4-4 4 4 5-6" />
+        </svg>
+      )
     }
   ];
 
@@ -382,7 +393,7 @@ const CPGCategoryDashboard = () => {
         }}
         views={views}
         activeView={activeView}
-        onViewChange={(viewId) => setActiveView(viewId as 'projects' | 'graph')}
+        onViewChange={(viewId) => setActiveView(viewId as 'projects' | 'graph' | 'data')}
       />
 
       {/* Main Content Area - Two Column Layout */}
@@ -414,6 +425,9 @@ const CPGCategoryDashboard = () => {
             connections={itemConnections}
             onNodeClick={handleGraphNodeClick}
           />
+        )}
+        {activeView === 'data' && (
+          <DataView />
         )}
 
         {/* Right Panel - aligned with Projects section */}
@@ -535,7 +549,7 @@ const CPGCategoryDashboard = () => {
             borderRadius: chatOpen ? '6px 0 0 6px' : '6px 0 0 6px',
             padding: '12px 8px',
             cursor: 'pointer',
-            boxShadow: '-2px 0 10px rgba(124, 58, 237, 0.15)',
+            boxShadow: isDarkMode ? '-2px 0 10px rgba(124, 58, 237, 0.15)' : '-1px 0 4px rgba(124, 58, 237, 0.08)',
             zIndex: 1000,
             transition: 'right 0.3s ease',
             display: 'flex',
@@ -566,7 +580,7 @@ const CPGCategoryDashboard = () => {
           width: '420px',
           background: '#0a0a0f',
           borderLeft: '1px solid rgba(255,255,255,0.08)',
-          boxShadow: '-4px 0 20px rgba(0,0,0,0.5)',
+          boxShadow: isDarkMode ? '-4px 0 20px rgba(0,0,0,0.5)' : '-2px 0 8px rgba(0,0,0,0.1)',
           display: 'flex',
           flexDirection: 'column',
           zIndex: 999,
