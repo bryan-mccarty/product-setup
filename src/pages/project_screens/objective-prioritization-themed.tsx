@@ -1,120 +1,6 @@
 import React, { useState, useMemo } from 'react';
-
-// ============================================
-// SAMPLE DATA - Objectives from previous step
-// ============================================
-const initialObjectives = [
-  { 
-    id: 'obj-1', 
-    targetName: 'Overall Liking', 
-    targetType: 'outcome',
-    outcomeType: 'Consumer',
-    objectiveType: 'maximize', 
-    value1: '', 
-    value2: '',
-    chips: 1,
-    isPrerequisite: false,
-  },
-  { 
-    id: 'obj-2', 
-    targetName: 'Purchase Intent', 
-    targetType: 'outcome',
-    outcomeType: 'Consumer',
-    objectiveType: 'maximize', 
-    value1: '', 
-    value2: '',
-    chips: 1,
-    isPrerequisite: false,
-  },
-  { 
-    id: 'obj-3', 
-    targetName: 'Sweetness', 
-    targetType: 'outcome',
-    outcomeType: 'Sensory',
-    objectiveType: 'approximately', 
-    value1: '7.5', 
-    value2: '',
-    chips: 1,
-    isPrerequisite: false,
-  },
-  { 
-    id: 'obj-4', 
-    targetName: 'Fudginess', 
-    targetType: 'outcome',
-    outcomeType: 'Sensory',
-    objectiveType: 'maximize', 
-    value1: '', 
-    value2: '',
-    chips: 1,
-    isPrerequisite: false,
-  },
-  { 
-    id: 'obj-5', 
-    targetName: 'Moisture Content', 
-    targetType: 'outcome',
-    outcomeType: 'Analytical',
-    objectiveType: 'between', 
-    value1: '0.65', 
-    value2: '0.75',
-    chips: 1,
-    isPrerequisite: false,
-  },
-  { 
-    id: 'obj-6', 
-    targetName: 'Sugar per Serving', 
-    targetType: 'outcome',
-    outcomeType: 'Analytical',
-    objectiveType: 'minimize', 
-    value1: '', 
-    value2: '',
-    chips: 1,
-    isPrerequisite: false,
-  },
-  { 
-    id: 'obj-7', 
-    targetName: 'Total Cost', 
-    targetType: 'combination',
-    outcomeType: 'Combination',
-    objectiveType: 'minimize', 
-    value1: '', 
-    value2: '',
-    chips: 1,
-    isPrerequisite: false,
-  },
-  { 
-    id: 'obj-8', 
-    targetName: 'Broken Emulsification', 
-    targetType: 'outcome',
-    outcomeType: 'Analytical',
-    objectiveType: 'minimize', 
-    value1: '', 
-    value2: '',
-    chips: 1,
-    isPrerequisite: false,
-  },
-  { 
-    id: 'obj-9', 
-    targetName: 'Crumbling Texture', 
-    targetType: 'outcome',
-    outcomeType: 'Sensory',
-    objectiveType: 'minimize', 
-    value1: '', 
-    value2: '',
-    chips: 1,
-    isPrerequisite: false,
-  },
-  { 
-    id: 'obj-10', 
-    targetName: 'Layer Separation', 
-    targetType: 'outcome',
-    outcomeType: 'Analytical',
-    objectiveType: 'minimize', 
-    value1: '', 
-    value2: '',
-    chips: 1,
-    isPrerequisite: false,
-  },
-];
+import { useNavigate } from 'react-router-dom';
+import { useData } from '../../contexts/DataContext';
 
 // Objective type definitions
 const objectiveTypes = [
@@ -198,35 +84,110 @@ const UnlockIcon = () => (
 // MAIN COMPONENT
 // ============================================
 export default function ObjectivePrioritization() {
-  // Step configuration
-  const [currentStep] = useState(7);
+  const navigate = useNavigate();
+  const {
+    projectObjectives,         // ONLY objectives from step 6
+    setProjectObjectives,
+    projectMetadata,
+    stepStatuses,
+    setStepStatus
+  } = useData();
+
+  const currentStep = 7;
+
   const steps = [
-    { number: 1, name: 'Basic Information', status: 'complete' },
-    { number: 2, name: 'Define Goals / Claims', status: 'complete' },
-    { number: 3, name: 'Select Inputs', status: 'complete' },
-    { number: 4, name: 'Define Constraints', status: 'complete' },
-    { number: 5, name: 'Select Outcomes', status: 'complete' },
-    { number: 6, name: 'Set Objectives', status: 'complete' },
-    { number: 7, name: 'Prioritize Objectives', status: 'current' },
-    { number: 8, name: 'Review', status: null }
+    { number: 1, name: 'Basic Information' },
+    { number: 2, name: 'Define Goals / Claims' },
+    { number: 3, name: 'Select Inputs' },
+    { number: 4, name: 'Define Constraints' },
+    { number: 5, name: 'Select Outcomes' },
+    { number: 6, name: 'Set Objectives' },
+    { number: 7, name: 'Prioritize Objectives' },
+    { number: 8, name: 'Review' }
   ];
 
-  const getStepStatus = (stepNumber) => {
-    if (stepNumber < currentStep) return 'completed';
-    if (stepNumber === currentStep) return 'current';
+  // Get step status from context
+  const getStepStatus = (stepNumber: number) => {
+    // Current step shows cyan UNLESS it's been saved as draft (then show orange)
+    if (stepNumber === currentStep) {
+      if (stepStatuses[stepNumber] === 'draft') return 'draft';
+      return 'current';
+    }
+    if (stepStatuses[stepNumber] === 'completed') return 'completed';
+    if (stepStatuses[stepNumber] === 'draft') return 'draft';
+    if (stepStatuses[stepNumber] === 'incomplete') return 'incomplete';
     return 'upcoming';
+  };
+
+  const getStepClass = (step: any) => {
+    return getStepStatus(step.number);
+  };
+
+  // Navigation handlers
+  const handleStepClick = (stepNumber: number) => {
+    // Mark current step as incomplete ONLY when leaving via stepper (not Continue button)
+    const currentStatus = stepStatuses[currentStep];
+    if (currentStatus !== 'completed' && currentStatus !== 'draft') {
+      setStepStatus(currentStep, 'incomplete');
+    }
+    navigate(`/project/new/step-${stepNumber}`);
+  };
+
+  const handleContinue = () => {
+    // Save prioritized objectives back to context
+    setProjectObjectives(objectives.map((o: any) => ({
+      id: o.id,
+      targetName: o.targetName,
+      objectiveType: o.objectiveType,
+      value1: o.value1 || '',
+      value2: o.value2 || '',
+      successCriteria: '',
+      tags: o.tags || [],
+      chips: o.chips,
+      isPrerequisite: o.isPrerequisite,
+    })));
+    setStepStatus(currentStep, 'completed');
+    navigate('/project/new/step-8');
+  };
+
+  const handleSaveAsDraft = () => {
+    setProjectObjectives(objectives.map((o: any) => ({
+      id: o.id,
+      targetName: o.targetName,
+      objectiveType: o.objectiveType,
+      value1: o.value1 || '',
+      value2: o.value2 || '',
+      successCriteria: '',
+      tags: o.tags || [],
+      chips: o.chips,
+      isPrerequisite: o.isPrerequisite,
+    })));
+    setStepStatus(currentStep, 'draft');
   };
 
   const progressPercentage = ((currentStep - 1) / (steps.length - 1)) * 100;
 
-  // Project info
-  const [projectInfo] = useState({
-    title: "Low-Sugar Brownie Mix",
-    description: "Reduce sugar while maintaining sweetness and fudginess near full-sugar version"
-  });
+  // Project info from context
+  const projectInfo = {
+    title: projectMetadata?.name || "New Project",
+    description: projectMetadata?.description || "Prioritize objectives for your formulation project"
+  };
 
-  // State
-  const [objectives, setObjectives] = useState(initialObjectives);
+  // State - initialize from projectObjectives (only from step 6)
+  const [objectives, setObjectives] = useState<any[]>(() => {
+    // Map projectObjectives from step 6 to local state with prioritization fields
+    return projectObjectives.map((obj: any) => ({
+      id: obj.id,
+      targetName: obj.targetName,
+      targetType: 'outcome', // Default, could be enhanced
+      outcomeType: 'Consumer', // Default, could be enhanced
+      objectiveType: obj.objectiveType,
+      value1: obj.value1 || '',
+      value2: obj.value2 || '',
+      chips: obj.chips || 1, // Default to 1 chip
+      isPrerequisite: obj.isPrerequisite || false,
+    }));
+  });
   const [activeFilter, setActiveFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [prereqSearchSlot, setPrereqSearchSlot] = useState(null); // which slot is being searched (0 or 1)
@@ -566,6 +527,30 @@ export default function ObjectivePrioritization() {
 
         .step-label.upcoming {
           color: #52525b;
+        }
+
+        .step-circle.draft {
+          background: #18181B;
+          color: #F59E0B;
+          border: 2px solid #F59E0B;
+        }
+
+        .step-circle.incomplete {
+          background: #18181B;
+          color: #EF4444;
+          border: 2px solid #EF4444;
+        }
+
+        .step {
+          cursor: pointer;
+        }
+
+        .step-label.draft {
+          color: #F59E0B;
+        }
+
+        .step-label.incomplete {
+          color: #EF4444;
         }
 
         /* Project Info */
@@ -1650,14 +1635,16 @@ export default function ObjectivePrioritization() {
                 <div className="steps-container">
                   {steps.map((step) => {
                     const status = getStepStatus(step.number);
+                    const stepClass = getStepClass(step);
+
                     return (
-                      <div key={step.number} className="step">
+                      <div key={step.number} className="step" onClick={() => handleStepClick(step.number)}>
                         <div
-                          className={`step-circle ${status}`}
+                          className={`step-circle ${stepClass}`}
                         >
                           {status === 'completed' ? <CheckIcon /> : step.number}
                         </div>
-                        <div className={`step-label ${status}`}>
+                        <div className={`step-label ${stepClass}`}>
                           {step.name}
                         </div>
                       </div>
@@ -1864,7 +1851,7 @@ export default function ObjectivePrioritization() {
                                   <div
                                     key={obj.id}
                                     className="prerequisite-dropdown-item"
-                                    onClick={() => {
+                                    onMouseDown={() => {
                                       togglePrerequisite(obj.id);
                                       setPrereqSearch('');
                                       setShowPrereqDropdown(false);
@@ -2004,12 +1991,13 @@ export default function ObjectivePrioritization() {
 
           {/* Form Actions */}
           <div className="form-actions">
-            <button className="btn btn-secondary">
+            <button className="btn btn-secondary" onClick={handleSaveAsDraft}>
               Save as Draft
             </button>
-            <button 
-              className="btn btn-primary" 
+            <button
+              className="btn btn-primary"
               disabled={allocatedChips !== TOTAL_CHIPS}
+              onClick={handleContinue}
             >
               Continue to Review
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2">

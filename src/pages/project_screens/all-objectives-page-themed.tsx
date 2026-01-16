@@ -1,29 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useData } from '../../contexts/DataContext';
 
 // Unique ID generator
 const generateId = () => Math.random().toString(36).substr(2, 9);
-
-// ============================================
-// SAMPLE DATA
-// ============================================
-
-// Project outcomes (from earlier step - selected for this project)
-const projectOutcomes = [
-  { id: 'outcome-1', name: 'Sweetness', outcomeType: 'Sensory', variableType: 'Continuous', description: 'Perceived sweetness level' },
-  { id: 'outcome-2', name: 'Fudginess', outcomeType: 'Sensory', variableType: 'Ordinal', description: 'Texture fudginess rating', levels: ['Low', 'Medium', 'High'] },
-  { id: 'outcome-3', name: 'Overall Liking', outcomeType: 'Consumer', variableType: 'Continuous', description: 'Consumer preference score' },
-  { id: 'outcome-4', name: 'Purchase Intent', outcomeType: 'Consumer', variableType: 'Ordinal', description: 'Likelihood to purchase', levels: ['Unlikely', 'Neutral', 'Likely', 'Very Likely'] },
-  { id: 'outcome-5', name: 'Moisture Content', outcomeType: 'Analytical', variableType: 'Continuous', description: 'Water activity measurement' },
-  { id: 'outcome-6', name: 'Sugar per Serving', outcomeType: 'Analytical', variableType: 'Continuous', description: 'Grams of sugar per serving' },
-];
-
-// Project combinations (from earlier step)  
-const projectCombinations = [
-  { id: 'combo-1', name: 'Total Fat Content', variableType: 'Continuous', description: 'Butter + Eggs fat contribution', components: ['Butter', 'Eggs'] },
-  { id: 'combo-2', name: 'Total Sweetener', variableType: 'Continuous', description: 'Sugar + substitute total', components: ['Sugar', 'Sweetener Substitute'] },
-  { id: 'combo-3', name: 'Chocolate Intensity', variableType: 'Continuous', description: 'Cocoa percentage of dry', components: ['Cocoa Powder', 'Flour'] },
-  { id: 'combo-4', name: 'Total Cost', variableType: 'Continuous', description: 'Sum of all ingredient costs', components: ['All Ingredients'] },
-];
 
 // Available tags from product
 const productTags = [
@@ -85,50 +65,6 @@ const productObjectives = [
     value1: '', 
     value2: '',
     tags: [productTags[3]] // Consumer Focus
-  },
-];
-
-// Draft objectives from Goals/Claims step (need to be mapped to real objectives)
-const initialDraftObjectives = [
-  { 
-    id: 'draft-1', 
-    metricName: 'Overall Liking', 
-    metricRef: { id: 'outcome-3', type: 'outcome' }, // Has a valid ref - can auto-create
-    operator: 'maximize', 
-    value1: '', 
-    value2: '',
-    goalId: 'goal-1',
-    mappedObjectiveId: null,
-  },
-  { 
-    id: 'draft-2', 
-    metricName: 'Total Cost', 
-    metricRef: { id: 'combo-4', type: 'combination' }, // Has a valid ref
-    operator: 'minimize', 
-    value1: '', 
-    value2: '',
-    goalId: 'goal-1',
-    mappedObjectiveId: null,
-  },
-  { 
-    id: 'draft-3', 
-    metricName: 'Sweetness', 
-    metricRef: { id: 'outcome-1', type: 'outcome' }, // Has a valid ref
-    operator: 'approximately', 
-    value1: '7.5', 
-    value2: '',
-    goalId: 'goal-2',
-    mappedObjectiveId: null,
-  },
-  { 
-    id: 'draft-4', 
-    metricName: 'Shelf Stability', 
-    metricRef: null, // NO valid ref - outcome doesn't exist in project, must map manually
-    operator: 'maximize', 
-    value1: '', 
-    value2: '',
-    goalId: 'goal-2',
-    mappedObjectiveId: null,
   },
 ];
 
@@ -582,50 +518,121 @@ const TagPopup = ({
 // MAIN COMPONENT
 // ============================================
 export default function AllObjectivesPage() {
-  // Step configuration
-  const [currentStep] = useState(6);
+  const navigate = useNavigate();
+  const {
+    projectOutcomes,          // ONLY project outcomes (from step 5)
+    projectCombinations,      // Project combinations (if any)
+    draftObjectives,          // From Goals/Claims step
+    projectMetadata,
+    projectObjectives,
+    setProjectObjectives,
+    stepStatuses,
+    setStepStatus
+  } = useData();
+
+  const currentStep = 6;
+
   const steps = [
-    { number: 1, name: 'Basic Information', status: 'complete' },
-    { number: 2, name: 'Define Goals / Claims', status: 'complete' },
-    { number: 3, name: 'Select Inputs', status: 'complete' },
-    { number: 4, name: 'Define Constraints', status: 'complete' },
-    { number: 5, name: 'Select Outcomes', status: 'complete' },
-    { number: 6, name: 'Set Objectives', status: 'current' },
-    { number: 7, name: 'Prioritize Objectives', status: null },
-    { number: 8, name: 'Review', status: null }
+    { number: 1, name: 'Basic Information' },
+    { number: 2, name: 'Define Goals / Claims' },
+    { number: 3, name: 'Select Inputs' },
+    { number: 4, name: 'Define Constraints' },
+    { number: 5, name: 'Select Outcomes' },
+    { number: 6, name: 'Set Objectives' },
+    { number: 7, name: 'Prioritize Objectives' },
+    { number: 8, name: 'Review' }
   ];
 
-  const getStepStatus = (stepNumber) => {
-    if (stepNumber < currentStep) return 'completed';
-    if (stepNumber === currentStep) return 'current';
+  // Get step status from context
+  const getStepStatus = (stepNumber: number) => {
+    // Current step shows cyan UNLESS it's been saved as draft (then show orange)
+    if (stepNumber === currentStep) {
+      if (stepStatuses[stepNumber] === 'draft') return 'draft';
+      return 'current';
+    }
+    if (stepStatuses[stepNumber] === 'completed') return 'completed';
+    if (stepStatuses[stepNumber] === 'draft') return 'draft';
+    if (stepStatuses[stepNumber] === 'incomplete') return 'incomplete';
     return 'upcoming';
   };
 
   const getStepClass = (step) => {
-    const status = getStepStatus(step.number);
-    if (status === 'upcoming') return 'upcoming';
-    if (status === 'current') return 'current';
-    return 'completed';
+    return getStepStatus(step.number);
+  };
+
+  // Navigation handlers
+  const handleStepClick = (stepNumber: number) => {
+    // Mark current step as incomplete ONLY when leaving via stepper (not Continue button)
+    const currentStatus = stepStatuses[currentStep];
+    if (currentStatus !== 'completed' && currentStatus !== 'draft') {
+      setStepStatus(currentStep, 'incomplete');
+    }
+    navigate(`/project/new/step-${stepNumber}`);
+  };
+
+  const handleContinue = () => {
+    // Save objectives to project context
+    setProjectObjectives(objectives.map((o: any) => ({
+      id: o.id,
+      targetName: o.targetName,
+      objectiveType: o.objectiveType,
+      value1: o.value1,
+      value2: o.value2,
+      successCriteria: '',
+      tags: o.tags?.map((t: any) => t.name || t) || [],
+    })));
+    setStepStatus(currentStep, 'completed');
+    navigate('/project/new/step-7');
+  };
+
+  const handleSaveAsDraft = () => {
+    setProjectObjectives(objectives.map((o: any) => ({
+      id: o.id,
+      targetName: o.targetName,
+      objectiveType: o.objectiveType,
+      value1: o.value1,
+      value2: o.value2,
+      successCriteria: '',
+      tags: o.tags?.map((t: any) => t.name || t) || [],
+    })));
+    setStepStatus(currentStep, 'draft');
   };
 
   const progressPercentage = ((currentStep - 1) / (steps.length - 1)) * 100;
 
-  // Project info
-  const [projectInfo] = useState({
-    title: "Low-Sugar Brownie Mix",
-    description: "Reduce sugar while maintaining sweetness and fudginess near full-sugar version"
-  });
+  // Project info from context
+  const projectInfo = {
+    title: projectMetadata?.name || "New Project",
+    description: projectMetadata?.description || "Define objectives for your formulation project"
+  };
 
   // ========== STATE ==========
   // Auto-generate objectives from drafts that can be matched to outcomes/combinations
-  const [objectives, setObjectives] = useState(() => {
-    const autoCreated = [];
-    initialDraftObjectives.forEach(draft => {
+  const [objectives, setObjectives] = useState<any[]>(() => {
+    // If we have existing project objectives, use those
+    if (projectObjectives.length > 0) {
+      return projectObjectives.map(o => {
+        const matchedOutcome = projectOutcomes.find((out: any) => out.name === o.targetName);
+        return {
+          ...o,
+          targetId: matchedOutcome?.id || null,
+          targetType: matchedOutcome ? 'outcome' : 'combination',
+          targetOutcomeType: matchedOutcome?.outcomeType || 'Combination',
+          targetVariableType: matchedOutcome?.variableType || 'Continuous',
+          mappedDraftId: null,
+          needsConfirmation: false,
+        };
+      });
+    }
+
+    // Otherwise, auto-create from draft objectives
+    const autoCreated: any[] = [];
+    draftObjectives.forEach((draft: any) => {
       // Try to match draft to an outcome or combination
-      const matchedOutcome = projectOutcomes.find(o => o.name === draft.metricName);
-      const matchedCombo = projectCombinations.find(c => c.name === draft.metricName);
+      const matchedOutcome = projectOutcomes.find((o: any) => o.name === draft.metricName);
+      const matchedCombo = projectCombinations.find((c: any) => c.name === draft.metricName);
       const matched = matchedOutcome || matchedCombo;
-      
+
       if (matched && draft.metricRef) {
         // Create an objective that needs confirmation
         autoCreated.push({
@@ -634,7 +641,7 @@ export default function AllObjectivesPage() {
           targetName: draft.metricName,
           targetType: matchedOutcome ? 'outcome' : 'combination',
           targetOutcomeType: matchedOutcome?.outcomeType || 'Combination',
-          targetVariableType: matched.variableType,
+          targetVariableType: matchedOutcome?.variableType || 'Continuous',
           objectiveType: draft.operator,
           value1: draft.value1,
           value2: draft.value2 || '',
@@ -646,15 +653,15 @@ export default function AllObjectivesPage() {
     });
     return autoCreated;
   });
-  
+
   // Draft objectives from goals/claims (need mapping)
   // Update drafts to reflect auto-created mappings
   const [drafts, setDrafts] = useState(() => {
-    return initialDraftObjectives.map(draft => {
-      const matchedOutcome = projectOutcomes.find(o => o.name === draft.metricName);
-      const matchedCombo = projectCombinations.find(c => c.name === draft.metricName);
+    return draftObjectives.map((draft: any) => {
+      const matchedOutcome = projectOutcomes.find((o: any) => o.name === draft.metricName);
+      const matchedCombo = projectCombinations.find((c: any) => c.name === draft.metricName);
       const matched = matchedOutcome || matchedCombo;
-      
+
       if (matched && draft.metricRef) {
         return { ...draft, mappedObjectiveId: `auto-${draft.id}`, needsConfirmation: true };
       }
@@ -1088,6 +1095,30 @@ export default function AllObjectivesPage() {
 
         .step-label.upcoming {
           color: #52525b;
+        }
+
+        .step-circle.draft {
+          background: #18181B;
+          color: #F59E0B;
+          border: 2px solid #F59E0B;
+        }
+
+        .step-circle.incomplete {
+          background: #18181B;
+          color: #EF4444;
+          border: 2px solid #EF4444;
+        }
+
+        .step {
+          cursor: pointer;
+        }
+
+        .step-label.draft {
+          color: #F59E0B;
+        }
+
+        .step-label.incomplete {
+          color: #EF4444;
         }
 
         /* Project Info */
@@ -1779,9 +1810,9 @@ export default function AllObjectivesPage() {
                   {steps.map((step) => {
                     const status = getStepStatus(step.number);
                     const stepClass = getStepClass(step);
-                    
+
                     return (
-                      <div key={step.number} className="step">
+                      <div key={step.number} className="step" onClick={() => handleStepClick(step.number)}>
                         <div className="step-circle-wrapper">
                           <div className={`step-circle ${stepClass}`}>
                             {status === 'completed' ? <CheckIcon /> : step.number}
@@ -2714,14 +2745,15 @@ export default function AllObjectivesPage() {
 
           {/* Form Actions */}
           <div className="form-actions">
-            <button className="btn btn-large btn-secondary">
+            <button className="btn btn-large btn-secondary" onClick={handleSaveAsDraft}>
               Save as Draft
             </button>
-            <button 
+            <button
               className="btn btn-large btn-primary"
               disabled={!isValid}
+              onClick={handleContinue}
             >
-              Continue to Outcomes
+              Continue to Prioritization
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M2 7h10M8 3l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
               </svg>

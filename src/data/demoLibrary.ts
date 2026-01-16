@@ -14,6 +14,8 @@ export interface Input {
   cost?: number | null;
   isDefault?: boolean;
   levels?: string[];
+  suggestedMin?: string;
+  suggestedMax?: string;
   // Project-specific fields (for user-configured inputs)
   minValue?: string;
   maxValue?: string;
@@ -142,21 +144,21 @@ export interface Calculation {
 // ============================================================================
 
 export const INPUT_LIBRARY: Input[] = [
-  { id: 'lib-1', name: 'Flour', inputType: 'Ingredient', variableType: 'Continuous', description: 'Base flour amount', cost: 0.42 },
-  { id: 'lib-2', name: 'Sugar', inputType: 'Ingredient', variableType: 'Continuous', description: 'Granulated sugar', cost: 0.68 },
-  { id: 'lib-3', name: 'Butter', inputType: 'Ingredient', variableType: 'Continuous', description: 'Unsalted butter', cost: 1.85 },
-  { id: 'lib-4', name: 'Eggs', inputType: 'Ingredient', variableType: 'Continuous', description: 'Whole eggs', cost: 0.35 },
-  { id: 'lib-5', name: 'Vanilla Extract', inputType: 'Ingredient', variableType: 'Continuous', description: 'Pure vanilla', cost: 4.20 },
-  { id: 'lib-6', name: 'Cocoa Powder', inputType: 'Ingredient', variableType: 'Continuous', description: 'Dutch-process cocoa', cost: 2.15 },
-  { id: 'lib-7', name: 'Baking Temperature', inputType: 'Processing Condition', variableType: 'Continuous', description: 'Oven temp in °F' },
-  { id: 'lib-8', name: 'Mixing Duration', inputType: 'Processing Condition', variableType: 'Continuous', description: 'Total mix time in minutes' },
-  { id: 'lib-9', name: 'Mixer Speed', inputType: 'Processing Condition', variableType: 'Ordinal', description: 'Speed setting', levels: ['Low', 'Medium', 'High'] },
-  { id: 'lib-10', name: 'Bake Time', inputType: 'Processing Condition', variableType: 'Continuous', description: 'Duration in minutes' },
-  { id: 'lib-11', name: 'Cooling Method', inputType: 'Processing Condition', variableType: 'Nominal', description: 'Post-bake cooling', levels: ['Room Temp', 'Refrigerated', 'Flash Cool'] },
-  { id: 'lib-12', name: 'Milk', inputType: 'Ingredient', variableType: 'Continuous', description: 'Whole milk', cost: 0.52 },
-  { id: 'lib-13', name: 'Salt', inputType: 'Ingredient', variableType: 'Continuous', description: 'Fine sea salt', cost: 0.15 },
-  { id: 'lib-14', name: 'Proofing Time', inputType: 'Processing Condition', variableType: 'Continuous', description: 'Dough rest duration' },
-  { id: 'lib-15', name: 'Humidity Level', inputType: 'Processing Condition', variableType: 'Ordinal', description: 'Environment humidity', levels: ['Low', 'Medium', 'High'] },
+  { id: 'lib-1', name: 'Flour', inputType: 'Ingredient', variableType: 'Continuous', description: 'Base flour amount', cost: 0.42, suggestedMin: '20', suggestedMax: '40' },
+  { id: 'lib-2', name: 'Sugar', inputType: 'Ingredient', variableType: 'Continuous', description: 'Granulated sugar', cost: 0.68, suggestedMin: '15', suggestedMax: '30' },
+  { id: 'lib-3', name: 'Butter', inputType: 'Ingredient', variableType: 'Continuous', description: 'Unsalted butter', cost: 1.85, suggestedMin: '10', suggestedMax: '25' },
+  { id: 'lib-4', name: 'Eggs', inputType: 'Ingredient', variableType: 'Continuous', description: 'Whole eggs', cost: 0.35, suggestedMin: '5', suggestedMax: '15' },
+  { id: 'lib-5', name: 'Vanilla Extract', inputType: 'Ingredient', variableType: 'Continuous', description: 'Pure vanilla', cost: 4.20, suggestedMin: '0.5', suggestedMax: '2' },
+  { id: 'lib-6', name: 'Cocoa Powder', inputType: 'Ingredient', variableType: 'Continuous', description: 'Dutch-process cocoa', cost: 2.15, suggestedMin: '8', suggestedMax: '18' },
+  { id: 'lib-7', name: 'Baking Temperature', inputType: 'Processing', variableType: 'Continuous', description: 'Oven temp in °F', suggestedMin: '325', suggestedMax: '375' },
+  { id: 'lib-8', name: 'Mixing Duration', inputType: 'Processing', variableType: 'Continuous', description: 'Total mix time in minutes', suggestedMin: '3', suggestedMax: '10' },
+  { id: 'lib-9', name: 'Mixer Speed', inputType: 'Processing', variableType: 'Ordinal', description: 'Speed setting', levels: ['Low', 'Medium', 'High'] },
+  { id: 'lib-10', name: 'Bake Time', inputType: 'Processing', variableType: 'Continuous', description: 'Duration in minutes', suggestedMin: '25', suggestedMax: '35' },
+  { id: 'lib-11', name: 'Cooling Method', inputType: 'Processing', variableType: 'Nominal', description: 'Post-bake cooling', levels: ['Room Temp', 'Refrigerated', 'Flash Cool'] },
+  { id: 'lib-12', name: 'Milk', inputType: 'Ingredient', variableType: 'Continuous', description: 'Whole milk', cost: 0.52, suggestedMin: '5', suggestedMax: '20' },
+  { id: 'lib-13', name: 'Salt', inputType: 'Ingredient', variableType: 'Continuous', description: 'Fine sea salt', cost: 0.15, suggestedMin: '0', suggestedMax: '3' },
+  { id: 'lib-14', name: 'Proofing Time', inputType: 'Processing', variableType: 'Continuous', description: 'Dough rest duration', suggestedMin: '30', suggestedMax: '120' },
+  { id: 'lib-15', name: 'Humidity Level', inputType: 'Processing', variableType: 'Ordinal', description: 'Environment humidity', levels: ['Low', 'Medium', 'High'] },
 ];
 
 // ============================================================================

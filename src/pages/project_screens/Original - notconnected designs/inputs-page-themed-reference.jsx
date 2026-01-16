@@ -1,11 +1,43 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useData } from '../../contexts/DataContext';
 
 // ============================================================================
 // UNIQUE ID GENERATOR
 // ============================================================================
 const generateId = () => Math.random().toString(36).substr(2, 9);
+
+// ============================================================================
+// PRODUCT INPUTS (from finished_dashboard - these are the "defaults")
+// ============================================================================
+const productInputs = [
+  { id: 'prod-1', name: 'Flour', inputType: 'Ingredient', variableType: 'Continuous', description: 'Base flour amount', cost: 0.42, isDefault: true, suggestedMin: '20', suggestedMax: '40' },
+  { id: 'prod-2', name: 'Sugar', inputType: 'Ingredient', variableType: 'Continuous', description: 'Granulated sugar', cost: 0.68, isDefault: true, suggestedMin: '15', suggestedMax: '30' },
+  { id: 'prod-3', name: 'Butter', inputType: 'Ingredient', variableType: 'Continuous', description: 'Unsalted butter', cost: 1.85, isDefault: true, suggestedMin: '10', suggestedMax: '25' },
+  { id: 'prod-4', name: 'Eggs', inputType: 'Ingredient', variableType: 'Continuous', description: 'Whole eggs', cost: 0.35, isDefault: false, suggestedMin: '5', suggestedMax: '15' },
+  { id: 'prod-5', name: 'Vanilla Extract', inputType: 'Ingredient', variableType: 'Continuous', description: 'Pure vanilla', cost: 4.20, isDefault: false, suggestedMin: '0.5', suggestedMax: '2' },
+  { id: 'prod-6', name: 'Cocoa Powder', inputType: 'Ingredient', variableType: 'Continuous', description: 'Dutch-process cocoa', cost: 2.15, isDefault: true, suggestedMin: '8', suggestedMax: '18' },
+  { id: 'prod-7', name: 'Baking Temperature', inputType: 'Processing', variableType: 'Continuous', description: 'Oven temp °F', isDefault: true, suggestedMin: '325', suggestedMax: '375' },
+  { id: 'prod-8', name: 'Mixing Duration', inputType: 'Processing', variableType: 'Continuous', description: 'Total mix time', isDefault: false, suggestedMin: '3', suggestedMax: '10' },
+  { id: 'prod-9', name: 'Mixer Speed', inputType: 'Processing', variableType: 'Ordinal', description: 'Speed setting', isDefault: false, levels: ['Low', 'Medium', 'High'] },
+  { id: 'prod-10', name: 'Bake Time', inputType: 'Processing', variableType: 'Continuous', description: 'Duration in minutes', isDefault: true, suggestedMin: '25', suggestedMax: '35' },
+];
+
+// ============================================================================
+// LIBRARY INPUTS (extended library)
+// ============================================================================
+const libraryInputs = [
+  { id: 'lib-1', name: 'Water', inputType: 'Ingredient', variableType: 'Continuous', description: 'Purified water', cost: 0.01, suggestedMin: '40', suggestedMax: '90' },
+  { id: 'lib-2', name: 'Salt', inputType: 'Ingredient', variableType: 'Continuous', description: 'Fine sea salt', cost: 0.15, suggestedMin: '0', suggestedMax: '3' },
+  { id: 'lib-3', name: 'Milk', inputType: 'Ingredient', variableType: 'Continuous', description: 'Whole milk', cost: 0.52, suggestedMin: '5', suggestedMax: '20' },
+  { id: 'lib-4', name: 'Baking Soda', inputType: 'Ingredient', variableType: 'Continuous', description: 'Sodium bicarbonate', cost: 0.08, suggestedMin: '0.5', suggestedMax: '2' },
+  { id: 'lib-5', name: 'Baking Powder', inputType: 'Ingredient', variableType: 'Continuous', description: 'Double-acting', cost: 0.12, suggestedMin: '1', suggestedMax: '4' },
+  { id: 'lib-6', name: 'Vegetable Oil', inputType: 'Ingredient', variableType: 'Continuous', description: 'Neutral oil', cost: 0.35, suggestedMin: '5', suggestedMax: '20' },
+  { id: 'lib-7', name: 'Proofing Time', inputType: 'Processing', variableType: 'Continuous', description: 'Dough rest duration', suggestedMin: '30', suggestedMax: '120' },
+  { id: 'lib-8', name: 'Humidity Level', inputType: 'Processing', variableType: 'Ordinal', description: 'Environment humidity', levels: ['Low', 'Medium', 'High'] },
+  { id: 'lib-9', name: 'Cooling Method', inputType: 'Processing', variableType: 'Nominal', description: 'Post-bake cooling', levels: ['Room Temp', 'Refrigerated', 'Flash Cool'] },
+  { id: 'lib-10', name: 'Natural Flavor', inputType: 'Ingredient', variableType: 'Continuous', description: 'Natural flavoring', cost: 2.50, suggestedMin: '0', suggestedMax: '1' },
+  { id: 'lib-11', name: 'Citric Acid', inputType: 'Ingredient', variableType: 'Continuous', description: 'Acidulant', cost: 0.25, suggestedMin: '0', suggestedMax: '2' },
+  { id: 'lib-12', name: 'Cornstarch', inputType: 'Ingredient', variableType: 'Continuous', description: 'Corn starch', cost: 0.18, suggestedMin: '2', suggestedMax: '8' },
+];
 
 // ============================================================================
 // HISTORICAL DATA FOR RANGE EXPLORER
@@ -1017,109 +1049,43 @@ const InputRow = ({ input, onUpdate, onDelete, onConfirm, onOpenRangeExplorer, a
 // MAIN COMPONENT
 // ============================================================================
 export default function InputsPage() {
-  const navigate = useNavigate();
-  const {
-    inputs: productInputs,         // Product default inputs
-    inputLibrary: libraryInputs,   // Extended library for search
-    projectMetadata,
-    projectInputs,
-    setProjectInputs,
-    stepStatuses,
-    setStepStatus
-  } = useData();
-
+  // Progress stepper - Step 3 is Inputs
   const currentStep = 3;
-
   const steps = [
-    { number: 1, name: 'Basic Information' },
-    { number: 2, name: 'Define Goals / Claims' },
-    { number: 3, name: 'Select Inputs' },
-    { number: 4, name: 'Define Constraints' },
-    { number: 5, name: 'Select Outcomes' },
-    { number: 6, name: 'Set Objectives' },
-    { number: 7, name: 'Prioritize Objectives' },
-    { number: 8, name: 'Review' }
+    { number: 1, name: 'Basic Information', status: 'complete' },
+    { number: 2, name: 'Define Goals / Claims', status: 'complete' },
+    { number: 3, name: 'Select Inputs', status: 'current' },
+    { number: 4, name: 'Define Constraints', status: null },
+    { number: 5, name: 'Select Outcomes', status: null },
+    { number: 6, name: 'Prioritize Objectives', status: null },
+    { number: 7, name: 'Review', status: null }
   ];
 
-  // Get step status from context
-  const getStepStatus = (stepNumber: number) => {
-    // Current step shows cyan UNLESS it's been saved as draft (then show orange)
-    if (stepNumber === currentStep) {
-      if (stepStatuses[stepNumber] === 'draft') return 'draft';
-      return 'current';
-    }
-    if (stepStatuses[stepNumber] === 'completed') return 'completed';
-    if (stepStatuses[stepNumber] === 'draft') return 'draft';
-    if (stepStatuses[stepNumber] === 'incomplete') return 'incomplete';
+  const getStepStatus = (stepNumber) => {
+    if (stepNumber < currentStep) return 'completed';
+    if (stepNumber === currentStep) return 'current';
     return 'upcoming';
   };
 
   const getStepClass = (step) => {
-    return getStepStatus(step.number);
-  };
-
-  // Navigation handlers
-  const handleStepClick = (stepNumber: number) => {
-    // Mark current step as incomplete ONLY when leaving via stepper (not Continue button)
-    const currentStatus = stepStatuses[currentStep];
-    if (currentStatus !== 'completed' && currentStatus !== 'draft') {
-      setStepStatus(currentStep, 'incomplete');
-    }
-    navigate(`/project/new/step-${stepNumber}`);
-  };
-
-  const handleContinue = () => {
-    // Save inputs to project context
-    setProjectInputs(inputs.map(input => ({
-      id: input.id,
-      name: input.name,
-      inputType: input.inputType,
-      variableType: input.variableType,
-      description: input.description,
-      minValue: input.minValue,
-      maxValue: input.maxValue,
-      levels: input.levels,
-      cost: input.cost,
-    })));
-    setStepStatus(currentStep, 'completed');
-    navigate('/project/new/step-4');
-  };
-
-  const handleSaveAsDraft = () => {
-    // Save inputs to project context even for drafts
-    setProjectInputs(inputs.map(input => ({
-      id: input.id,
-      name: input.name,
-      inputType: input.inputType,
-      variableType: input.variableType,
-      description: input.description,
-      minValue: input.minValue,
-      maxValue: input.maxValue,
-      levels: input.levels,
-      cost: input.cost,
-    })));
-    setStepStatus(currentStep, 'draft');
+    const status = getStepStatus(step.number);
+    if (status === 'upcoming') return 'upcoming';
+    if (status === 'current') return 'current';
+    if (step.status === 'draft') return 'draft';
+    if (step.status === 'incomplete') return 'incomplete';
+    return 'completed';
   };
 
   const progressPercentage = ((currentStep - 1) / (steps.length - 1)) * 100;
 
-  // Project info from context
-  const projectSummary = {
-    title: projectMetadata?.name || "New Project",
-    description: projectMetadata?.description || "Configure inputs for your formulation project"
-  };
+  // Project state
+  const [projectSummary] = useState({
+    title: "Low-Sugar Brownie Mix",
+    description: "Reduce brownie sugar levels while maintaining sweetness and fudginess near full-sugar version and cost below $2.20 per unit"
+  });
 
-  // Inputs state - initialize from project context if available
-  const [inputs, setInputs] = useState(() =>
-    projectInputs.length > 0
-      ? projectInputs.map(input => ({
-          ...input,
-          levelsText: input.levels?.join(', ') || '',
-          status: 'confirmed',
-          comment: '',
-        }))
-      : []
-  );
+  // Inputs state
+  const [inputs, setInputs] = useState([]);
   
   // Modal states
   const [showLibraryPanel, setShowLibraryPanel] = useState(false);
@@ -1443,24 +1409,8 @@ export default function InputsPage() {
           border: 1px solid rgba(255,255,255,0.1);
         }
 
-        .step-circle.draft {
-          background: #18181B;
-          color: #F59E0B;
-          border: 2px solid #F59E0B;
-        }
-
-        .step-circle.incomplete {
-          background: #18181B;
-          color: #EF4444;
-          border: 2px solid #EF4444;
-        }
-
         .step-circle:hover {
           transform: scale(1.08);
-        }
-
-        .step {
-          cursor: pointer;
         }
 
         .warning-badge {
@@ -1508,14 +1458,6 @@ export default function InputsPage() {
 
         .step-label.upcoming {
           color: #52525b;
-        }
-
-        .step-label.draft {
-          color: #F59E0B;
-        }
-
-        .step-label.incomplete {
-          color: #EF4444;
         }
 
         /* Project Info (inside stepper) */
@@ -3236,13 +3178,26 @@ export default function InputsPage() {
                   {steps.map((step) => {
                     const status = getStepStatus(step.number);
                     const stepClass = getStepClass(step);
-
+                    const showWarning = status === 'completed' && (step.status === 'draft' || step.status === 'incomplete');
+                    
                     return (
-                      <div key={step.number} className="step" onClick={() => handleStepClick(step.number)}>
+                      <div key={step.number} className="step">
                         <div className="step-circle-wrapper">
-                          <div className={`step-circle ${stepClass}`}>
-                            {status === 'completed' ? <CheckIcon /> : step.number}
+                          <div
+                            className={`step-circle ${stepClass}`}
+                            title={showWarning ? (step.status === 'draft' ? 'Draft - Needs review' : 'Incomplete - Missing required fields') : ''}
+                          >
+                            {status === 'completed' && !showWarning ? (
+                              <CheckIcon />
+                            ) : (
+                              step.number
+                            )}
                           </div>
+                          {showWarning && (
+                            <div className={`warning-badge ${step.status}`} title={step.status === 'draft' ? 'Draft - Needs review' : 'Incomplete - Missing required fields'}>
+                              !
+                            </div>
+                          )}
                         </div>
                         <div className={`step-label ${stepClass}`}>
                           {step.name}
@@ -3360,13 +3315,12 @@ export default function InputsPage() {
           </div>
 
           <div className="form-actions">
-            <button className="btn btn-secondary" onClick={handleSaveAsDraft}>
+            <button className="btn btn-secondary">
               Save as Draft
             </button>
-            <button
-              className="btn btn-primary"
+            <button 
+              className="btn btn-primary" 
               disabled={inputs.length === 0}
-              onClick={handleContinue}
             >
               Continue to Constraints
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2">

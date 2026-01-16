@@ -1,34 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useData } from '../../contexts/DataContext';
 
 // Unique ID generator
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
-// ============================================
-// SAMPLE DATA
-// ============================================
-
-// Project inputs (from earlier step - selected for this project)
-const projectInputs = [
-  { id: 'input-1', name: 'Flour', inputType: 'Ingredient', variableType: 'Continuous', description: 'Base flour amount', cost: 0.42 },
-  { id: 'input-2', name: 'Sugar', inputType: 'Ingredient', variableType: 'Continuous', description: 'Granulated sugar', cost: 0.68 },
-  { id: 'input-3', name: 'Butter', inputType: 'Ingredient', variableType: 'Continuous', description: 'Unsalted butter', cost: 1.85 },
-  { id: 'input-4', name: 'Eggs', inputType: 'Ingredient', variableType: 'Continuous', description: 'Whole eggs', cost: 0.35 },
-  { id: 'input-5', name: 'Cocoa Powder', inputType: 'Ingredient', variableType: 'Continuous', description: 'Dutch-process cocoa', cost: 2.15 },
-  { id: 'input-6', name: 'Sweetener Substitute', inputType: 'Ingredient', variableType: 'Continuous', description: 'Alternative sweetener', cost: 3.20 },
-  { id: 'input-7', name: 'Baking Temperature', inputType: 'Processing', variableType: 'Continuous', description: 'Oven temp °F' },
-  { id: 'input-8', name: 'Bake Time', inputType: 'Processing', variableType: 'Continuous', description: 'Duration in minutes' },
-  { id: 'input-9', name: 'Mixer Speed', inputType: 'Processing', variableType: 'Ordinal', description: 'Speed setting', levels: ['Low', 'Medium', 'High'] },
-];
-
-// Project combinations (from earlier step)  
-const projectCombinations = [
-  { id: 'combo-1', name: 'Total Fat Content', variableType: 'Continuous', description: 'Butter + Eggs fat contribution', components: ['Butter', 'Eggs'] },
-  { id: 'combo-2', name: 'Total Sweetener', variableType: 'Continuous', description: 'Sugar + substitute total', components: ['Sugar', 'Sweetener Substitute'] },
-  { id: 'combo-3', name: 'Chocolate Intensity', variableType: 'Continuous', description: 'Cocoa percentage of dry', components: ['Cocoa Powder', 'Flour'] },
-  { id: 'combo-4', name: 'Total Cost', variableType: 'Continuous', description: 'Sum of all ingredient costs', components: ['All Ingredients'] },
-];
-
-// Available tags from product
+// Available tags from product (could also come from context)
 const productTags = [
   { id: 'tag-1', name: 'Regulatory', color: '#EF4444' },
   { id: 'tag-2', name: 'Cost Control', color: '#22C55E' },
@@ -37,7 +14,7 @@ const productTags = [
   { id: 'tag-5', name: 'Nutrition', color: '#8B5CF6' },
 ];
 
-// Product library constraints (available for import)
+// Product library constraints (available for import) - could come from context
 const productConstraints = [
   { 
     id: 'pc-1', 
@@ -108,50 +85,6 @@ const productConstraints = [
     value1: '25', 
     value2: '35',
     tags: [productTags[2]] // Quality
-  },
-];
-
-// Draft constraints from Goals/Claims step (need to be mapped to real constraints)
-const initialDraftConstraints = [
-  { 
-    id: 'draft-1', 
-    metricName: 'Sugar', 
-    metricRef: { id: 'input-2', type: 'input' }, // Has a valid ref - can auto-create
-    operator: 'at_most', 
-    value1: '25', 
-    value2: '',
-    goalId: 'goal-1',
-    mappedConstraintId: null,
-  },
-  { 
-    id: 'draft-2', 
-    metricName: 'Total Cost', 
-    metricRef: { id: 'combo-4', type: 'combination' }, // Has a valid ref
-    operator: 'at_most', 
-    value1: '2.20', 
-    value2: '',
-    goalId: 'goal-1',
-    mappedConstraintId: null,
-  },
-  { 
-    id: 'draft-3', 
-    metricName: 'Cocoa Powder', 
-    metricRef: { id: 'input-5', type: 'input' }, // Has a valid ref
-    operator: 'at_least', 
-    value1: '18', 
-    value2: '',
-    goalId: 'goal-2',
-    mappedConstraintId: null,
-  },
-  { 
-    id: 'draft-4', 
-    metricName: 'Resting Time', 
-    metricRef: null, // NO valid ref - input doesn't exist in project, must map manually
-    operator: 'between', 
-    value1: '10', 
-    value2: '30',
-    goalId: 'goal-2',
-    mappedConstraintId: null,
   },
 ];
 
@@ -350,50 +283,123 @@ const ConstraintTagPill = ({ tag, onRemove, small }) => {
 // MAIN COMPONENT
 // ============================================
 export default function AllConstraintsPage() {
-  // Step configuration
-  const [currentStep] = useState(4);
+  const navigate = useNavigate();
+  const {
+    projectInputs,           // ONLY project inputs (from step 3)
+    projectCombinations,     // Project combinations (if any)
+    draftConstraints,        // From Goals/Claims step
+    projectMetadata,
+    projectConstraints,
+    setProjectConstraints,
+    stepStatuses,
+    setStepStatus
+  } = useData();
+
+  const currentStep = 4;
+
   const steps = [
-    { number: 1, name: 'Basic Information', status: 'complete' },
-    { number: 2, name: 'Define Goals / Claims', status: 'complete' },
-    { number: 3, name: 'Select Inputs', status: 'complete' },
-    { number: 4, name: 'Define Constraints', status: 'current' },
-    { number: 5, name: 'Select Outcomes', status: null },
-    { number: 6, name: 'Set Objectives', status: null },
-    { number: 7, name: 'Prioritize Objectives', status: null },
-    { number: 8, name: 'Review', status: null }
+    { number: 1, name: 'Basic Information' },
+    { number: 2, name: 'Define Goals / Claims' },
+    { number: 3, name: 'Select Inputs' },
+    { number: 4, name: 'Define Constraints' },
+    { number: 5, name: 'Select Outcomes' },
+    { number: 6, name: 'Set Objectives' },
+    { number: 7, name: 'Prioritize Objectives' },
+    { number: 8, name: 'Review' }
   ];
 
-  const getStepStatus = (stepNumber) => {
-    if (stepNumber < currentStep) return 'completed';
-    if (stepNumber === currentStep) return 'current';
+  // Get step status from context
+  const getStepStatus = (stepNumber: number) => {
+    // Current step shows cyan UNLESS it's been saved as draft (then show orange)
+    if (stepNumber === currentStep) {
+      if (stepStatuses[stepNumber] === 'draft') return 'draft';
+      return 'current';
+    }
+    if (stepStatuses[stepNumber] === 'completed') return 'completed';
+    if (stepStatuses[stepNumber] === 'draft') return 'draft';
+    if (stepStatuses[stepNumber] === 'incomplete') return 'incomplete';
     return 'upcoming';
   };
 
   const getStepClass = (step) => {
-    const status = getStepStatus(step.number);
-    if (status === 'upcoming') return 'upcoming';
-    if (status === 'current') return 'current';
-    return 'completed';
+    return getStepStatus(step.number);
+  };
+
+  // Navigation handlers
+  const handleStepClick = (stepNumber: number) => {
+    // Mark current step as incomplete ONLY when leaving via stepper (not Continue button)
+    const currentStatus = stepStatuses[currentStep];
+    if (currentStatus !== 'completed' && currentStatus !== 'draft') {
+      setStepStatus(currentStep, 'incomplete');
+    }
+    navigate(`/project/new/step-${stepNumber}`);
+  };
+
+  const handleContinue = () => {
+    // Save constraints to project context
+    setProjectConstraints(constraints.map(c => ({
+      id: c.id,
+      targetId: c.targetId,
+      targetName: c.targetName,
+      targetType: c.targetType,
+      constraintType: c.constraintType,
+      value1: c.value1,
+      value2: c.value2,
+      tags: c.tags,
+    })));
+    setStepStatus(currentStep, 'completed');
+    navigate('/project/new/step-5');
+  };
+
+  const handleSaveAsDraft = () => {
+    setProjectConstraints(constraints.map(c => ({
+      id: c.id,
+      targetId: c.targetId,
+      targetName: c.targetName,
+      targetType: c.targetType,
+      constraintType: c.constraintType,
+      value1: c.value1,
+      value2: c.value2,
+      tags: c.tags,
+    })));
+    setStepStatus(currentStep, 'draft');
   };
 
   const progressPercentage = ((currentStep - 1) / (steps.length - 1)) * 100;
 
-  // Project info
-  const [projectInfo] = useState({
-    title: "Low-Sugar Brownie Mix",
-    description: "Reduce sugar while maintaining sweetness and fudginess near full-sugar version"
-  });
+  // Project info from context
+  const projectInfo = {
+    title: projectMetadata?.name || "New Project",
+    description: projectMetadata?.description || "Define constraints for your formulation project"
+  };
 
   // ========== STATE ==========
   // Auto-generate constraints from drafts that can be matched to inputs/combinations
   const [constraints, setConstraints] = useState(() => {
-    const autoCreated = [];
-    initialDraftConstraints.forEach(draft => {
+    // If we have existing project constraints, use those
+    if (projectConstraints.length > 0) {
+      return projectConstraints.map(c => {
+        const matchedInput = projectInputs.find(i => i.name === c.targetName);
+        return {
+          ...c,
+          targetId: matchedInput?.id || null,
+          targetType: matchedInput ? 'input' : 'combination',
+          targetInputType: matchedInput?.inputType || 'Combination',
+          targetVariableType: matchedInput?.variableType || 'Continuous',
+          mappedDraftId: null,
+          needsConfirmation: false,
+        };
+      });
+    }
+
+    // Otherwise, auto-create from draft constraints
+    const autoCreated: any[] = [];
+    draftConstraints.forEach(draft => {
       // Try to match draft to an input or combination
       const matchedInput = projectInputs.find(i => i.name === draft.metricName);
       const matchedCombo = projectCombinations.find(c => c.name === draft.metricName);
       const matched = matchedInput || matchedCombo;
-      
+
       if (matched && draft.metricRef) {
         // Create a constraint that needs confirmation
         autoCreated.push({
@@ -402,7 +408,7 @@ export default function AllConstraintsPage() {
           targetName: draft.metricName,
           targetType: matchedInput ? 'input' : 'combination',
           targetInputType: matchedInput?.inputType || 'Combination',
-          targetVariableType: matched.variableType,
+          targetVariableType: matchedInput?.variableType || 'Continuous',
           constraintType: draft.operator,
           value1: draft.value1,
           value2: draft.value2 || '',
@@ -414,15 +420,15 @@ export default function AllConstraintsPage() {
     });
     return autoCreated;
   });
-  
+
   // Draft constraints from goals/claims (need mapping)
   // Update drafts to reflect auto-created mappings
   const [drafts, setDrafts] = useState(() => {
-    return initialDraftConstraints.map(draft => {
+    return draftConstraints.map(draft => {
       const matchedInput = projectInputs.find(i => i.name === draft.metricName);
       const matchedCombo = projectCombinations.find(c => c.name === draft.metricName);
       const matched = matchedInput || matchedCombo;
-      
+
       if (matched && draft.metricRef) {
         return { ...draft, mappedConstraintId: `auto-${draft.id}`, needsConfirmation: true };
       }
@@ -810,8 +816,24 @@ export default function AllConstraintsPage() {
           border: 1px solid rgba(255,255,255,0.1);
         }
 
+        .step-circle.draft {
+          background: #18181B;
+          color: #F59E0B;
+          border: 2px solid #F59E0B;
+        }
+
+        .step-circle.incomplete {
+          background: #18181B;
+          color: #EF4444;
+          border: 2px solid #EF4444;
+        }
+
         .step-circle:hover {
           transform: scale(1.08);
+        }
+
+        .step {
+          cursor: pointer;
         }
 
         .step-label {
@@ -833,6 +855,14 @@ export default function AllConstraintsPage() {
 
         .step-label.upcoming {
           color: #52525b;
+        }
+
+        .step-label.draft {
+          color: #F59E0B;
+        }
+
+        .step-label.incomplete {
+          color: #EF4444;
         }
 
         /* Project Info */
@@ -1526,7 +1556,7 @@ export default function AllConstraintsPage() {
                     const stepClass = getStepClass(step);
                     
                     return (
-                      <div key={step.number} className="step">
+                      <div key={step.number} className="step" onClick={() => handleStepClick(step.number)}>
                         <div className="step-circle-wrapper">
                           <div className={`step-circle ${stepClass}`}>
                             {status === 'completed' ? <CheckIcon /> : step.number}
@@ -2206,12 +2236,13 @@ export default function AllConstraintsPage() {
 
           {/* Form Actions */}
           <div className="form-actions">
-            <button className="btn btn-large btn-secondary">
+            <button className="btn btn-large btn-secondary" onClick={handleSaveAsDraft}>
               Save as Draft
             </button>
-            <button 
+            <button
               className="btn btn-large btn-primary"
               disabled={!isValid}
+              onClick={handleContinue}
             >
               Continue to Outcomes
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2">

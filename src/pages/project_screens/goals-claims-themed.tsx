@@ -1,59 +1,12 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useData, Goal, GoalItem, DraftConstraint, DraftObjective } from '../../contexts/DataContext';
 
 // Unique ID generator
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
-// Library data for autocomplete
-// Inputs - can be used in Calculated constraints/objectives
-const inputLibrary = [
-  { id: 'input-1', name: 'Flour', type: 'input', category: 'Ingredient', variableType: 'Continuous', description: 'Base flour amount', cost: 0.42 },
-  { id: 'input-2', name: 'Sugar', type: 'input', category: 'Ingredient', variableType: 'Continuous', description: 'Granulated sugar', cost: 0.68 },
-  { id: 'input-3', name: 'Butter', type: 'input', category: 'Ingredient', variableType: 'Continuous', description: 'Unsalted butter', cost: 1.85 },
-  { id: 'input-4', name: 'Eggs', type: 'input', category: 'Ingredient', variableType: 'Continuous', description: 'Whole eggs', cost: 0.35 },
-  { id: 'input-5', name: 'Vanilla Extract', type: 'input', category: 'Ingredient', variableType: 'Continuous', description: 'Pure vanilla', cost: 4.20 },
-  { id: 'input-6', name: 'Cocoa Powder', type: 'input', category: 'Ingredient', variableType: 'Continuous', description: 'Dutch-process cocoa', cost: 2.15 },
-  { id: 'input-7', name: 'Baking Temperature', type: 'input', category: 'Processing', variableType: 'Continuous', description: 'Oven temp °F' },
-  { id: 'input-8', name: 'Mixing Duration', type: 'input', category: 'Processing', variableType: 'Continuous', description: 'Total mix time' },
-  { id: 'input-9', name: 'Mixer Speed', type: 'input', category: 'Processing', variableType: 'Ordinal', description: 'Speed setting' },
-  { id: 'input-10', name: 'Bake Time', type: 'input', category: 'Processing', variableType: 'Continuous', description: 'Duration in minutes' },
-];
-
-// Combinations - can be used in Calculated constraints/objectives
-const combinationLibrary = [
-  { id: 'combo-1', name: 'Total Fat Content', type: 'combination', description: 'Butter + Eggs fat contribution', components: ['Butter', 'Eggs'] },
-  { id: 'combo-2', name: 'Sweetener Ratio', type: 'combination', description: 'Sugar to total weight ratio', components: ['Sugar', 'Flour'] },
-  { id: 'combo-3', name: 'Leavening Balance', type: 'combination', description: 'Eggs + air incorporation', components: ['Eggs', 'Mixing Duration'] },
-  { id: 'combo-4', name: 'Chocolate Intensity', type: 'combination', description: 'Cocoa percentage of dry ingredients', components: ['Cocoa Powder', 'Flour', 'Sugar'] },
-];
-
-// Calculations - can be used in Calculated constraints/objectives
-const calculationLibrary = [
-  { id: 'calc-1', name: 'Total Cost', type: 'calculation', description: 'Sum of all ingredient costs', formula: 'Σ(ingredient × cost)' },
-  { id: 'calc-2', name: 'Cost per Unit', type: 'calculation', description: 'Total cost divided by yield', formula: 'Total Cost / Yield' },
-  { id: 'calc-3', name: 'Sugar Percentage', type: 'calculation', description: 'Sugar as % of total weight', formula: 'Sugar / Total Weight × 100' },
-  { id: 'calc-4', name: 'Fat Percentage', type: 'calculation', description: 'Total fat content as % of weight', formula: 'Total Fat / Total Weight × 100' },
-  { id: 'calc-5', name: 'Caloric Density', type: 'calculation', description: 'Calories per gram', formula: '(Fat×9 + Carbs×4 + Protein×4) / Weight' },
-];
-
-// Predicted Outcomes - can ONLY be used in Predicted objectives
-const outcomeLibrary = [
-  { id: 'outcome-1', name: 'Moisture Content', type: 'outcome', category: 'Analytical', variableType: 'Continuous', description: 'Water activity level (%)' },
-  { id: 'outcome-2', name: 'Texture Firmness', type: 'outcome', category: 'Analytical', variableType: 'Continuous', description: 'Force measurement (N)' },
-  { id: 'outcome-3', name: 'Color L*', type: 'outcome', category: 'Analytical', variableType: 'Continuous', description: 'Lightness value' },
-  { id: 'outcome-4', name: 'Overall Liking', type: 'outcome', category: 'Sensory', variableType: 'Ordinal', description: '9-point hedonic scale' },
-  { id: 'outcome-5', name: 'Sweetness Intensity', type: 'outcome', category: 'Sensory', variableType: 'Continuous', description: 'Line scale 0-100' },
-  { id: 'outcome-6', name: 'Flavor Intensity', type: 'outcome', category: 'Sensory', variableType: 'Continuous', description: 'Intensity scale 0-15' },
-  { id: 'outcome-7', name: 'Purchase Intent', type: 'outcome', category: 'Consumer', variableType: 'Ordinal', description: 'Likelihood to buy' },
-  { id: 'outcome-8', name: 'Value Perception', type: 'outcome', category: 'Consumer', variableType: 'Ordinal', description: 'Price-value rating' },
-  { id: 'outcome-9', name: 'Chewiness', type: 'outcome', category: 'Sensory', variableType: 'Continuous', description: 'Texture chewiness rating' },
-  { id: 'outcome-10', name: 'Fudginess', type: 'outcome', category: 'Sensory', variableType: 'Continuous', description: 'Fudge-like texture score' },
-];
-
-// Combined library for calculated (inputs + combinations + calculations)
-const calculatedLibrary = [...inputLibrary, ...combinationLibrary, ...calculationLibrary];
-
 // Initial structures
-const createEmptyGoal = () => ({
+const createEmptyGoal = (): Goal => ({
   id: generateId(),
   name: '',
   valueType: null,
@@ -61,22 +14,22 @@ const createEmptyGoal = () => ({
   isCollapsed: false
 });
 
-const createConstraint = () => ({
+const createConstraint = (): GoalItem => ({
   id: generateId(),
-  type: 'constraint',
+  type: 'constraint' as const,
   metricName: '',
   metricRef: null,
-  operator: null,
+  operator: '',
   value1: '',
   value2: ''
 });
 
-const createObjective = () => ({
+const createObjective = (): GoalItem => ({
   id: generateId(),
-  type: 'objective',
+  type: 'objective' as const,
   metricName: '',
   metricRef: null,
-  operator: null,
+  operator: '',
   value1: '',
   value2: '',
   successValue1: '',
@@ -312,7 +265,7 @@ const AutocompleteInput = ({ value, onChange, onSelect, placeholder, library, go
 };
 
 // Constraint Component - Single inline row
-const ConstraintItem = ({ constraint, onUpdate, onDelete, goalName, valueType }) => {
+const ConstraintItem = ({ constraint, onUpdate, onDelete, goalName, valueType, library }) => {
   const operatorOptions = [
     { value: 'equals', label: '= Equals' },
     { value: 'between', label: '↔ Between' },
@@ -321,9 +274,6 @@ const ConstraintItem = ({ constraint, onUpdate, onDelete, goalName, valueType })
   ];
 
   const needsTwoValues = constraint.operator === 'between';
-  
-  // Only calculated metrics can be used for constraints
-  const library = calculatedLibrary;
 
   const handleSelect = (item) => {
     onUpdate({
@@ -387,7 +337,7 @@ const ConstraintItem = ({ constraint, onUpdate, onDelete, goalName, valueType })
 };
 
 // Objective Component - Single inline row
-const ObjectiveItem = ({ objective, onUpdate, onDelete, goalName, valueType, onElevateToConstraint }) => {
+const ObjectiveItem = ({ objective, onUpdate, onDelete, goalName, valueType, onElevateToConstraint, library }) => {
   const operatorOptions = [
     { value: 'maximize', label: '↑ Maximize' },
     { value: 'minimize', label: '↓ Minimize' },
@@ -422,16 +372,16 @@ const ObjectiveItem = ({ objective, onUpdate, onDelete, goalName, valueType, onE
   const canHaveSuccessCriteria = objective.operator && objective.operator !== 'between';
   const successNeedsTwoValues = objective.operator === 'approximately';
 
-  // Can elevate to constraint if: 
+  // Can elevate to constraint if:
   // - calculated valueType
   // - metric name is filled out
   // - EITHER: has success criteria filled out OR is a between type with values
   const hasMetricName = objective.metricName && objective.metricName.trim() !== '';
-  
-  const canElevateFromSuccess = valueType === 'calculated' && 
+
+  const canElevateFromSuccess = valueType === 'calculated' &&
     hasMetricName &&
-    objective.showSuccessCriteria && 
-    objective.successValue1 && 
+    objective.showSuccessCriteria &&
+    objective.successValue1 &&
     (successNeedsTwoValues ? objective.successValue2 : true);
 
   const canElevateFromBetween = valueType === 'calculated' &&
@@ -439,9 +389,6 @@ const ObjectiveItem = ({ objective, onUpdate, onDelete, goalName, valueType, onE
     objective.operator === 'between' &&
     objective.value1 &&
     objective.value2;
-
-  // Use appropriate library based on valueType
-  const library = valueType === 'predicted' ? outcomeLibrary : calculatedLibrary;
 
   const handleSelect = (item) => {
     onUpdate({
@@ -610,7 +557,7 @@ const ObjectiveItem = ({ objective, onUpdate, onDelete, goalName, valueType, onE
 };
 
 // Goal Card Component
-const GoalCard = ({ goal, onUpdate, onDelete, isSelected, onSelect }) => {
+const GoalCard = ({ goal, onUpdate, onDelete, isSelected, onSelect, calculatedLibrary, predictedLibrary }) => {
   const updateGoal = (updates) => onUpdate({ ...goal, ...updates });
 
   const toggleCollapse = () => {
@@ -724,6 +671,7 @@ const GoalCard = ({ goal, onUpdate, onDelete, isSelected, onSelect }) => {
                     valueType={goal.valueType}
                     onUpdate={(updated) => updateItem(item.id, updated)}
                     onDelete={() => deleteItem(item.id)}
+                    library={calculatedLibrary}
                   />
                 ) : (
                   <ObjectiveItem
@@ -734,6 +682,7 @@ const GoalCard = ({ goal, onUpdate, onDelete, isSelected, onSelect }) => {
                     onUpdate={(updated) => updateItem(item.id, updated)}
                     onDelete={() => deleteItem(item.id)}
                     onElevateToConstraint={elevateToConstraint}
+                    library={goal.valueType === 'predicted' ? predictedLibrary : calculatedLibrary}
                   />
                 )
               ))}
@@ -790,42 +739,145 @@ const ChatMessage = ({ message }) => (
 
 // Main Component
 export default function GoalsClaimsPage() {
-  const [currentStep, setCurrentStep] = useState(2);
+  const navigate = useNavigate();
+  const {
+    inputs,
+    outcomes,
+    combinations,
+    calculations,
+    inputLibrary,
+    outcomeLibrary,
+    projectMetadata,
+    projectGoals,
+    setProjectGoals,
+    setDraftConstraints,
+    setDraftObjectives,
+    stepStatuses,
+    setStepStatus
+  } = useData();
+
+  const currentStep = 2;
 
   const steps = [
-    { number: 1, name: 'Basic Information', status: 'complete' },
-    { number: 2, name: 'Define Goals / Claims', status: 'current' },
-    { number: 3, name: 'Select Inputs', status: null },
-    { number: 4, name: 'Define Constraints', status: null },
-    { number: 5, name: 'Select Outcomes', status: null },
-    { number: 6, name: 'Set Objectives', status: null },
-    { number: 7, name: 'Prioritize Objectives', status: null },
-    { number: 8, name: 'Review', status: null }
+    { number: 1, name: 'Basic Information' },
+    { number: 2, name: 'Define Goals / Claims' },
+    { number: 3, name: 'Select Inputs' },
+    { number: 4, name: 'Define Constraints' },
+    { number: 5, name: 'Select Outcomes' },
+    { number: 6, name: 'Set Objectives' },
+    { number: 7, name: 'Prioritize Objectives' },
+    { number: 8, name: 'Review' }
   ];
 
-  const getStepStatus = (stepNumber) => {
-    if (stepNumber < currentStep) return 'completed';
-    if (stepNumber === currentStep) return 'current';
+  // Build libraries from context data
+  const calculatedLibrary = useMemo(() => [
+    ...inputs.map(i => ({ ...i, type: 'input', category: i.inputType })),
+    ...inputLibrary.map(i => ({ ...i, type: 'input', category: i.inputType })),
+    ...combinations.map(c => ({ ...c, type: 'combination' })),
+    ...calculations.map(c => ({ ...c, type: 'calculation' })),
+  ], [inputs, inputLibrary, combinations, calculations]);
+
+  const predictedLibrary = useMemo(() => [
+    ...outcomes.map(o => ({ ...o, type: 'outcome', category: o.outcomeType })),
+    ...outcomeLibrary.map(o => ({ ...o, type: 'outcome', category: o.outcomeType })),
+  ], [outcomes, outcomeLibrary]);
+
+  // Get step status from context
+  const getStepStatus = (stepNumber: number) => {
+    // Current step shows cyan UNLESS it's been saved as draft (then show orange)
+    if (stepNumber === currentStep) {
+      if (stepStatuses[stepNumber] === 'draft') return 'draft';
+      return 'current';
+    }
+    if (stepStatuses[stepNumber] === 'completed') return 'completed';
+    if (stepStatuses[stepNumber] === 'draft') return 'draft';
+    if (stepStatuses[stepNumber] === 'incomplete') return 'incomplete';
     return 'upcoming';
   };
 
   const getStepClass = (step) => {
-    const status = getStepStatus(step.number);
-    if (status === 'upcoming') return 'upcoming';
-    if (status === 'current') return 'current';
-    if (step.status === 'draft') return 'draft';
-    if (step.status === 'incomplete') return 'incomplete';
-    return 'completed';
+    return getStepStatus(step.number);
+  };
+
+  // Navigation handlers
+  const handleStepClick = (stepNumber: number) => {
+    // Mark current step as incomplete ONLY when leaving via stepper (not Continue button)
+    const currentStatus = stepStatuses[currentStep];
+    if (currentStatus !== 'completed' && currentStatus !== 'draft') {
+      setStepStatus(currentStep, 'incomplete');
+    }
+    navigate(`/project/new/step-${stepNumber}`);
+  };
+
+  const handleContinue = () => {
+    if (!isValid) return;
+
+    // Extract constraints and objectives from goals
+    const newDraftConstraints: DraftConstraint[] = [];
+    const newDraftObjectives: DraftObjective[] = [];
+
+    goals.forEach(goal => {
+      goal.items.forEach(item => {
+        if (item.type === 'constraint') {
+          newDraftConstraints.push({
+            id: item.id,
+            metricName: item.metricName,
+            metricRef: item.metricRef,
+            operator: item.operator,
+            value1: item.value1,
+            value2: item.value2,
+            goalId: goal.id,
+            goalName: goal.name,
+            status: 'draft',
+            isPrefilled: !!item.metricRef, // Has valid reference from autocomplete
+          });
+        } else if (item.type === 'objective') {
+          newDraftObjectives.push({
+            id: item.id,
+            metricName: item.metricName,
+            metricRef: item.metricRef,
+            operator: item.operator,
+            value1: item.value1,
+            value2: item.value2,
+            goalId: goal.id,
+            goalName: goal.name,
+            status: 'draft',
+            isPrefilled: !!item.metricRef,
+          });
+        }
+      });
+    });
+
+    // Save to context
+    setProjectGoals(goals);
+    setDraftConstraints(newDraftConstraints);
+    setDraftObjectives(newDraftObjectives);
+    setStepStatus(currentStep, 'completed');
+    navigate('/project/new/step-3');
+  };
+
+  const handleSaveAsDraft = () => {
+    setProjectGoals(goals);
+    setStepStatus(currentStep, 'draft');
+  };
+
+  const handleSkip = () => {
+    setStepStatus(currentStep, 'incomplete');
+    navigate('/project/new/step-3');
   };
 
   const progressPercentage = ((currentStep - 1) / (steps.length - 1)) * 100;
 
-  const [projectInfo] = useState({
-    title: "Low-Sugar Brownie Mix",
-    description: "Reduce brownie sugar levels while maintaining sweetness and fudginess near full-sugar version and cost below $2.20 per unit"
-  });
+  // Project info from context
+  const projectInfo = {
+    title: projectMetadata?.name || "New Project",
+    description: projectMetadata?.description || "Set up your formulation project goals and claims"
+  };
 
-  const [goals, setGoals] = useState([createEmptyGoal()]);
+  // Initialize goals from context if available
+  const [goals, setGoals] = useState(() =>
+    projectGoals.length > 0 ? projectGoals : [createEmptyGoal()]
+  );
   const [selectedGoalId, setSelectedGoalId] = useState(null);
   const [chatMessages, setChatMessages] = useState([
     {
@@ -2089,6 +2141,17 @@ export default function GoalsClaimsPage() {
           box-shadow: none;
         }
 
+        .btn-skip {
+          background: transparent;
+          border: 1px solid rgba(251, 146, 60, 0.3);
+          color: #FB923C;
+        }
+
+        .btn-skip:hover {
+          background: rgba(251, 146, 60, 0.08);
+          border-color: rgba(251, 146, 60, 0.5);
+        }
+
         /* Chat Panel */
         .chat-panel {
           background: #0a0a0f;
@@ -2270,27 +2333,13 @@ export default function GoalsClaimsPage() {
                   {steps.map((step) => {
                     const status = getStepStatus(step.number);
                     const stepClass = getStepClass(step);
-                    const showWarning = status === 'completed' && (step.status === 'draft' || step.status === 'incomplete');
-                    
+
                     return (
-                      <div key={step.number} className="step">
+                      <div key={step.number} className="step" onClick={() => handleStepClick(step.number)}>
                         <div className="step-circle-wrapper">
-                          <div
-                            className={`step-circle ${stepClass}`}
-                            onClick={() => setCurrentStep(step.number)}
-                            title={showWarning ? (step.status === 'draft' ? 'Draft - Needs review' : 'Incomplete - Missing required fields') : ''}
-                          >
-                            {status === 'completed' && !showWarning ? (
-                              <CheckIcon />
-                            ) : (
-                              step.number
-                            )}
+                          <div className={`step-circle ${stepClass}`}>
+                            {status === 'completed' ? <CheckIcon /> : step.number}
                           </div>
-                          {showWarning && (
-                            <div className={`warning-badge ${step.status}`} title={step.status === 'draft' ? 'Draft - Needs review' : 'Incomplete - Missing required fields'}>
-                              !
-                            </div>
-                          )}
                         </div>
                         <div className={`step-label ${stepClass}`}>
                           {step.name}
@@ -2337,17 +2386,23 @@ export default function GoalsClaimsPage() {
                 onSelect={setSelectedGoalId}
                 onUpdate={(updated) => updateGoal(goal.id, updated)}
                 onDelete={() => deleteGoal(goal.id)}
+                calculatedLibrary={calculatedLibrary}
+                predictedLibrary={predictedLibrary}
               />
             ))}
           </div>
 
           <div className="form-actions">
-            <button className="btn btn-secondary">
+            <button className="btn btn-skip" onClick={handleSkip}>
+              Skip
+            </button>
+            <button className="btn btn-secondary" onClick={handleSaveAsDraft}>
               Save as Draft
             </button>
-            <button 
-              className="btn btn-primary" 
+            <button
+              className="btn btn-primary"
               disabled={!isValid}
+              onClick={handleContinue}
             >
               Continue to Inputs
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2">

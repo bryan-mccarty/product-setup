@@ -1,41 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useData } from '../../contexts/DataContext';
 
 // ============================================================================
 // UNIQUE ID GENERATOR
 // ============================================================================
 const generateId = () => Math.random().toString(36).substr(2, 9);
-
-// ============================================================================
-// PRODUCT OUTCOMES (typical outcomes for this product type)
-// ============================================================================
-const productOutcomes = [
-  { id: 'prod-1', name: 'Moisture Content', outcomeType: 'Analytical', variableType: 'Continuous', description: 'Water activity level', min: '10', max: '25' },
-  { id: 'prod-2', name: 'Texture Score', outcomeType: 'Sensory', variableType: 'Continuous', description: 'Firmness rating', min: '1', max: '10' },
-  { id: 'prod-3', name: 'Overall Liking', outcomeType: 'Consumer', variableType: 'Continuous', description: '9-point hedonic scale', min: '1', max: '9' },
-  { id: 'prod-4', name: 'Color L*', outcomeType: 'Analytical', variableType: 'Continuous', description: 'Lightness value', min: '0', max: '100' },
-  { id: 'prod-5', name: 'Sweetness Intensity', outcomeType: 'Sensory', variableType: 'Ordinal', description: 'Perceived sweetness', levels: ['None', 'Slight', 'Moderate', 'Strong', 'Extreme'] },
-  { id: 'prod-6', name: 'Purchase Intent', outcomeType: 'Consumer', variableType: 'Ordinal', description: '5-point scale', levels: ['Definitely Not', 'Probably Not', 'Maybe', 'Probably', 'Definitely'] },
-  { id: 'prod-7', name: 'Shelf Life', outcomeType: 'Analytical', variableType: 'Continuous', description: 'Days until spoilage', min: '7', max: '90' },
-  { id: 'prod-8', name: 'Crumb Structure', outcomeType: 'Sensory', variableType: 'Nominal', description: 'Visual appearance', levels: ['Fine', 'Medium', 'Coarse', 'Irregular'] },
-];
-
-// ============================================================================
-// LIBRARY OUTCOMES (extended outcome library)
-// ============================================================================
-const libraryOutcomes = [
-  { id: 'lib-1', name: 'pH Level', outcomeType: 'Analytical', variableType: 'Continuous', description: 'Acidity measurement', min: '3', max: '8' },
-  { id: 'lib-2', name: 'Viscosity', outcomeType: 'Analytical', variableType: 'Continuous', description: 'Flow resistance', min: '100', max: '5000' },
-  { id: 'lib-3', name: 'Aroma Intensity', outcomeType: 'Sensory', variableType: 'Continuous', description: 'Smell strength', min: '0', max: '15' },
-  { id: 'lib-4', name: 'Flavor Profile', outcomeType: 'Sensory', variableType: 'Nominal', description: 'Dominant taste', levels: ['Sweet', 'Salty', 'Sour', 'Bitter', 'Umami'] },
-  { id: 'lib-5', name: 'Appearance Rating', outcomeType: 'Consumer', variableType: 'Continuous', description: 'Visual appeal', min: '1', max: '9' },
-  { id: 'lib-6', name: 'Value Perception', outcomeType: 'Consumer', variableType: 'Ordinal', description: 'Price-quality ratio', levels: ['Poor', 'Fair', 'Good', 'Very Good', 'Excellent'] },
-  { id: 'lib-7', name: 'Color a*', outcomeType: 'Analytical', variableType: 'Continuous', description: 'Red-green axis', min: '-60', max: '60' },
-  { id: 'lib-8', name: 'Color b*', outcomeType: 'Analytical', variableType: 'Continuous', description: 'Yellow-blue axis', min: '-60', max: '60' },
-  { id: 'lib-9', name: 'Crispness', outcomeType: 'Sensory', variableType: 'Ordinal', description: 'Texture evaluation', levels: ['Soft', 'Slightly Crisp', 'Crisp', 'Very Crisp'] },
-  { id: 'lib-10', name: 'Aftertaste', outcomeType: 'Sensory', variableType: 'Nominal', description: 'Lingering flavor', levels: ['None', 'Pleasant', 'Neutral', 'Unpleasant'] },
-  { id: 'lib-11', name: 'Repeat Purchase', outcomeType: 'Consumer', variableType: 'Ordinal', description: 'Likelihood to buy again', levels: ['Never', 'Unlikely', 'Maybe', 'Likely', 'Definitely'] },
-  { id: 'lib-12', name: 'Water Activity', outcomeType: 'Analytical', variableType: 'Continuous', description: 'aw measurement', min: '0', max: '1' },
-];
 
 // ============================================================================
 // HISTORICAL DATA FOR RANGE EXPLORER
@@ -1025,44 +995,106 @@ const OutcomeRow = ({ outcome, onUpdate, onDelete, onConfirm, onOpenRangeExplore
 // MAIN COMPONENT
 // ============================================================================
 export default function OutcomesPage() {
-  // Progress stepper - Step 5 is Outcomes
+  const navigate = useNavigate();
+  const {
+    outcomes: productOutcomes,      // Product default outcomes
+    outcomeLibrary: libraryOutcomes, // Extended library for search
+    projectMetadata,
+    projectOutcomes,
+    setProjectOutcomes,
+    stepStatuses,
+    setStepStatus
+  } = useData();
+
   const currentStep = 5;
+
   const steps = [
-    { number: 1, name: 'Basic Information', status: 'complete' },
-    { number: 2, name: 'Define Goals / Claims', status: 'complete' },
-    { number: 3, name: 'Select Inputs', status: 'complete' },
-    { number: 4, name: 'Define Constraints', status: 'complete' },
-    { number: 5, name: 'Select Outcomes', status: 'current' },
-    { number: 6, name: 'Set Objectives', status: null },
-    { number: 7, name: 'Prioritize Objectives', status: null },
-    { number: 8, name: 'Review', status: null }
+    { number: 1, name: 'Basic Information' },
+    { number: 2, name: 'Define Goals / Claims' },
+    { number: 3, name: 'Select Inputs' },
+    { number: 4, name: 'Define Constraints' },
+    { number: 5, name: 'Select Outcomes' },
+    { number: 6, name: 'Set Objectives' },
+    { number: 7, name: 'Prioritize Objectives' },
+    { number: 8, name: 'Review' }
   ];
 
-  const getStepStatus = (stepNumber) => {
-    if (stepNumber < currentStep) return 'completed';
-    if (stepNumber === currentStep) return 'current';
+  // Get step status from context
+  const getStepStatus = (stepNumber: number) => {
+    // Current step shows cyan UNLESS it's been saved as draft (then show orange)
+    if (stepNumber === currentStep) {
+      if (stepStatuses[stepNumber] === 'draft') return 'draft';
+      return 'current';
+    }
+    if (stepStatuses[stepNumber] === 'completed') return 'completed';
+    if (stepStatuses[stepNumber] === 'draft') return 'draft';
+    if (stepStatuses[stepNumber] === 'incomplete') return 'incomplete';
     return 'upcoming';
   };
 
   const getStepClass = (step) => {
-    const status = getStepStatus(step.number);
-    if (status === 'upcoming') return 'upcoming';
-    if (status === 'current') return 'current';
-    if (step.status === 'draft') return 'draft';
-    if (step.status === 'incomplete') return 'incomplete';
-    return 'completed';
+    return getStepStatus(step.number);
+  };
+
+  // Navigation handlers
+  const handleStepClick = (stepNumber: number) => {
+    // Mark current step as incomplete ONLY when leaving via stepper (not Continue button)
+    const currentStatus = stepStatuses[currentStep];
+    if (currentStatus !== 'completed' && currentStatus !== 'draft') {
+      setStepStatus(currentStep, 'incomplete');
+    }
+    navigate(`/project/new/step-${stepNumber}`);
+  };
+
+  const handleContinue = () => {
+    // Save outcomes to project context
+    setProjectOutcomes(outcomes.map(outcome => ({
+      id: outcome.id,
+      name: outcome.name,
+      outcomeType: outcome.outcomeType,
+      variableType: outcome.variableType,
+      description: outcome.description,
+      minValue: outcome.minValue,
+      maxValue: outcome.maxValue,
+      levels: outcome.levels,
+    })));
+    setStepStatus(currentStep, 'completed');
+    navigate('/project/new/step-6');
+  };
+
+  const handleSaveAsDraft = () => {
+    setProjectOutcomes(outcomes.map(outcome => ({
+      id: outcome.id,
+      name: outcome.name,
+      outcomeType: outcome.outcomeType,
+      variableType: outcome.variableType,
+      description: outcome.description,
+      minValue: outcome.minValue,
+      maxValue: outcome.maxValue,
+      levels: outcome.levels,
+    })));
+    setStepStatus(currentStep, 'draft');
   };
 
   const progressPercentage = ((currentStep - 1) / (steps.length - 1)) * 100;
 
-  // Project state
-  const [projectSummary] = useState({
-    title: "Low-Sugar Brownie Mix",
-    description: "Reduce brownie sugar levels while maintaining sweetness and fudginess near full-sugar version and cost below $2.20 per unit"
-  });
+  // Project info from context
+  const projectSummary = {
+    title: projectMetadata?.name || "New Project",
+    description: projectMetadata?.description || "Configure outcomes for your formulation project"
+  };
 
-  // Outcomes state
-  const [outcomes, setOutcomes] = useState([]);
+  // Outcomes state - initialize from project context if available
+  const [outcomes, setOutcomes] = useState<any[]>(() =>
+    projectOutcomes.length > 0
+      ? projectOutcomes.map(outcome => ({
+          ...outcome,
+          levelsText: outcome.levels?.join(', ') || '',
+          status: 'confirmed',
+          comment: '',
+        }))
+      : []
+  );
   
   // Modal states
   const [showLibraryPanel, setShowLibraryPanel] = useState(false);
@@ -1137,21 +1169,26 @@ export default function OutcomesPage() {
 
   const handleImportDefaults = () => {
     // Import some sample outcomes to get started
-    const sampleOutcomes = productOutcomes.slice(0, 4);
-    const newOutcomes = sampleOutcomes.map(outcome => ({
-      id: `imported-${Date.now()}-${outcome.id}`,
-      name: outcome.name,
-      outcomeType: outcome.outcomeType,
-      variableType: outcome.variableType,
-      description: outcome.description || '',
-      minValue: outcome.min || '',
-      maxValue: outcome.max || '',
-      levelsText: outcome.levels?.join(', ') || '',
-      levels: outcome.levels || [],
-      status: 'draft',
-      comment: '',
-      source: 'Product',
-    }));
+    const defaultOutcomes = productOutcomes.filter((o: any) => o.isDefault !== false);
+    const sampleOutcomes = defaultOutcomes.length > 0 ? defaultOutcomes : productOutcomes.slice(0, 4);
+    const newOutcomes = sampleOutcomes.map((outcome: any) => {
+      // Parse limits if present (e.g., "10-25")
+      const limitsMatch = outcome.limits?.match(/(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)/);
+      return {
+        id: `imported-${Date.now()}-${outcome.id}`,
+        name: outcome.name,
+        outcomeType: outcome.outcomeType,
+        variableType: outcome.variableType,
+        description: outcome.description || '',
+        minValue: limitsMatch ? limitsMatch[1] : '',
+        maxValue: limitsMatch ? limitsMatch[2] : '',
+        levelsText: outcome.levels?.join(', ') || '',
+        levels: outcome.levels || [],
+        status: 'draft',
+        comment: '',
+        source: 'Product',
+      };
+    });
     setOutcomes(prev => [...newOutcomes, ...prev]);
   };
 
@@ -1322,10 +1359,10 @@ export default function OutcomesPage() {
           left: 0;
           top: 0;
           height: 100%;
-          background: linear-gradient(90deg, ${themeColor} 0%, #EC4899 100%);
+          background: linear-gradient(90deg, #2DD4BF 0%, #22D3EE 100%);
           border-radius: 1px;
           transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: 0 0 12px rgba(${themeColorRgb}, 0.4);
+          box-shadow: 0 0 12px rgba(45, 212, 191, 0.4);
         }
 
         .steps-container {
@@ -1378,8 +1415,24 @@ export default function OutcomesPage() {
           border: 1px solid rgba(255,255,255,0.1);
         }
 
+        .step-circle.draft {
+          background: #18181B;
+          color: #F59E0B;
+          border: 2px solid #F59E0B;
+        }
+
+        .step-circle.incomplete {
+          background: #18181B;
+          color: #EF4444;
+          border: 2px solid #EF4444;
+        }
+
         .step-circle:hover {
           transform: scale(1.08);
+        }
+
+        .step {
+          cursor: pointer;
         }
 
         .warning-badge {
@@ -1427,6 +1480,14 @@ export default function OutcomesPage() {
 
         .step-label.upcoming {
           color: #52525b;
+        }
+
+        .step-label.draft {
+          color: #F59E0B;
+        }
+
+        .step-label.incomplete {
+          color: #EF4444;
         }
 
         /* Project Info (inside stepper) */
@@ -3149,26 +3210,13 @@ export default function OutcomesPage() {
                   {steps.map((step) => {
                     const status = getStepStatus(step.number);
                     const stepClass = getStepClass(step);
-                    const showWarning = status === 'completed' && (step.status === 'draft' || step.status === 'incomplete');
-                    
+
                     return (
-                      <div key={step.number} className="step">
+                      <div key={step.number} className="step" onClick={() => handleStepClick(step.number)}>
                         <div className="step-circle-wrapper">
-                          <div
-                            className={`step-circle ${stepClass}`}
-                            title={showWarning ? (step.status === 'draft' ? 'Draft - Needs review' : 'Incomplete - Missing required fields') : ''}
-                          >
-                            {status === 'completed' && !showWarning ? (
-                              <CheckIcon />
-                            ) : (
-                              step.number
-                            )}
+                          <div className={`step-circle ${stepClass}`}>
+                            {status === 'completed' ? <CheckIcon /> : step.number}
                           </div>
-                          {showWarning && (
-                            <div className={`warning-badge ${step.status}`} title={step.status === 'draft' ? 'Draft - Needs review' : 'Incomplete - Missing required fields'}>
-                              !
-                            </div>
-                          )}
                         </div>
                         <div className={`step-label ${stepClass}`}>
                           {step.name}
@@ -3285,12 +3333,13 @@ export default function OutcomesPage() {
           </div>
 
           <div className="form-actions">
-            <button className="btn btn-secondary">
+            <button className="btn btn-secondary" onClick={handleSaveAsDraft}>
               Save as Draft
             </button>
-            <button 
-              className="btn btn-primary" 
+            <button
+              className="btn btn-primary"
               disabled={outcomes.length === 0}
+              onClick={handleContinue}
             >
               Continue to Objectives
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2">
