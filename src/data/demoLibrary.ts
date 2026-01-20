@@ -122,6 +122,13 @@ export interface ProjectMetadata {
   description: string;
   createdAt: number;
   updatedAt: number;
+  // Formula references from getting-started
+  referenceFormula?: Record<string, any>;
+  targetFormula?: Record<string, any>;
+  preserveLabel?: boolean;
+  labelTolerance?: string;
+  matchOutcomes?: boolean;
+  substituteSelections?: Record<string, any[]>;
 }
 
 // Product category definition

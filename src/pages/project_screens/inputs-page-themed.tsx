@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../../contexts/DataContext';
+import { INPUT_LIBRARY } from '../../data/demoLibrary';
+import { generateInputsFromReferenceFormula } from '../../utils/goalGenerators';
 
 // ============================================================================
 // UNIQUE ID GENERATOR
@@ -693,7 +695,7 @@ const InputRow = ({ input, onUpdate, onDelete, onConfirm, onOpenRangeExplorer, a
       levelsText: item.levels?.join(', ') || '',
       levels: item.levels || [],
       cost: item.cost || null,
-      status: 'draft',
+      status: 'confirmed',
       source: item.id.startsWith('prod') ? 'Product' : 'Library',
     });
     setShowAutocomplete(false);
@@ -1109,17 +1111,32 @@ export default function InputsPage() {
     description: projectMetadata?.description || "Configure inputs for your formulation project"
   };
 
-  // Inputs state - initialize from project context if available
-  const [inputs, setInputs] = useState(() =>
-    projectInputs.length > 0
-      ? projectInputs.map(input => ({
-          ...input,
-          levelsText: input.levels?.join(', ') || '',
-          status: 'confirmed',
-          comment: '',
-        }))
-      : []
-  );
+  // Inputs state - initialize from project context or reference formula
+  const [inputs, setInputs] = useState(() => {
+    // If we have project inputs already, use them
+    if (projectInputs && projectInputs.length > 0) {
+      return projectInputs.map(input => ({
+        ...input,
+        levelsText: input.levels?.join(', ') || '',
+        status: 'confirmed',
+        comment: '',
+      }));
+    }
+
+    // If we have a reference formula from getting-started, generate inputs
+    if (projectMetadata?.referenceFormula) {
+      const inputColumns = ['Flour', 'Sugar', 'Butter', 'Eggs', 'Cocoa_Powder', 'Baking_Temp'];
+      return generateInputsFromReferenceFormula({
+        referenceFormula: projectMetadata.referenceFormula,
+        inputColumns: inputColumns,
+        inputLibrary: INPUT_LIBRARY,
+        preserveLabel: projectMetadata.preserveLabel || false,
+        labelTolerance: projectMetadata.labelTolerance || '5',
+      });
+    }
+
+    return [];
+  });
   
   // Modal states
   const [showLibraryPanel, setShowLibraryPanel] = useState(false);

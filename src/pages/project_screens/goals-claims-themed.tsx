@@ -878,6 +878,14 @@ export default function GoalsClaimsPage() {
   const [goals, setGoals] = useState(() =>
     projectGoals.length > 0 ? projectGoals : [createEmptyGoal()]
   );
+
+  // Sync goals when projectGoals changes (e.g., from getting-started navigation)
+  useEffect(() => {
+    if (projectGoals.length > 0) {
+      setGoals(projectGoals);
+    }
+  }, [projectGoals]);
+
   const [selectedGoalId, setSelectedGoalId] = useState(null);
   const [chatMessages, setChatMessages] = useState([
     {

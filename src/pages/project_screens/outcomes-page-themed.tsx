@@ -687,17 +687,19 @@ const OutcomeRow = ({ outcome, onUpdate, onDelete, onConfirm, onOpenRangeExplore
   const hasSuggestions = allSuggestions.length > 0;
 
   const applyAutocomplete = (item) => {
+    // Parse limits if present (e.g., "10-25" or "-100-100")
+    const limitsMatch = item.limits?.match(/(-?\d+(?:\.\d+)?)\s*-\s*(-?\d+(?:\.\d+)?)/);
     onUpdate({
       ...outcome,
       name: item.name,
       outcomeType: item.outcomeType,
       variableType: item.variableType,
       description: item.description || '',
-      minValue: item.min || '',
-      maxValue: item.max || '',
+      minValue: limitsMatch ? limitsMatch[1] : '',
+      maxValue: limitsMatch ? limitsMatch[2] : '',
       levelsText: item.levels?.join(', ') || '',
       levels: item.levels || [],
-      status: 'draft',
+      status: 'confirmed',
       source: item.id.startsWith('prod') ? 'Product' : 'Library',
     });
     setShowAutocomplete(false);
@@ -1224,20 +1226,24 @@ export default function OutcomesPage() {
   };
 
   const addFromSelection = (selectedItems) => {
-    const newOutcomes = selectedItems.map(item => ({
-      id: `imported-${Date.now()}-${item.id}`,
-      name: item.name,
-      outcomeType: item.outcomeType,
-      variableType: item.variableType,
-      description: item.description || '',
-      minValue: item.min || '',
-      maxValue: item.max || '',
-      levelsText: item.levels?.join(', ') || '',
-      levels: item.levels || [],
-      status: 'draft',
-      comment: '',
-      source: item.id.startsWith('prod') ? 'Product' : 'Library',
-    }));
+    const newOutcomes = selectedItems.map(item => {
+      // Parse limits if present (e.g., "10-25" or "-100-100")
+      const limitsMatch = item.limits?.match(/(-?\d+(?:\.\d+)?)\s*-\s*(-?\d+(?:\.\d+)?)/);
+      return {
+        id: `imported-${Date.now()}-${item.id}`,
+        name: item.name,
+        outcomeType: item.outcomeType,
+        variableType: item.variableType,
+        description: item.description || '',
+        minValue: limitsMatch ? limitsMatch[1] : '',
+        maxValue: limitsMatch ? limitsMatch[2] : '',
+        levelsText: item.levels?.join(', ') || '',
+        levels: item.levels || [],
+        status: 'draft',
+        comment: '',
+        source: item.id.startsWith('prod') ? 'Product' : 'Library',
+      };
+    });
     setOutcomes(prev => [...newOutcomes, ...prev]);
   };
 

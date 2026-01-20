@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../../contexts/DataContext';
+import { INPUT_LIBRARY, OUTCOME_LIBRARY } from '../../data/demoLibrary';
+import { generateGoalsFromOperations } from '../../utils/goalGenerators';
 
 // Unique ID generator
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -564,7 +566,8 @@ export default function GettingStartedPage() {
     projectMetadata,
     setProjectMetadata,
     stepStatuses,
-    setStepStatus
+    setStepStatus,
+    setProjectGoals
   } = useData();
 
   const currentStep = 1;
@@ -610,6 +613,26 @@ export default function GettingStartedPage() {
       return;
     }
 
+    // Generate goals from operations
+    const generatedGoals = generateGoalsFromOperations({
+      substituteIngredient,
+      selectedIngredientsToSub,
+      preserveLabel,
+      referenceFormula,
+      labelTolerance,
+      matchOutcomes,
+      targetFormula,
+      inputColumns,
+      outcomeColumns,
+      inputLibrary: INPUT_LIBRARY,
+      outcomeLibrary: OUTCOME_LIBRARY
+    });
+
+    // Save generated goals to context
+    if (generatedGoals.length > 0) {
+      setProjectGoals(generatedGoals);
+    }
+
     setProjectMetadata({
       id: projectMetadata?.id || generateId(),
       name: projectName,
@@ -617,6 +640,13 @@ export default function GettingStartedPage() {
       description: projectDescription,
       createdAt: projectMetadata?.createdAt || Date.now(),
       updatedAt: Date.now(),
+      // Save formula selections for downstream pages
+      referenceFormula: referenceFormula || undefined,
+      targetFormula: targetFormula || undefined,
+      preserveLabel: preserveLabel,
+      labelTolerance: labelTolerance,
+      matchOutcomes: matchOutcomes,
+      substituteSelections: substituteSelections,
     });
 
     setStepStatus(currentStep, 'completed');
@@ -625,7 +655,36 @@ export default function GettingStartedPage() {
 
   const handleSubstituteConfirm = () => {
     setShowSubstituteModal(false);
-    
+
+    // Build selectedIngredientsToSub from substituteSelections
+    // If an ingredient has any substitutes selected, mark it as true
+    const ingredientsToSubstitute: Record<string, boolean> = {};
+    for (const [ingredient, substitutes] of Object.entries(substituteSelections)) {
+      if (Array.isArray(substitutes) && substitutes.length > 0) {
+        ingredientsToSubstitute[ingredient] = true;
+      }
+    }
+
+    // Generate goals from operations
+    const generatedGoals = generateGoalsFromOperations({
+      substituteIngredient,
+      selectedIngredientsToSub: ingredientsToSubstitute,
+      preserveLabel,
+      referenceFormula,
+      labelTolerance,
+      matchOutcomes,
+      targetFormula,
+      inputColumns,
+      outcomeColumns,
+      inputLibrary: INPUT_LIBRARY,
+      outcomeLibrary: OUTCOME_LIBRARY
+    });
+
+    // Save generated goals to context
+    if (generatedGoals.length > 0) {
+      setProjectGoals(generatedGoals);
+    }
+
     setProjectMetadata({
       id: projectMetadata?.id || generateId(),
       name: projectName,
@@ -633,6 +692,13 @@ export default function GettingStartedPage() {
       description: projectDescription,
       createdAt: projectMetadata?.createdAt || Date.now(),
       updatedAt: Date.now(),
+      // Save formula selections for downstream pages
+      referenceFormula: referenceFormula || undefined,
+      targetFormula: targetFormula || undefined,
+      preserveLabel: preserveLabel,
+      labelTolerance: labelTolerance,
+      matchOutcomes: matchOutcomes,
+      substituteSelections: substituteSelections,
     });
 
     setStepStatus(currentStep, 'completed');

@@ -13,6 +13,21 @@ interface NodeItem {
   type?: string;
 }
 
+// Simulation pill for force-directed layout
+interface SimulationPill {
+  id: string;          // e.g., "inputs-item-3"
+  parentId: string;    // e.g., "inputs"
+  width: number;
+  height: number;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  anchorDistance: number;
+  anchorAngle: number;
+  isFixed: boolean;
+}
+
 // Connection between two items across different node types
 interface ItemConnection {
   fromNodeId: string;  // e.g., 'inputs'
@@ -41,7 +56,7 @@ const getAllNodes = (isDarkMode: boolean) => [
   { id: 'packaging', label: 'Packaging', color: isDarkMode ? '#8B5CF6' : '#6d28d9', description: 'View packaging options' },
   { id: 'data', label: 'Data', color: isDarkMode ? '#14B8A6' : '#0f766e', description: 'View data sources' },
   { id: 'manufacturingSites', label: 'Mfg Sites', color: isDarkMode ? '#F59E0B' : '#d97706', description: 'View manufacturing sites' },
-  { id: 'suppliers', label: 'Suppliers', color: isDarkMode ? '#10B981' : '#15803d', description: 'View suppliers' },
+  { id: 'suppliers', label: 'Suppliers', color: isDarkMode ? '#D946EF' : '#a21caf', description: 'View suppliers' },
   { id: 'distributionChannels', label: 'Distribution', color: isDarkMode ? '#6366F1' : '#4f46e5', description: 'View distribution channels' },
 ];
 
@@ -62,6 +77,28 @@ const DEFAULT_VISIBILITY: Record<string, boolean> = {
 // Canvas constants
 const WORLD_SIZE = 4000;
 const WORLD_CENTER = WORLD_SIZE / 2; // 2000
+
+// Force-directed simulation constants
+const SIMULATION = {
+  RADIAL_SPRING: 0.3,
+  PILL_REPULSION: 1.0,
+  PARENT_REPULSION: 1.5,
+  GAP_BETWEEN_PILLS: 8,
+  GAP_FROM_PARENT: 12,
+  BASE_DISTANCE: 50,
+  RING_SPACING: 28,
+  PILLS_PER_RING_BASE: 5,
+  DAMPING: 0.75,
+  MAX_ITERATIONS: 200,
+  CONVERGENCE_THRESHOLD: 0.3,
+  PILL_HEIGHT: 20,
+  PILL_MIN_WIDTH: 50,
+  PILL_MAX_WIDTH: 100,
+  MAX_ANGLE_FROM_PARENT: Math.PI / 2,  // 90 degrees max from parent's outward direction
+  INITIAL_SPREAD: 0.1,                  // ~6 degrees initial spacing between pills
+  BOUNDARY_FORCE: 2.0,                  // Strength of angular boundary push
+  ANGULAR_CENTERING: 0.23,              // Gentle pull toward parent's outward direction
+};
 
 const GraphView: React.FC<GraphViewProps> = ({
   categoryName,
@@ -88,6 +125,18 @@ const GraphView: React.FC<GraphViewProps> = ({
 
   // Pill measured widths for accurate connection edge calculations
   const [pillWidths, setPillWidths] = useState<Record<string, number>>({});
+
+  // Force-directed simulation state
+  const [calculatedPillPositions, setCalculatedPillPositions] = useState<Record<string, { x: number; y: number }>>({});
+  const [draggedPills, setDraggedPills] = useState<Set<string>>(new Set());
+
+  // Refs for simulation to avoid dependency issues
+  const nodeItemsRef = useRef(nodeItems);
+  const nodesWithPositionsRef = useRef<typeof nodesWithPositions>([]);
+  const pillWidthsRef = useRef(pillWidths);
+  const draggedPillsRef = useRef(draggedPills);
+  const pillDragOffsetsRef = useRef(pillDragOffsets);
+  const calculatedPillPositionsRef = useRef(calculatedPillPositions);
 
   // Search/filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -117,6 +166,10 @@ const GraphView: React.FC<GraphViewProps> = ({
   const [selectedPillId, setSelectedPillId] = useState<string | null>(null);
   const [showConnectionMenu, setShowConnectionMenu] = useState(false);
 
+  // Connection hover state (for highlighting in 'all' mode)
+  const [hoveredPillKey, setHoveredPillKey] = useState<string | null>(null);
+  const hoverTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   // Minimap interaction state
   const [minimapHovered, setMinimapHovered] = useState(false);
   const [minimapDragging, setMinimapDragging] = useState(false);
@@ -124,6 +177,13 @@ const GraphView: React.FC<GraphViewProps> = ({
 
   // All nodes with theme-aware colors
   const ALL_NODES = useMemo(() => getAllNodes(isDarkMode), [isDarkMode]);
+
+  // Keep refs in sync with state
+  useEffect(() => { nodeItemsRef.current = nodeItems; }, [nodeItems]);
+  useEffect(() => { pillWidthsRef.current = pillWidths; }, [pillWidths]);
+  useEffect(() => { draggedPillsRef.current = draggedPills; }, [draggedPills]);
+  useEffect(() => { pillDragOffsetsRef.current = pillDragOffsets; }, [pillDragOffsets]);
+  useEffect(() => { calculatedPillPositionsRef.current = calculatedPillPositions; }, [calculatedPillPositions]);
 
   // Persist visibility to localStorage
   useEffect(() => {
@@ -195,6 +255,9 @@ const GraphView: React.FC<GraphViewProps> = ({
       };
     });
   }, [visibleNodes]);
+
+  // Keep nodesWithPositions ref in sync
+  useEffect(() => { nodesWithPositionsRef.current = nodesWithPositions; }, [nodesWithPositions]);
 
   const NodeIcon = ({ id, color, size = 28 }: { id: string; color: string; size?: number }) => {
     const iconStyle = { width: size, height: size, color };
@@ -336,8 +399,34 @@ const GraphView: React.FC<GraphViewProps> = ({
     e.stopPropagation();
     setExpandedNodes(prev => {
       const next = new Set(prev);
-      if (next.has(nodeId)) next.delete(nodeId);
-      else next.add(nodeId);
+      if (next.has(nodeId)) {
+        // COLLAPSING - clean up drag state for this node's pills
+        next.delete(nodeId);
+
+        // Remove dragged pill markers for this node
+        setDraggedPills(prevDragged => {
+          const newSet = new Set(prevDragged);
+          for (const key of prevDragged) {
+            if (key.startsWith(`${nodeId}-`)) {
+              newSet.delete(key);
+            }
+          }
+          return newSet;
+        });
+
+        // Remove drag offsets for this node's pills
+        setPillDragOffsets(prevOffsets => {
+          const newOffsets = { ...prevOffsets };
+          for (const key of Object.keys(newOffsets)) {
+            if (key.startsWith(`${nodeId}-`)) {
+              delete newOffsets[key];
+            }
+          }
+          return newOffsets;
+        });
+      } else {
+        next.add(nodeId);
+      }
       return next;
     });
   };
@@ -478,68 +567,273 @@ const GraphView: React.FC<GraphViewProps> = ({
   const completedCount = visibleNodeIds.filter(id => getStatus(id).complete).length;
   const totalVisibleNodes = visibleNodeIds.length;
 
-  // Calculate item positions as a cloud around the parent node
-  // Returns positions with drag offsets applied
+  // Estimate pill width based on text length
+  const estimatePillWidth = (name: string): number => {
+    const estimated = Math.ceil(name.length * 7 * 0.6) + 16;
+    return Math.max(SIMULATION.PILL_MIN_WIDTH, Math.min(SIMULATION.PILL_MAX_WIDTH, estimated));
+  };
+
+  // Get pill width from measured or estimated
+  const getPillWidth = (dragKey: string, name: string): number => {
+    return pillWidths[dragKey] || estimatePillWidth(name);
+  };
+
+  // Initialize pills for force simulation
+  const initializePills = (
+    expandedNodeIds: Set<string>,
+    items: Record<string, NodeItem[]>,
+    nodes: typeof nodesWithPositions,
+    existingPositions: Record<string, { x: number; y: number }>,
+    draggedPillsSet: Set<string>
+  ): SimulationPill[] => {
+    const pills: SimulationPill[] = [];
+
+    for (const node of nodes) {
+      if (!expandedNodeIds.has(node.id)) continue;
+      const nodeItems = items[node.id] || [];
+      if (nodeItems.length === 0) continue;
+
+      const parentAngle = node.angle;
+      const parentRadius = node.nodeSize / 2;
+
+      let ringIndex = 0;
+      let indexInRing = 0;
+      let pillsInCurrentRing = SIMULATION.PILLS_PER_RING_BASE;
+
+      for (let i = 0; i < nodeItems.length; i++) {
+        const item = nodeItems[i];
+        const dragKey = `${node.id}-${item.id}`;
+        const width = getPillWidth(dragKey, item.name);
+
+        // Move to next ring if current is full
+        if (indexInRing >= pillsInCurrentRing) {
+          ringIndex++;
+          indexInRing = 0;
+          pillsInCurrentRing = SIMULATION.PILLS_PER_RING_BASE + ringIndex * 2;
+        }
+
+        const ringDistance = SIMULATION.BASE_DISTANCE + parentRadius + ringIndex * SIMULATION.RING_SPACING;
+
+        // Calculate how many pills in this ring for initial spread
+        const remainingItems = nodeItems.length - i;
+        const pillsInRingForSpacing = Math.min(pillsInCurrentRing - indexInRing, remainingItems) + indexInRing;
+        const offsetIndex = indexInRing - (pillsInRingForSpacing - 1) / 2;
+
+        // Slight initial spread so pills don't all start exactly on top of each other
+        const angularOffset = offsetIndex * SIMULATION.INITIAL_SPREAD;
+        const pillAngle = parentAngle + angularOffset;
+
+        // Check if this pill was dragged (is fixed)
+        const isFixed = draggedPillsSet.has(dragKey);
+
+        let initialX: number, initialY: number;
+        if (isFixed && existingPositions[dragKey]) {
+          // Fixed pills already have their final position baked into existingPositions
+          initialX = existingPositions[dragKey].x;
+          initialY = existingPositions[dragKey].y;
+        } else {
+          // Calculate fresh position based on ring layout
+          initialX = node.x + Math.cos(pillAngle) * ringDistance;
+          initialY = node.y + Math.sin(pillAngle) * ringDistance;
+        }
+
+        pills.push({
+          id: dragKey,
+          parentId: node.id,
+          width,
+          height: SIMULATION.PILL_HEIGHT,
+          x: initialX,
+          y: initialY,
+          vx: 0,
+          vy: 0,
+          anchorDistance: ringDistance,
+          anchorAngle: pillAngle,
+          isFixed,
+        });
+
+        indexInRing++;
+      }
+    }
+
+    return pills;
+  };
+
+  // Run force-directed simulation
+  const runForceSimulation = (
+    pills: SimulationPill[],
+    parentNodes: typeof nodesWithPositions
+  ): Record<string, { x: number; y: number }> => {
+    // Create a map for quick parent lookup
+    const parentMap = new Map(parentNodes.map(n => [n.id, n]));
+
+    for (let iter = 0; iter < SIMULATION.MAX_ITERATIONS; iter++) {
+      let maxVelocity = 0;
+
+      // Calculate forces for each pill
+      for (const pill of pills) {
+        if (pill.isFixed) continue;
+
+        let fx = 0, fy = 0;
+        const parent = parentMap.get(pill.parentId);
+        if (!parent) continue;
+
+        // 1. Radial spring: pull toward target distance from parent
+        const dx = pill.x - parent.x;
+        const dy = pill.y - parent.y;
+        const currentDistance = Math.sqrt(dx * dx + dy * dy);
+        if (currentDistance > 0) {
+          const radialError = currentDistance - pill.anchorDistance;
+          const radialDirX = dx / currentDistance;
+          const radialDirY = dy / currentDistance;
+          fx += -SIMULATION.RADIAL_SPRING * radialError * radialDirX;
+          fy += -SIMULATION.RADIAL_SPRING * radialError * radialDirY;
+        }
+
+        // 2. Pill-pill repulsion
+        for (const other of pills) {
+          if (other.id === pill.id) continue;
+          const pdx = pill.x - other.x;
+          const pdy = pill.y - other.y;
+          const dist = Math.sqrt(pdx * pdx + pdy * pdy);
+          const pillRadius = (pill.width + pill.height) / 4;
+          const otherRadius = (other.width + other.height) / 4;
+          const minDist = pillRadius + otherRadius + SIMULATION.GAP_BETWEEN_PILLS;
+          if (dist < minDist && dist > 0) {
+            const overlap = minDist - dist;
+            fx += (pdx / dist) * overlap * SIMULATION.PILL_REPULSION;
+            fy += (pdy / dist) * overlap * SIMULATION.PILL_REPULSION;
+          }
+        }
+
+        // 3. Parent node repulsion (from ALL parent nodes)
+        for (const parentNode of parentNodes) {
+          const ndx = pill.x - parentNode.x;
+          const ndy = pill.y - parentNode.y;
+          const nDist = Math.sqrt(ndx * ndx + ndy * ndy);
+          const nodeRadius = parentNode.nodeSize / 2;
+          const pillRadius = (pill.width + pill.height) / 4;
+          const minDist = nodeRadius + pillRadius + SIMULATION.GAP_FROM_PARENT;
+          if (nDist < minDist && nDist > 0) {
+            const overlap = minDist - nDist;
+            fx += (ndx / nDist) * overlap * SIMULATION.PARENT_REPULSION;
+            fy += (ndy / nDist) * overlap * SIMULATION.PARENT_REPULSION;
+          }
+        }
+
+        // 4. Angular boundary: hard limit at MAX_ANGLE_FROM_PARENT from parent's outward direction
+        if (currentDistance > 0) {
+          // Get parent's outward angle (angle from center to parent)
+          const parentAngle = Math.atan2(parent.y, parent.x);
+          const currentAngle = Math.atan2(dy, dx);
+          let angleDiff = currentAngle - parentAngle;
+          // Normalize to [-PI, PI]
+          while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+          while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+
+          if (Math.abs(angleDiff) > SIMULATION.MAX_ANGLE_FROM_PARENT) {
+            const excess = Math.abs(angleDiff) - SIMULATION.MAX_ANGLE_FROM_PARENT;
+            const pushDirection = angleDiff > 0 ? -1 : 1;
+            // Tangent direction (perpendicular to radial)
+            const tangentX = -dy / currentDistance;
+            const tangentY = dx / currentDistance;
+            const boundaryForce = excess * SIMULATION.BOUNDARY_FORCE;
+            fx += pushDirection * tangentX * boundaryForce * currentDistance;
+            fy += pushDirection * tangentY * boundaryForce * currentDistance;
+          }
+
+          // 5. Angular centering: gentle pull toward parent's outward direction
+          const centeringForce = -angleDiff * SIMULATION.ANGULAR_CENTERING;
+          const tangentX = -dy / currentDistance;
+          const tangentY = dx / currentDistance;
+          fx += tangentX * centeringForce;
+          fy += tangentY * centeringForce;
+        }
+
+        // Apply forces with damping
+        pill.vx = (pill.vx + fx) * SIMULATION.DAMPING;
+        pill.vy = (pill.vy + fy) * SIMULATION.DAMPING;
+      }
+
+      // Update positions
+      for (const pill of pills) {
+        if (pill.isFixed) continue;
+        pill.x += pill.vx;
+        pill.y += pill.vy;
+        maxVelocity = Math.max(maxVelocity, Math.sqrt(pill.vx * pill.vx + pill.vy * pill.vy));
+      }
+
+      // Check convergence
+      if (maxVelocity < SIMULATION.CONVERGENCE_THRESHOLD) break;
+    }
+
+    // Build result
+    const result: Record<string, { x: number; y: number }> = {};
+    for (const pill of pills) {
+      result[pill.id] = { x: pill.x, y: pill.y };
+    }
+    return result;
+  };
+
+  // Run simulation when expansion state changes
+  useEffect(() => {
+    if (expandedNodes.size === 0) {
+      setCalculatedPillPositions({});
+      return;
+    }
+    const pills = initializePills(
+      expandedNodes,
+      nodeItemsRef.current,
+      nodesWithPositionsRef.current,
+      calculatedPillPositionsRef.current,
+      draggedPillsRef.current
+    );
+    if (pills.length === 0) {
+      setCalculatedPillPositions({});
+      return;
+    }
+    const positions = runForceSimulation(pills, nodesWithPositionsRef.current);
+
+    // Merge results: preserve dragged pill positions with their offsets baked in
+    setCalculatedPillPositions(prev => {
+      const merged = { ...positions };
+      // For dragged pills, bake their final absolute position (prev + offset)
+      for (const dragKey of draggedPillsRef.current) {
+        if (prev[dragKey]) {
+          const offset = pillDragOffsetsRef.current[dragKey] || { x: 0, y: 0 };
+          merged[dragKey] = {
+            x: prev[dragKey].x + offset.x,
+            y: prev[dragKey].y + offset.y
+          };
+        }
+      }
+      return merged;
+    });
+
+    // Clear offsets for dragged pills since we baked them into calculatedPillPositions
+    setPillDragOffsets(prev => {
+      const newOffsets = { ...prev };
+      for (const dragKey of draggedPillsRef.current) {
+        delete newOffsets[dragKey];
+      }
+      return newOffsets;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expandedNodes]);
+
+  // Calculate item positions - uses pre-calculated simulation positions
   const getItemPositions = (parentNode: typeof nodesWithPositions[0], items: NodeItem[]) => {
-    const maxVisibleItems = 8;
-    const itemsToShow = items.slice(0, maxVisibleItems);
-    const hasMore = items.length > maxVisibleItems;
-
-    const parentAngle = parentNode.angle;
-    const nodeHalfSize = parentNode.nodeSize / 2;
-
-    // Edge point: outer edge of parent node in the outward direction
-    const edgeX = parentNode.x + Math.cos(parentAngle) * nodeHalfSize;
-    const edgeY = parentNode.y + Math.sin(parentAngle) * nodeHalfSize;
-
-    // Unit vectors for local coordinate system
-    const outwardX = Math.cos(parentAngle);  // Points away from graph center
-    const outwardY = Math.sin(parentAngle);
-    const perpX = -Math.sin(parentAngle);    // Points 90° counterclockwise (for spread)
-    const perpY = Math.cos(parentAngle);
-
-    // Layout slots: {spread, dist}
-    // spread = perpendicular offset (negative=left, positive=right)
-    // dist = distance outward from edge (always positive)
-    const SLOTS = [
-      { spread: -70, dist: 35 },   // Row 1: left
-      { spread: 0,   dist: 30 },   // Row 1: center
-      { spread: 70,  dist: 35 },   // Row 1: right
-      { spread: -105, dist: 65 },  // Row 2: far-left
-      { spread: -35, dist: 60 },   // Row 2: mid-left
-      { spread: 35,  dist: 60 },   // Row 2: mid-right
-      { spread: 105, dist: 65 },   // Row 2: far-right
-      { spread: 0,   dist: 90 },   // Row 3: center (for 8th item)
-    ];
-
-    const positions = itemsToShow.map((item, index) => {
-      const slot = SLOTS[index];
-      const baseX = edgeX + (perpX * slot.spread) + (outwardX * slot.dist);
-      const baseY = edgeY + (perpY * slot.spread) + (outwardY * slot.dist);
-      // Apply drag offset if exists
+    return items.map(item => {
       const dragKey = `${parentNode.id}-${item.id}`;
+      const calculated = calculatedPillPositions[dragKey] || { x: parentNode.x, y: parentNode.y };
       const offset = pillDragOffsets[dragKey] || { x: 0, y: 0 };
       return {
         ...item,
-        x: baseX + offset.x,
-        y: baseY + offset.y,
-        dragKey, // Used for drag state and connection lookup
+        x: calculated.x + offset.x,
+        y: calculated.y + offset.y,
+        dragKey,
         parentNodeId: parentNode.id,
       };
     });
-
-    if (hasMore) {
-      positions.push({
-        id: 'more',
-        name: `+${items.length - maxVisibleItems}`,
-        x: edgeX + (outwardX * 115),
-        y: edgeY + (outwardY * 115),
-        dragKey: `${parentNode.id}-more`,
-        parentNodeId: parentNode.id,
-      });
-    }
-
-    return positions;
   };
 
   // Get all visible item positions for connection rendering
@@ -552,17 +846,15 @@ const GraphView: React.FC<GraphViewProps> = ({
       const itemPositions = getItemPositions(node, items);
 
       itemPositions.forEach(item => {
-        if (item.id !== 'more') {
-          const dragKey = `${node.id}-${item.id}`;
-          positions[dragKey] = {
-            x: item.x,
-            y: item.y,
-            nodeId: node.id,
-            itemId: item.id,
-            color: node.color,
-            width: pillWidths[dragKey] || 50, // fallback to minWidth
-          };
-        }
+        const dragKey = `${node.id}-${item.id}`;
+        positions[dragKey] = {
+          x: item.x,
+          y: item.y,
+          nodeId: node.id,
+          itemId: item.id,
+          color: node.color,
+          width: pillWidths[dragKey] || 50, // fallback to minWidth
+        };
       });
     });
 
@@ -655,6 +947,58 @@ const GraphView: React.FC<GraphViewProps> = ({
     return [];
   }, [connectionMode, selectedPillId, connections, expandedNodes, visibleConnections, getConnectedItems]);
 
+  // Terminal node types - never traverse THROUGH these (but can start from them)
+  const TERMINAL_NODE_TYPES = new Set(['suppliers', 'manufacturingSites', 'distributionChannels']);
+
+  // Get highlighted connection indices using hierarchical DFS
+  const highlightedConnectionIndices = useMemo(() => {
+    if (connectionMode !== 'all' || !hoveredPillKey) return null;
+
+    const [startNodeType] = hoveredPillKey.split('-');
+    const startedFromData = startNodeType === 'data';
+
+    const visitedPills = new Set<string>([hoveredPillKey]);
+    const highlightedIndices = new Set<number>();
+    const queue = [hoveredPillKey];
+
+    while (queue.length > 0) {
+      const currentPill = queue.shift()!;
+      const [currentNodeType] = currentPill.split('-');
+      const isStartNode = currentPill === hoveredPillKey;
+
+      // Terminal check: stop traversing FROM terminal nodes (unless we started there)
+      const isTerminal = TERMINAL_NODE_TYPES.has(currentNodeType);
+      if (isTerminal && !isStartNode) continue;
+
+      connectionsToRender.forEach((conn, idx) => {
+        const fromKey = `${conn.fromNodeId}-${conn.fromItemId}`;
+        const toKey = `${conn.toNodeId}-${conn.toItemId}`;
+
+        if (fromKey === currentPill || toKey === currentPill) {
+          highlightedIndices.add(idx);
+
+          const neighborKey = fromKey === currentPill ? toKey : fromKey;
+          const [neighborNodeType] = neighborKey.split('-');
+
+          if (!visitedPills.has(neighborKey)) {
+            visitedPills.add(neighborKey);
+
+            // If we started from data, don't continue traversal from inputs/outcomes
+            // (this prevents lighting up sibling data items)
+            const blockBecauseDataStart = startedFromData &&
+              (neighborNodeType === 'inputs' || neighborNodeType === 'outcomes');
+
+            if (!blockBecauseDataStart) {
+              queue.push(neighborKey);
+            }
+          }
+        }
+      });
+    }
+
+    return highlightedIndices;
+  }, [connectionMode, hoveredPillKey, connectionsToRender]);
+
   // Pill drag handlers
   const handlePillMouseDown = (e: React.MouseEvent, dragKey: string) => {
     e.stopPropagation();
@@ -678,57 +1022,110 @@ const GraphView: React.FC<GraphViewProps> = ({
   };
 
   const handlePillMouseUp = () => {
+    if (draggingPill) {
+      const offset = pillDragOffsets[draggingPill];
+      // Mark as "fixed" if user actually moved it (not just a click)
+      if (offset && (Math.abs(offset.x) > 5 || Math.abs(offset.y) > 5)) {
+        setDraggedPills(prev => new Set(prev).add(draggingPill));
+      }
+    }
     setDraggingPill(null);
   };
 
   // Global mouse up for pill dragging
   useEffect(() => {
-    const handleGlobalPillMouseUp = () => setDraggingPill(null);
+    const handleGlobalPillMouseUp = () => {
+      if (draggingPill) {
+        const offset = pillDragOffsets[draggingPill];
+        if (offset && (Math.abs(offset.x) > 5 || Math.abs(offset.y) > 5)) {
+          setDraggedPills(prev => new Set(prev).add(draggingPill));
+        }
+      }
+      setDraggingPill(null);
+    };
     window.addEventListener('mouseup', handleGlobalPillMouseUp);
     return () => window.removeEventListener('mouseup', handleGlobalPillMouseUp);
-  }, []);
+  }, [draggingPill, pillDragOffsets]);
 
-  // Intersection detection: check if line segment intersects circle
-  const doesLineIntersectCircle = (
-    x1: number, y1: number, x2: number, y2: number,
-    cx: number, cy: number, radius: number
-  ): boolean => {
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-    const fx = x1 - cx;
-    const fy = y1 - cy;
+  // Connection hover handlers (for highlighting in 'all' mode)
+  const handleHoverStart = (pillKey: string) => {
+    if (connectionMode !== 'all') return;
 
-    const a = dx * dx + dy * dy;
-    const b = 2 * (fx * dx + fy * dy);
-    const c = fx * fx + fy * fy - radius * radius;
-
-    const discriminant = b * b - 4 * a * c;
-    if (discriminant < 0) return false;
-
-    const t1 = (-b - Math.sqrt(discriminant)) / (2 * a);
-    const t2 = (-b + Math.sqrt(discriminant)) / (2 * a);
-
-    return (t1 >= 0 && t1 <= 1) || (t2 >= 0 && t2 <= 1);
+    hoverTimerRef.current = setTimeout(() => {
+      setHoveredPillKey(pillKey);
+    }, 400);
   };
 
-  // Calculate right-angle path that avoids center node
-  const calculateRightAnglePath = (
-    x1: number, y1: number, x2: number, y2: number,
-    centerX: number, centerY: number, avoidRadius: number
+  const handleHoverEnd = () => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+    setHoveredPillKey(null);
+  };
+
+  // Cleanup hover timer on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    };
+  }, []);
+
+  // Calculate Manhattan (right-angle) path for all connections
+  const calculateManhattanPath = (
+    x1: number, y1: number,
+    x2: number, y2: number,
+    centerX: number, centerY: number,
+    avoidRadius: number
   ): { x: number; y: number }[] => {
-    // Check if direct line intersects center
-    if (!doesLineIntersectCircle(x1, y1, x2, y2, centerX, centerY, avoidRadius)) {
-      return [{ x: x1, y: y1 }, { x: x2, y: y2 }];
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+
+    // Choose elbow direction: horizontal-first if more horizontal travel
+    const horizontalFirst = Math.abs(dx) > Math.abs(dy);
+
+    let elbowX: number, elbowY: number;
+
+    if (horizontalFirst) {
+      elbowX = x2;
+      elbowY = y1;
+    } else {
+      elbowX = x1;
+      elbowY = y2;
     }
 
-    // Route around center with right angles
-    // Simple heuristic: route horizontally first, then vertically
-    const midX = (x1 + x2) / 2;
+    // Check if elbow lands inside exclusion zone
+    const elbowDistFromCenter = Math.sqrt(
+      (elbowX - centerX) ** 2 + (elbowY - centerY) ** 2
+    );
+
+    if (elbowDistFromCenter < avoidRadius) {
+      // Push elbow outward from center
+      const angle = Math.atan2(elbowY - centerY, elbowX - centerX);
+      elbowX = centerX + Math.cos(angle) * (avoidRadius + 10);
+      elbowY = centerY + Math.sin(angle) * (avoidRadius + 10);
+
+      // 4-point path going around the center
+      if (horizontalFirst) {
+        return [
+          { x: x1, y: y1 },
+          { x: elbowX, y: y1 },
+          { x: elbowX, y: y2 },
+          { x: x2, y: y2 }
+        ];
+      } else {
+        return [
+          { x: x1, y: y1 },
+          { x: x1, y: elbowY },
+          { x: x2, y: elbowY },
+          { x: x2, y: y2 }
+        ];
+      }
+    }
 
     return [
       { x: x1, y: y1 },
-      { x: midX, y: y1 },  // Horizontal waypoint
-      { x: midX, y: y2 },  // Vertical waypoint
+      { x: elbowX, y: elbowY },
       { x: x2, y: y2 }
     ];
   };
@@ -1545,8 +1942,8 @@ const GraphView: React.FC<GraphViewProps> = ({
                   ? { x: toCenterX, y: toCenterY }
                   : calculatePillEdgePoint(toCenterX, toCenterY, fromCenterX, fromCenterY, toWidth, 20);
 
-                // Calculate right-angle path that avoids center (radius 100px)
-                const waypoints = calculateRightAnglePath(fromEdge.x, fromEdge.y, toEdge.x, toEdge.y, WORLD_CENTER, WORLD_CENTER, 100);
+                // Calculate Manhattan path that avoids center (radius 100px)
+                const waypoints = calculateManhattanPath(fromEdge.x, fromEdge.y, toEdge.x, toEdge.y, WORLD_CENTER, WORLD_CENTER, 100);
                 const pathData = waypoints.map((point, i) =>
                   i === 0 ? `M ${point.x} ${point.y}` : `L ${point.x} ${point.y}`
                 ).join(' ');
@@ -1560,15 +1957,36 @@ const GraphView: React.FC<GraphViewProps> = ({
                       ? '#10B981' // Green for suppliers
                       : '#A78BFA'; // Purple default
 
+                // Calculate opacity for hover dimming (only in 'all' mode)
+                const isHighlighted = highlightedConnectionIndices?.has(idx) ?? false;
+                const somethingIsHovered = highlightedConnectionIndices !== null;
+                const dimmedOpacity = isDarkMode ? 0.12 : 0.2;
+                const connectionOpacity = connectionMode === 'all' && somethingIsHovered && !isHighlighted
+                  ? dimmedOpacity
+                  : 0.8;
+
                 return (
                   <g key={`conn-${idx}`}>
+                    {/* Invisible fat hit area - only in 'all' mode */}
+                    {connectionMode === 'all' && (
+                      <path
+                        d={pathData}
+                        stroke="transparent"
+                        strokeWidth="16"
+                        fill="none"
+                        style={{ cursor: 'pointer', pointerEvents: 'stroke' }}
+                        onMouseEnter={() => handleHoverStart(fromKey)}
+                        onMouseLeave={handleHoverEnd}
+                      />
+                    )}
                     {/* Glow effect */}
                     <path
                       d={pathData}
                       stroke={lineColor}
                       strokeWidth="4"
                       fill="none"
-                      opacity="0.15"
+                      opacity={isHighlighted ? 0.3 : 0.15 * (connectionOpacity / 0.8)}
+                      style={{ pointerEvents: 'none' }}
                     />
                     {/* Main line */}
                     <path
@@ -1576,8 +1994,9 @@ const GraphView: React.FC<GraphViewProps> = ({
                       stroke={lineColor}
                       strokeWidth="1.5"
                       fill="none"
-                      opacity="0.8"
+                      opacity={connectionOpacity}
                       strokeDasharray="4 2"
+                      style={{ pointerEvents: 'none' }}
                     />
                     {/* Anchor dot at start (from pill) */}
                     {!fromIsParentNode && (
@@ -1586,6 +2005,8 @@ const GraphView: React.FC<GraphViewProps> = ({
                         cy={fromEdge.y}
                         r="2.5"
                         fill={fromPos.color}
+                        opacity={connectionOpacity}
+                        style={{ pointerEvents: 'none' }}
                       />
                     )}
                     {/* Anchor dot at end (to pill) */}
@@ -1595,6 +2016,8 @@ const GraphView: React.FC<GraphViewProps> = ({
                         cy={toEdge.y}
                         r="2.5"
                         fill={toPos.color}
+                        opacity={connectionOpacity}
+                        style={{ pointerEvents: 'none' }}
                       />
                     )}
                   </g>
@@ -1839,7 +2262,7 @@ const GraphView: React.FC<GraphViewProps> = ({
                         {/* PILL SHAPE - horizontal rounded rectangle */}
                         <div
                           ref={(el) => {
-                            if (el && item.id !== 'more') {
+                            if (el) {
                               const width = el.offsetWidth;
                               if (pillWidths[item.dragKey] !== width) {
                                 setPillWidths(prev => ({
@@ -1860,7 +2283,7 @@ const GraphView: React.FC<GraphViewProps> = ({
                             alignItems: 'center',
                             justifyContent: 'center',
                             padding: '0 8px',
-                            cursor: item.id === 'more' ? 'pointer' : 'grab',
+                            cursor: 'grab',
                             boxShadow: isDragging
                               ? `0 4px 12px rgba(0,0,0,0.4), 0 0 0 2px ${node.color}`
                               : hasConnection
@@ -1870,17 +2293,13 @@ const GraphView: React.FC<GraphViewProps> = ({
                             transition: 'transform 0.1s, box-shadow 0.1s',
                           }}
                           onMouseDown={(e) => {
-                            if (item.id !== 'more') {
-                              handlePillMouseDown(e, item.dragKey);
-                            }
+                            handlePillMouseDown(e, item.dragKey);
                           }}
+                          onMouseEnter={() => handleHoverStart(item.dragKey)}
+                          onMouseLeave={handleHoverEnd}
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (item.id === 'more') {
-                              onNodeClick(node.id);
-                            } else {
-                              setSelectedPillId(item.dragKey);
-                            }
+                            setSelectedPillId(item.dragKey);
                           }}
                         >
                           {/* SMALL FONT - 7px for readability */}
