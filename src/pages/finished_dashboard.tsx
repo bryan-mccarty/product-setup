@@ -26,6 +26,11 @@ const CPGCategoryDashboard = () => {
     ideas,
     setIdeas,
     suppliers,
+    competitors,
+    packaging,
+    formulations,
+    manufacturingSites,
+    distributionChannels,
   } = useData();
 
   // View state with localStorage persistence
@@ -70,15 +75,18 @@ const CPGCategoryDashboard = () => {
   const nodeStatus = {
     inputs: { complete: inputs.length > 0, items: inputs.length, required: true },
     outcomes: { complete: outcomes.length > 0, items: outcomes.length, required: true },
-    combinations: { complete: false, items: 0, required: false },
+    calculations: { complete: combinations.length > 0, items: combinations.length, required: false },
     constraints: { complete: constraints.length > 0, items: constraints.length, required: false },
     objectives: { complete: objectives.length > 0, items: objectives.length, required: false },
+    suppliers: { complete: suppliers.length > 0, items: suppliers.length, required: false },
+    competitors: { complete: competitors.length > 0, items: competitors.length, required: false },
+    packaging: { complete: packaging.length > 0, items: packaging.length, required: false },
+    data: { complete: formulations.length > 0, items: formulations.length, required: false },
+    manufacturingSites: { complete: manufacturingSites.length > 0, items: manufacturingSites.length, required: false },
+    distributionChannels: { complete: distributionChannels.length > 0, items: distributionChannels.length, required: false },
   };
 
-  // Compute connections between items based on matching names
-  // Inputs → Constraints: when constraint.targetName matches input.name
-  // Outcomes → Objectives: when objective.targetName matches outcome.name
-  // Suppliers → Inputs: based on suppliesInputIds
+  // Compute connections between items based on relationships
   const itemConnections = React.useMemo(() => {
     const connections: Array<{
       fromNodeId: string;
@@ -88,7 +96,7 @@ const CPGCategoryDashboard = () => {
       relationshipType: string;
     }> = [];
 
-    // Input → Constraint connections
+    // Input → Constraint connections (constraint.targetName matches input.name)
     constraints.forEach(constraint => {
       const matchingInput = inputs.find(input => input.name === constraint.targetName);
       if (matchingInput) {
@@ -102,7 +110,21 @@ const CPGCategoryDashboard = () => {
       }
     });
 
-    // Outcome → Objective connections
+    // Calculation → Constraint connections (constraint.targetName matches calculation.name)
+    constraints.forEach(constraint => {
+      const matchingCalc = combinations.find(calc => calc.name === constraint.targetName);
+      if (matchingCalc) {
+        connections.push({
+          fromNodeId: 'calculations',
+          fromItemId: matchingCalc.id,
+          toNodeId: 'constraints',
+          toItemId: constraint.id,
+          relationshipType: 'constrained_by',
+        });
+      }
+    });
+
+    // Outcome → Objective connections (objective.targetName matches outcome.name)
     objectives.forEach(objective => {
       const matchingOutcome = outcomes.find(outcome => outcome.name === objective.targetName);
       if (matchingOutcome) {
@@ -116,24 +138,152 @@ const CPGCategoryDashboard = () => {
       }
     });
 
-    // Supplier → Input connections
+    // Calculation → Objective connections (objective.targetName matches calculation.name)
+    objectives.forEach(objective => {
+      const matchingCalc = combinations.find(calc => calc.name === objective.targetName);
+      if (matchingCalc) {
+        connections.push({
+          fromNodeId: 'calculations',
+          fromItemId: matchingCalc.id,
+          toNodeId: 'objectives',
+          toItemId: objective.id,
+          relationshipType: 'used_in',
+        });
+      }
+    });
+
+    // Input → Calculation connections (calculation.terms[].inputId matches input.id)
+    combinations.forEach(calc => {
+      (calc.terms || []).forEach(term => {
+        connections.push({
+          fromNodeId: 'inputs',
+          fromItemId: term.inputId,
+          toNodeId: 'calculations',
+          toItemId: calc.id,
+          relationshipType: 'used_in',
+        });
+      });
+    });
+
+    // Supplier → Input connections (supplier.suppliesInputIds)
     suppliers.forEach(supplier => {
       supplier.suppliesInputIds.forEach(inputId => {
-        const matchingInput = inputs.find(input => input.id === inputId);
-        if (matchingInput) {
-          connections.push({
-            fromNodeId: 'suppliers',
-            fromItemId: supplier.id,
-            toNodeId: 'inputs',
-            toItemId: matchingInput.id,
-            relationshipType: 'supplies',
-          });
-        }
+        connections.push({
+          fromNodeId: 'suppliers',
+          fromItemId: supplier.id,
+          toNodeId: 'inputs',
+          toItemId: inputId,
+          relationshipType: 'supplies',
+        });
+      });
+    });
+
+    // Supplier → Packaging connections (supplier.suppliesPackagingIds)
+    suppliers.forEach(supplier => {
+      (supplier.suppliesPackagingIds || []).forEach(pkgId => {
+        connections.push({
+          fromNodeId: 'suppliers',
+          fromItemId: supplier.id,
+          toNodeId: 'packaging',
+          toItemId: pkgId,
+          relationshipType: 'supplies',
+        });
+      });
+    });
+
+    // Input → Data (formulation.inputIds)
+    formulations.forEach(form => {
+      (form.inputIds || []).forEach(inputId => {
+        connections.push({
+          fromNodeId: 'inputs',
+          fromItemId: inputId,
+          toNodeId: 'data',
+          toItemId: form.id,
+          relationshipType: 'used_in',
+        });
+      });
+    });
+
+    // Outcome → Data (formulation.outcomeIds)
+    formulations.forEach(form => {
+      (form.outcomeIds || []).forEach(outcomeId => {
+        connections.push({
+          fromNodeId: 'outcomes',
+          fromItemId: outcomeId,
+          toNodeId: 'data',
+          toItemId: form.id,
+          relationshipType: 'measured_in',
+        });
+      });
+    });
+
+    // Data → Mfg Sites (formulation.mfgSiteId)
+    formulations.forEach(form => {
+      if (form.mfgSiteId) {
+        connections.push({
+          fromNodeId: 'data',
+          fromItemId: form.id,
+          toNodeId: 'manufacturingSites',
+          toItemId: form.mfgSiteId,
+          relationshipType: 'produced_at',
+        });
+      }
+    });
+
+    // Data → Packaging (formulation.packagingId)
+    formulations.forEach(form => {
+      if (form.packagingId) {
+        connections.push({
+          fromNodeId: 'data',
+          fromItemId: form.id,
+          toNodeId: 'packaging',
+          toItemId: form.packagingId,
+          relationshipType: 'packaged_in',
+        });
+      }
+    });
+
+    // Competitor → Data (formulation.competitorId)
+    formulations.forEach(form => {
+      if (form.competitorId) {
+        connections.push({
+          fromNodeId: 'competitors',
+          fromItemId: form.competitorId,
+          toNodeId: 'data',
+          toItemId: form.id,
+          relationshipType: 'owns',
+        });
+      }
+    });
+
+    // Packaging → Distribution (packaging.channelIds)
+    packaging.forEach(pkg => {
+      (pkg.channelIds || []).forEach(channelId => {
+        connections.push({
+          fromNodeId: 'packaging',
+          fromItemId: pkg.id,
+          toNodeId: 'distributionChannels',
+          toItemId: channelId,
+          relationshipType: 'distributed_via',
+        });
+      });
+    });
+
+    // Mfg Sites → Distribution (site.channelIds)
+    manufacturingSites.forEach(site => {
+      (site.channelIds || []).forEach(channelId => {
+        connections.push({
+          fromNodeId: 'manufacturingSites',
+          fromItemId: site.id,
+          toNodeId: 'distributionChannels',
+          toItemId: channelId,
+          relationshipType: 'ships_to',
+        });
       });
     });
 
     return connections;
-  }, [inputs, outcomes, constraints, objectives, suppliers]);
+  }, [inputs, outcomes, constraints, objectives, combinations, suppliers, competitors, packaging, formulations, manufacturingSites, distributionChannels]);
 
   // Handle graph node clicks
   const handleGraphNodeClick = (nodeId: string) => {
@@ -418,9 +568,15 @@ const CPGCategoryDashboard = () => {
             nodeItems={{
               inputs: inputs.map(i => ({ id: i.id, name: i.name, type: i.inputType })),
               outcomes: outcomes.map(o => ({ id: o.id, name: o.name, type: o.outcomeType })),
+              calculations: combinations.map(c => ({ id: c.id, name: c.name })),
               constraints: constraints.map(c => ({ id: c.id, name: c.targetName, type: c.constraintType })),
               objectives: objectives.map(o => ({ id: o.id, name: o.targetName, type: o.objectiveType })),
               suppliers: suppliers.map(s => ({ id: s.id, name: s.name })),
+              competitors: competitors.map(c => ({ id: c.id, name: c.name })),
+              packaging: packaging.map(p => ({ id: p.id, name: p.name, type: p.type })),
+              data: formulations.map(f => ({ id: f.id, name: f.name, type: f.type })),
+              manufacturingSites: manufacturingSites.map(m => ({ id: m.id, name: m.name })),
+              distributionChannels: distributionChannels.map(c => ({ id: c.id, name: c.name })),
             }}
             connections={itemConnections}
             onNodeClick={handleGraphNodeClick}

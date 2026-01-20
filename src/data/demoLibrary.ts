@@ -108,6 +108,44 @@ export interface Supplier {
   id: string;
   name: string;
   suppliesInputIds: string[];
+  suppliesPackagingIds?: string[];
+}
+
+export interface Competitor {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export interface Packaging {
+  id: string;
+  name: string;
+  type?: string;
+  channelIds?: string[];
+}
+
+export interface Formulation {
+  id: string;
+  name: string;
+  type?: 'internal' | 'competitor' | 'in-market';
+  inputIds?: string[];
+  outcomeIds?: string[];
+  mfgSiteId?: string;
+  packagingId?: string;
+  competitorId?: string;
+}
+
+export interface ManufacturingSite {
+  id: string;
+  name: string;
+  location?: string;
+  channelIds?: string[];
+}
+
+export interface DistributionChannel {
+  id: string;
+  name: string;
+  type?: string;
 }
 
 export interface Tag {
@@ -227,10 +265,169 @@ export const DEFAULT_IDEAS: Idea[] = [
 // ============================================================================
 
 export const DEFAULT_SUPPLIERS: Supplier[] = [
-  { id: 'supplier-1', name: 'Acme Flour Co.', suppliesInputIds: ['input-1'] },
-  { id: 'supplier-2', name: 'Sweet Sugar Inc.', suppliesInputIds: ['input-2'] },
-  { id: 'supplier-3', name: 'Dairy Best', suppliesInputIds: ['input-3'] },
-  { id: 'supplier-4', name: 'Global Ingredients', suppliesInputIds: ['input-5', 'input-6'] },
+  { id: 'supplier-1', name: 'Acme Flour Co.', suppliesInputIds: ['input-1', 'input-13'] },
+  { id: 'supplier-2', name: 'Sweet Sugar Inc.', suppliesInputIds: ['input-2', 'input-5'] },
+  { id: 'supplier-3', name: 'Dairy Best', suppliesInputIds: ['input-3', 'input-4', 'input-12'] },
+  { id: 'supplier-4', name: 'PackageCorp', suppliesInputIds: [], suppliesPackagingIds: ['pkg-1', 'pkg-2', 'pkg-3'] },
+];
+
+// ============================================================================
+// DEFAULT COMPETITORS (4 items)
+// ============================================================================
+
+export const DEFAULT_COMPETITORS: Competitor[] = [
+  { id: 'comp-1', name: 'BakeMaster', description: 'National brand' },
+  { id: 'comp-2', name: 'ValueBake', description: 'Private label' },
+];
+
+// ============================================================================
+// DEFAULT PACKAGING (4 items)
+// ============================================================================
+
+export const DEFAULT_PACKAGING: Packaging[] = [
+  { id: 'pkg-1', name: 'Standard Box', type: 'Retail', channelIds: ['channel-1', 'channel-3'] },
+  { id: 'pkg-2', name: 'Family Size', type: 'Retail', channelIds: ['channel-1', 'channel-2'] },
+  { id: 'pkg-3', name: 'Bulk Pack', type: 'Foodservice', channelIds: ['channel-4'] },
+  { id: 'pkg-4', name: 'Single Serve', type: 'Convenience', channelIds: ['channel-3'] },
+];
+
+// ============================================================================
+// DEFAULT MANUFACTURING SITES (3 items)
+// ============================================================================
+
+export const DEFAULT_MFG_SITES: ManufacturingSite[] = [
+  { id: 'mfg-1', name: 'Chicago Plant', location: 'Chicago, IL', channelIds: ['channel-1', 'channel-2', 'channel-3'] },
+  { id: 'mfg-2', name: 'Dallas Facility', location: 'Dallas, TX', channelIds: ['channel-1', 'channel-4'] },
+  { id: 'mfg-3', name: 'Co-Packer West', location: 'Los Angeles, CA', channelIds: ['channel-3'] },
+];
+
+// ============================================================================
+// DEFAULT DISTRIBUTION CHANNELS (4 items)
+// ============================================================================
+
+export const DEFAULT_DISTRIBUTION_CHANNELS: DistributionChannel[] = [
+  { id: 'channel-1', name: 'Grocery Retail', type: 'Traditional' },
+  { id: 'channel-2', name: 'Club Stores', type: 'Warehouse' },
+  { id: 'channel-3', name: 'E-commerce', type: 'Digital' },
+  { id: 'channel-4', name: 'Foodservice', type: 'B2B' },
+];
+
+// ============================================================================
+// DEFAULT FORMULATIONS - "Data" node (8 items)
+// ============================================================================
+
+export const DEFAULT_FORMULATIONS: Formulation[] = [
+  // 5 internal formulations
+  { id: 'form-1', name: 'F001 - Base Recipe', type: 'internal', inputIds: ['input-1', 'input-2', 'input-3', 'input-4', 'input-5', 'input-6', 'input-7'], outcomeIds: ['outcome-1', 'outcome-2', 'outcome-3', 'outcome-4', 'outcome-5', 'outcome-6'], mfgSiteId: 'mfg-1', packagingId: 'pkg-1' },
+  { id: 'form-2', name: 'F002 - High Butter', type: 'internal', inputIds: ['input-1', 'input-2', 'input-3', 'input-4', 'input-5', 'input-6', 'input-7'], outcomeIds: ['outcome-1', 'outcome-2', 'outcome-3', 'outcome-4', 'outcome-5', 'outcome-6'], mfgSiteId: 'mfg-1', packagingId: 'pkg-2' },
+  { id: 'form-3', name: 'F003 - Low Sugar', type: 'internal', inputIds: ['input-1', 'input-2', 'input-3', 'input-4', 'input-5', 'input-6', 'input-7'], outcomeIds: ['outcome-1', 'outcome-2', 'outcome-3', 'outcome-4', 'outcome-5', 'outcome-6'], mfgSiteId: 'mfg-2', packagingId: 'pkg-1' },
+  { id: 'form-4', name: 'F004 - Extra Cocoa', type: 'internal', inputIds: ['input-1', 'input-2', 'input-3', 'input-4', 'input-5', 'input-6', 'input-7'], outcomeIds: ['outcome-1', 'outcome-2', 'outcome-3', 'outcome-4', 'outcome-5', 'outcome-6'], mfgSiteId: 'mfg-2', packagingId: 'pkg-3' },
+  { id: 'form-5', name: 'F005 - Premium Blend', type: 'internal', inputIds: ['input-1', 'input-2', 'input-3', 'input-4', 'input-5', 'input-6', 'input-7'], outcomeIds: ['outcome-1', 'outcome-2', 'outcome-3', 'outcome-4', 'outcome-5', 'outcome-6'], mfgSiteId: 'mfg-3', packagingId: 'pkg-4' },
+  // 1 in-market
+  { id: 'form-6', name: 'F006 - Current Market', type: 'in-market', inputIds: ['input-1', 'input-2', 'input-3', 'input-4', 'input-5', 'input-6', 'input-7'], outcomeIds: ['outcome-1', 'outcome-2', 'outcome-3', 'outcome-4', 'outcome-5', 'outcome-6'], mfgSiteId: 'mfg-1', packagingId: 'pkg-1' },
+  // 2 competitor samples - NO inputIds (we measure outcomes but don't know exact ingredients)
+  { id: 'form-7', name: 'BakeMaster Sample', type: 'competitor', outcomeIds: ['outcome-1', 'outcome-2', 'outcome-3', 'outcome-4', 'outcome-5', 'outcome-6'], competitorId: 'comp-1' },
+  { id: 'form-8', name: 'ValueBake Sample', type: 'competitor', outcomeIds: ['outcome-1', 'outcome-2', 'outcome-3', 'outcome-4', 'outcome-5', 'outcome-6'], competitorId: 'comp-2' },
+];
+
+// ============================================================================
+// DEFAULT CONSTRAINTS (8 items)
+// ============================================================================
+
+export const DEFAULT_CONSTRAINTS: Constraint[] = [
+  // Input constraints (4)
+  { id: 'constraint-1', targetName: 'Flour', constraintType: 'between', value1: '200', value2: '300', tags: ['Quality'] },
+  { id: 'constraint-2', targetName: 'Sugar', constraintType: 'at_most', value1: '140', tags: ['Nutrition'] },
+  { id: 'constraint-3', targetName: 'Cocoa Powder', constraintType: 'at_least', value1: '25', tags: ['Quality'] },
+  { id: 'constraint-4', targetName: 'Baking Temperature', constraintType: 'between', value1: '325', value2: '375', tags: ['Safety'] },
+  // Calculation constraints (4)
+  { id: 'constraint-5', targetName: 'Total Cost', constraintType: 'at_most', value1: '2.50', tags: ['Cost Control'] },
+  { id: 'constraint-6', targetName: 'Sugar Ratio', constraintType: 'at_most', value1: '35', tags: ['Nutrition'] },
+  { id: 'constraint-7', targetName: 'Total Fat Content', constraintType: 'at_most', value1: '25', tags: ['Nutrition'] },
+  { id: 'constraint-8', targetName: 'Chocolate Intensity', constraintType: 'at_least', value1: '15', tags: ['Quality'] },
+];
+
+// ============================================================================
+// DEFAULT OBJECTIVES (8 items)
+// ============================================================================
+
+export const DEFAULT_OBJECTIVES: Objective[] = [
+  // Outcome objectives (6)
+  { id: 'objective-1', targetName: 'Overall Liking', objectiveType: 'maximize', value1: '', successCriteria: '7.5', priority: 1, weight: 25 },
+  { id: 'objective-2', targetName: 'Purchase Intent', objectiveType: 'maximize', value1: '', successCriteria: '4', priority: 2, weight: 20 },
+  { id: 'objective-3', targetName: 'Flavor Intensity', objectiveType: 'maximize', value1: '', successCriteria: '10', priority: 3, weight: 15 },
+  { id: 'objective-4', targetName: 'Sweetness Intensity', objectiveType: 'between', value1: '65', value2: '75', successCriteria: '', priority: 4, weight: 10 },
+  { id: 'objective-5', targetName: 'Aroma Quality', objectiveType: 'maximize', value1: '', successCriteria: 'Very Good', priority: 4, weight: 10 },
+  { id: 'objective-6', targetName: 'NPS Score', objectiveType: 'maximize', value1: '', successCriteria: '40', priority: 5, weight: 5 },
+  // Calculation objectives (2)
+  { id: 'objective-7', targetName: 'Total Cost', objectiveType: 'minimize', value1: '', successCriteria: '2.00', priority: 2, weight: 10 },
+  { id: 'objective-8', targetName: 'Chocolate Intensity', objectiveType: 'maximize', value1: '', successCriteria: '18', priority: 3, weight: 5 },
+];
+
+// ============================================================================
+// DEFAULT CALCULATIONS with terms (5 items)
+// ============================================================================
+
+export const DEFAULT_CALCULATIONS: Calculation[] = [
+  {
+    id: 'calc-demo-1',
+    name: 'Total Cost',
+    description: 'Total ingredient cost per batch',
+    terms: [
+      { inputId: 'input-1', inputName: 'Flour', coefficient: 0.42 },
+      { inputId: 'input-2', inputName: 'Sugar', coefficient: 0.68 },
+      { inputId: 'input-3', inputName: 'Butter', coefficient: 1.85 },
+      { inputId: 'input-4', inputName: 'Eggs', coefficient: 0.35 },
+      { inputId: 'input-5', inputName: 'Vanilla Extract', coefficient: 4.20 },
+      { inputId: 'input-6', inputName: 'Cocoa Powder', coefficient: 2.15 },
+      { inputId: 'input-12', inputName: 'Milk', coefficient: 0.52 },
+    ],
+    unit: '$',
+  },
+  {
+    id: 'calc-demo-2',
+    name: 'Total Fat Content',
+    description: 'Combined fat from butter, eggs, and milk',
+    terms: [
+      { inputId: 'input-3', inputName: 'Butter', coefficient: 0.81 },
+      { inputId: 'input-4', inputName: 'Eggs', coefficient: 0.10 },
+      { inputId: 'input-12', inputName: 'Milk', coefficient: 0.035 },
+    ],
+    unit: 'g',
+  },
+  {
+    id: 'calc-demo-3',
+    name: 'Sugar Ratio',
+    description: 'Sugar as percentage of dry ingredients',
+    terms: [
+      { inputId: 'input-2', inputName: 'Sugar', coefficient: 1.0 },
+      { inputId: 'input-1', inputName: 'Flour', coefficient: -0.4 },
+    ],
+    unit: '%',
+  },
+  {
+    id: 'calc-demo-4',
+    name: 'Chocolate Intensity',
+    description: 'Weighted cocoa to sweetener ratio',
+    terms: [
+      { inputId: 'input-6', inputName: 'Cocoa Powder', coefficient: 2.5 },
+      { inputId: 'input-2', inputName: 'Sugar', coefficient: -0.3 },
+      { inputId: 'input-5', inputName: 'Vanilla Extract', coefficient: 1.0 },
+    ],
+    unit: 'index',
+  },
+  {
+    id: 'calc-demo-5',
+    name: 'Moisture Balance',
+    description: 'Wet to dry ingredient balance',
+    terms: [
+      { inputId: 'input-3', inputName: 'Butter', coefficient: 0.15 },
+      { inputId: 'input-4', inputName: 'Eggs', coefficient: 0.76 },
+      { inputId: 'input-12', inputName: 'Milk', coefficient: 0.87 },
+      { inputId: 'input-1', inputName: 'Flour', coefficient: -0.12 },
+    ],
+    unit: 'ratio',
+  },
 ];
 
 // ============================================================================

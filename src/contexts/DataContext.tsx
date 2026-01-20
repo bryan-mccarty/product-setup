@@ -11,11 +11,24 @@ import {
   Tag,
   ProjectMetadata,
   ProductCategory,
+  Competitor,
+  Packaging,
+  Formulation,
+  ManufacturingSite,
+  DistributionChannel,
   INPUT_LIBRARY,
   OUTCOME_LIBRARY,
   DEFAULT_PROJECTS,
   DEFAULT_IDEAS,
   DEFAULT_SUPPLIERS,
+  DEFAULT_COMPETITORS,
+  DEFAULT_PACKAGING,
+  DEFAULT_FORMULATIONS,
+  DEFAULT_MFG_SITES,
+  DEFAULT_DISTRIBUTION_CHANNELS,
+  DEFAULT_CONSTRAINTS,
+  DEFAULT_OBJECTIVES,
+  DEFAULT_CALCULATIONS,
   CONSTRAINT_TAGS,
   OBJECTIVE_TAGS,
   DEFAULT_PRODUCT_CATEGORIES,
@@ -172,6 +185,19 @@ interface DataContextType {
   setIdeas: (value: Idea[] | ((prev: Idea[]) => Idea[])) => void;
   setSuppliers: (value: Supplier[] | ((prev: Supplier[]) => Supplier[])) => void;
 
+  // Extended graph data
+  competitors: Competitor[];
+  packaging: Packaging[];
+  formulations: Formulation[];
+  manufacturingSites: ManufacturingSite[];
+  distributionChannels: DistributionChannel[];
+
+  setCompetitors: (value: Competitor[] | ((prev: Competitor[]) => Competitor[])) => void;
+  setPackaging: (value: Packaging[] | ((prev: Packaging[]) => Packaging[])) => void;
+  setFormulations: (value: Formulation[] | ((prev: Formulation[]) => Formulation[])) => void;
+  setManufacturingSites: (value: ManufacturingSite[] | ((prev: ManufacturingSite[]) => ManufacturingSite[])) => void;
+  setDistributionChannels: (value: DistributionChannel[] | ((prev: DistributionChannel[]) => DistributionChannel[])) => void;
+
   // Library access (read-only)
   inputLibrary: Input[];
   outcomeLibrary: Outcome[];
@@ -235,6 +261,12 @@ const STORAGE_KEYS = {
   projectGoals: 'product_setup_project_goals',
   draftConstraints: 'product_setup_draft_constraints',
   draftObjectives: 'product_setup_draft_objectives',
+  // Extended graph data
+  competitors: 'product_setup_competitors',
+  packaging: 'product_setup_packaging',
+  formulations: 'product_setup_formulations',
+  manufacturingSites: 'product_setup_mfg_sites',
+  distributionChannels: 'product_setup_distribution_channels',
 };
 
 // ============================================================================
@@ -299,6 +331,27 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const [suppliers, setSuppliersState] = useState<Supplier[]>(() =>
     loadFromSessionStorage(STORAGE_KEYS.suppliers, [])
+  );
+
+  // Extended graph data - empty by default
+  const [competitors, setCompetitorsState] = useState<Competitor[]>(() =>
+    loadFromSessionStorage(STORAGE_KEYS.competitors, [])
+  );
+
+  const [packaging, setPackagingState] = useState<Packaging[]>(() =>
+    loadFromSessionStorage(STORAGE_KEYS.packaging, [])
+  );
+
+  const [formulations, setFormulationsState] = useState<Formulation[]>(() =>
+    loadFromSessionStorage(STORAGE_KEYS.formulations, [])
+  );
+
+  const [manufacturingSites, setManufacturingSitesState] = useState<ManufacturingSite[]>(() =>
+    loadFromSessionStorage(STORAGE_KEYS.manufacturingSites, [])
+  );
+
+  const [distributionChannels, setDistributionChannelsState] = useState<DistributionChannel[]>(() =>
+    loadFromSessionStorage(STORAGE_KEYS.distributionChannels, [])
   );
 
   // Raw uploaded CSV data
@@ -405,6 +458,26 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     saveToSessionStorage(STORAGE_KEYS.suppliers, suppliers);
   }, [suppliers]);
+
+  useEffect(() => {
+    saveToSessionStorage(STORAGE_KEYS.competitors, competitors);
+  }, [competitors]);
+
+  useEffect(() => {
+    saveToSessionStorage(STORAGE_KEYS.packaging, packaging);
+  }, [packaging]);
+
+  useEffect(() => {
+    saveToSessionStorage(STORAGE_KEYS.formulations, formulations);
+  }, [formulations]);
+
+  useEffect(() => {
+    saveToSessionStorage(STORAGE_KEYS.manufacturingSites, manufacturingSites);
+  }, [manufacturingSites]);
+
+  useEffect(() => {
+    saveToSessionStorage(STORAGE_KEYS.distributionChannels, distributionChannels);
+  }, [distributionChannels]);
 
   useEffect(() => {
     saveToSessionStorage(STORAGE_KEYS.uploadedData, uploadedData);
@@ -594,6 +667,46 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
+  const setCompetitors = useCallback((value: Competitor[] | ((prev: Competitor[]) => Competitor[])) => {
+    if (typeof value === 'function') {
+      setCompetitorsState(value);
+    } else {
+      setCompetitorsState(value);
+    }
+  }, []);
+
+  const setPackaging = useCallback((value: Packaging[] | ((prev: Packaging[]) => Packaging[])) => {
+    if (typeof value === 'function') {
+      setPackagingState(value);
+    } else {
+      setPackagingState(value);
+    }
+  }, []);
+
+  const setFormulations = useCallback((value: Formulation[] | ((prev: Formulation[]) => Formulation[])) => {
+    if (typeof value === 'function') {
+      setFormulationsState(value);
+    } else {
+      setFormulationsState(value);
+    }
+  }, []);
+
+  const setManufacturingSites = useCallback((value: ManufacturingSite[] | ((prev: ManufacturingSite[]) => ManufacturingSite[])) => {
+    if (typeof value === 'function') {
+      setManufacturingSitesState(value);
+    } else {
+      setManufacturingSitesState(value);
+    }
+  }, []);
+
+  const setDistributionChannels = useCallback((value: DistributionChannel[] | ((prev: DistributionChannel[]) => DistributionChannel[])) => {
+    if (typeof value === 'function') {
+      setDistributionChannelsState(value);
+    } else {
+      setDistributionChannelsState(value);
+    }
+  }, []);
+
   const setUploadedData = useCallback((data: UploadedData | null) => {
     setUploadedDataState(data);
   }, []);
@@ -779,15 +892,31 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setProjectsState(DEFAULT_PROJECTS);
     setIdeasState(DEFAULT_IDEAS);
     setSuppliersState(DEFAULT_SUPPLIERS);
+    // Extended graph data
+    setCompetitorsState([]);
+    setPackagingState([]);
+    setFormulationsState([]);
+    setManufacturingSitesState([]);
+    setDistributionChannelsState([]);
   }, []);
 
   const loadFullDemoMode = useCallback(() => {
     // Product data (category-specific, e.g., brownie mix)
     setInputsState(getDefaultInputs());
     setOutcomesState(getDefaultOutcomes());
+    setConstraintsState(DEFAULT_CONSTRAINTS);
+    setObjectivesState(DEFAULT_OBJECTIVES);
+    setCombinationsState(DEFAULT_CALCULATIONS);
     setProjectsState(DEFAULT_PROJECTS);
     setIdeasState(DEFAULT_IDEAS);
     setSuppliersState(DEFAULT_SUPPLIERS);
+
+    // Extended graph data
+    setCompetitorsState(DEFAULT_COMPETITORS);
+    setPackagingState(DEFAULT_PACKAGING);
+    setFormulationsState(DEFAULT_FORMULATIONS);
+    setManufacturingSitesState(DEFAULT_MFG_SITES);
+    setDistributionChannelsState(DEFAULT_DISTRIBUTION_CHANNELS);
 
     // Project-specific data starts empty - user populates during setup
     setProjectInputsState([]);
@@ -800,8 +929,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setProjectGoalsState([]);
     setDraftConstraintsState([]);
     setDraftObjectivesState([]);
-
-    // Note: product combinations, constraints, objectives stay empty - user configures these
 
     // Set demo uploaded data (matches sample CSV from upload modal)
     setUploadedDataState({
@@ -848,6 +975,19 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     projects,
     ideas,
     suppliers,
+
+    // Extended graph data
+    competitors,
+    packaging,
+    formulations,
+    manufacturingSites,
+    distributionChannels,
+
+    setCompetitors,
+    setPackaging,
+    setFormulations,
+    setManufacturingSites,
+    setDistributionChannels,
 
     // Project setup state
     projectMetadata,
