@@ -2,6 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useData } from '../contexts/DataContext';
 import { useTheme } from '../contexts/ThemeContext';
 
+// Sort inputs by type: Ingredients first, then Processing, then Other
+const sortInputsByType = (inputs) => {
+  const typeOrder = { 'Ingredient': 0, 'Processing': 1, 'Other': 2 };
+  return [...inputs].sort((a, b) => (typeOrder[a.inputType] ?? 3) - (typeOrder[b.inputType] ?? 3));
+};
+
 const InputsModal = ({ onClose }) => {
   // Get inputs and input library from global context
   const { inputs, setInputs, inputLibrary } = useData();
@@ -154,14 +160,14 @@ const InputsModal = ({ onClose }) => {
         text: theme.accentInputs,
         border: isDarkMode ? 'rgba(45, 212, 191, 0.3)' : 'rgba(13, 148, 136, 0.35)'
       },
-      'Processing Condition': {
+      'Processing': {
         bg: isDarkMode ? 'rgba(251, 146, 60, 0.15)' : 'rgba(234, 88, 12, 0.15)',
         text: theme.accentConstraints,
         border: isDarkMode ? 'rgba(251, 146, 60, 0.3)' : 'rgba(234, 88, 12, 0.35)'
       },
       'Other': {
         bg: isDarkMode ? 'rgba(167, 139, 250, 0.15)' : 'rgba(124, 58, 237, 0.15)',
-        text: theme.accentCombinations,
+        text: theme.accentCalculations,
         border: isDarkMode ? 'rgba(167, 139, 250, 0.3)' : 'rgba(124, 58, 237, 0.35)'
       },
     };
@@ -177,7 +183,7 @@ const InputsModal = ({ onClose }) => {
         border: `1px solid ${c.border}`,
         whiteSpace: 'nowrap',
       }}>
-        {type === 'Processing Condition' ? 'Process' : type}
+        {type}
       </span>
     );
   };
@@ -546,21 +552,43 @@ const InputsModal = ({ onClose }) => {
                   </td>
                 </tr>
               ) : (
-                inputs.map((input) => {
+                sortInputsByType(inputs).map((input, index, sortedInputs) => {
                   const isContinuous = input.variableType === 'Continuous';
                   const isIngredient = input.inputType === 'Ingredient';
-                  
+
+                  // Left border color based on input type
+                  const borderColor = {
+                    'Ingredient': '#2DD4BF',
+                    'Processing': '#FB923C',
+                    'Other': '#A78BFA'
+                  }[input.inputType] || '#A78BFA';
+
+                  // Check if this is the first row of a new group
+                  const prevInput = index > 0 ? sortedInputs[index - 1] : null;
+                  const isNewGroup = prevInput && prevInput.inputType !== input.inputType;
+
                   return (
-                    <tr
-                      key={input.id}
-                      onMouseEnter={() => setHoveredRow(input.id)}
-                      onMouseLeave={() => setHoveredRow(null)}
-                      style={{
-                        borderBottom: `1px solid ${theme.borderLight}`,
-                        background: hoveredRow === input.id ? theme.rowHoverBg : 'transparent',
-                        transition: 'background 0.1s ease',
-                      }}
-                    >
+                    <React.Fragment key={input.id}>
+                      {isNewGroup && (
+                        <tr>
+                          <td colSpan="7" style={{
+                            padding: '0',
+                            height: '12px',
+                            background: theme.cardBg,
+                            borderBottom: `1px solid ${theme.border}`,
+                          }} />
+                        </tr>
+                      )}
+                      <tr
+                        onMouseEnter={() => setHoveredRow(input.id)}
+                        onMouseLeave={() => setHoveredRow(null)}
+                        style={{
+                          borderBottom: `1px solid ${theme.borderLight}`,
+                          borderLeft: `3px solid ${borderColor}`,
+                          background: hoveredRow === input.id ? theme.rowHoverBg : 'transparent',
+                          transition: 'background 0.1s ease',
+                        }}
+                      >
                       <td style={{ padding: '8px 16px', position: 'relative' }}>
                         <input
                           ref={el => nameInputRefs.current[input.id] = el}
@@ -704,7 +732,7 @@ const InputsModal = ({ onClose }) => {
                           style={{ width: '100%' }}
                         >
                           <option value="Ingredient">Ingredient</option>
-                          <option value="Processing Condition">Processing</option>
+                          <option value="Processing">Processing</option>
                           <option value="Other">Other</option>
                         </select>
                       </td>
@@ -794,6 +822,7 @@ const InputsModal = ({ onClose }) => {
                         </button>
                       </td>
                     </tr>
+                    </React.Fragment>
                   );
                 })
               )}

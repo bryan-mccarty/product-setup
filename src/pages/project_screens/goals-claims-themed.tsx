@@ -83,8 +83,7 @@ const GoalsIcon = () => (
 const MetricTypeTag = ({ type }) => {
   const config = {
     'input': { bg: 'rgba(45, 212, 191, 0.15)', text: '#2DD4BF', border: 'rgba(45, 212, 191, 0.3)', label: 'Input' },
-    'combination': { bg: 'rgba(251, 146, 60, 0.15)', text: '#FB923C', border: 'rgba(251, 146, 60, 0.3)', label: 'Combo' },
-    'calculation': { bg: 'rgba(96, 165, 250, 0.15)', text: '#60A5FA', border: 'rgba(96, 165, 250, 0.3)', label: 'Calc' },
+    'calculation': { bg: 'rgba(167, 139, 250, 0.15)', text: '#A78BFA', border: 'rgba(167, 139, 250, 0.3)', label: 'Calc' },
     'outcome': { bg: 'rgba(244, 114, 182, 0.15)', text: '#F472B6', border: 'rgba(244, 114, 182, 0.3)', label: 'Outcome' },
   };
   const c = config[type] || config['input'];
@@ -160,15 +159,20 @@ const Select = ({ value, onChange, options, placeholder }) => {
 };
 
 // Autocomplete Input Component
-const AutocompleteInput = ({ value, onChange, onSelect, placeholder, library, goalName }) => {
+const AutocompleteInput = ({ value, onChange, onSelect, placeholder, library, goalName, filterCalcsOnly = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(0);
   const inputRef = useRef(null);
 
   const getSuggestions = () => {
-    if (!value || value.length < 1) return library.slice(0, 8);
+    let items = library;
+    // Filter to only combinations if requested (for Choose X-Y of Z constraint)
+    if (filterCalcsOnly) {
+      items = items.filter(item => item.type === 'calculation');
+    }
+    if (!value || value.length < 1) return items.slice(0, 8);
     const lower = value.toLowerCase();
-    return library.filter(item =>
+    return items.filter(item =>
       item.name.toLowerCase().includes(lower) ||
       (item.description && item.description.toLowerCase().includes(lower))
     ).slice(0, 8);
@@ -271,9 +275,10 @@ const ConstraintItem = ({ constraint, onUpdate, onDelete, goalName, valueType, l
     { value: 'between', label: '↔ Between' },
     { value: 'at_least', label: '≥ At Least' },
     { value: 'at_most', label: '≤ At Most' },
+    { value: 'choose_x_y_of_z', label: '⊞ Choose X-Y of Z' },
   ];
 
-  const needsTwoValues = constraint.operator === 'between';
+  const needsTwoValues = constraint.operator === 'between' || constraint.operator === 'choose_x_y_of_z';
 
   const handleSelect = (item) => {
     onUpdate({
@@ -294,6 +299,7 @@ const ConstraintItem = ({ constraint, onUpdate, onDelete, goalName, valueType, l
           placeholder={goalName || "Metric name..."}
           library={library}
           goalName={goalName}
+          filterCalcsOnly={constraint.operator === 'choose_x_y_of_z'}
         />
       </div>
       <select
@@ -744,7 +750,7 @@ export default function GoalsClaimsPage() {
     inputs,
     outcomes,
     combinations,
-    calculations,
+    libraryCalculations,
     inputLibrary,
     outcomeLibrary,
     projectMetadata,
@@ -773,9 +779,9 @@ export default function GoalsClaimsPage() {
   const calculatedLibrary = useMemo(() => [
     ...inputs.map(i => ({ ...i, type: 'input', category: i.inputType })),
     ...inputLibrary.map(i => ({ ...i, type: 'input', category: i.inputType })),
-    ...combinations.map(c => ({ ...c, type: 'combination' })),
-    ...calculations.map(c => ({ ...c, type: 'calculation' })),
-  ], [inputs, inputLibrary, combinations, calculations]);
+    ...combinations.map(c => ({ ...c, type: 'calculation' })),
+    ...libraryCalculations.map(c => ({ ...c, type: 'calculation' })),
+  ], [inputs, inputLibrary, combinations, libraryCalculations]);
 
   const predictedLibrary = useMemo(() => [
     ...outcomes.map(o => ({ ...o, type: 'outcome', category: o.outcomeType })),

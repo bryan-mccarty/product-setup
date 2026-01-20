@@ -23,7 +23,7 @@ const DataUploadModal = ({ onClose, onSave }) => {
   const secondaryColorRgb = '45, 212, 191';
 
   // Sample CSV data for demo
-  const sampleCSVData = `Formulation_ID,Flour,Sugar,Butter,Eggs,Vanilla_Extract,Cocoa_Powder,Milk,Salt,Baking_Temp,Mix_Duration,Bake_Time,Moisture_Content,pH_Level,Overall_Liking,Texture_Score,Sweetness_Intensity,Purchase_Intent
+  const sampleCSVData = `Formulation_ID,Flour,Sugar,Butter,Eggs,Vanilla_Extract,Cocoa_Powder,Milk,Salt,Baking_Temperature,Mix_Duration,Bake_Time,Moisture_Content,pH_Level,Overall_Liking,Texture_Score,Sweetness_Intensity,Purchase_Intent
 F001,250,120,100,2,5,30,80,2,175,8,25,6.2,5.8,7.5,8.1,72,4
 F002,275,100,120,3,4,25,90,3,180,10,28,5.8,5.6,8.2,7.8,68,5
 F003,225,140,90,2,6,35,70,2,170,7,22,6.8,5.9,6.9,7.5,78,3

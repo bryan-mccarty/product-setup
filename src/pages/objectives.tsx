@@ -3,7 +3,7 @@ import { useData } from '../contexts/DataContext';
 import { useTheme } from '../contexts/ThemeContext';
 
 const ObjectivesModal = ({ onClose }) => {
-  // Get objectives, outcomes, and combinations from global context
+  // Get objectives, outcomes, and calculations from global context
   const { objectives, setObjectives, outcomes, combinations } = useData();
   const { theme, isDarkMode } = useTheme();
   const [hoveredRow, setHoveredRow] = useState(null);
@@ -35,16 +35,16 @@ const ObjectivesModal = ({ onClose }) => {
     sourceType: 'Outcome' as const
   }));
 
-  // Get available combinations from context and map to format expected by component
-  const availableCombinations = combinations.map(c => ({
+  // Get available calculations from context and map to format expected by component
+  const availableCalculations = combinations.map(c => ({
     ...c,
-    sourceType: 'Combination' as const,
-    outcomeType: 'Combination',
+    sourceType: 'Calculation' as const,
+    outcomeType: 'Calculation',
     variableType: 'Continuous'
   }));
 
   // Combined list for autocomplete
-  const allObjectiveItems = [...availableOutcomes, ...availableCombinations];
+  const allObjectiveItems = [...availableOutcomes, ...availableCalculations];
 
   // Theme color for Objectives - Blue
   const themeColor = '#60A5FA';
@@ -52,10 +52,10 @@ const ObjectivesModal = ({ onClose }) => {
 
   // Objective types and their eligibility
   const objectiveTypes = [
-    { id: 'maximize', label: 'Maximize', icon: '↑', eligibleVariables: ['Continuous', 'Ordinal'], eligibleSources: ['Outcome', 'Combination'], fields: 0, successCriteriaLabel: 'At Least', successCriteriaFields: 1 },
-    { id: 'minimize', label: 'Minimize', icon: '↓', eligibleVariables: ['Continuous', 'Ordinal'], eligibleSources: ['Outcome', 'Combination'], fields: 0, successCriteriaLabel: 'At Most', successCriteriaFields: 1 },
-    { id: 'approximately', label: 'Target', icon: '◎', eligibleVariables: ['Continuous', 'Ordinal', 'Nominal'], eligibleSources: ['Outcome', 'Combination'], fields: 1, successCriteriaLabel: 'Within', successCriteriaFields: 2 },
-    { id: 'between', label: 'Between', icon: '↔', eligibleVariables: ['Continuous', 'Ordinal'], eligibleSources: ['Outcome', 'Combination'], fields: 2, successCriteriaLabel: null, successCriteriaFields: 0 },
+    { id: 'maximize', label: 'Maximize', icon: '↑', eligibleVariables: ['Continuous', 'Ordinal'], eligibleSources: ['Outcome', 'Calculation'], fields: 0, successCriteriaLabel: 'At Least', successCriteriaFields: 1 },
+    { id: 'minimize', label: 'Minimize', icon: '↓', eligibleVariables: ['Continuous', 'Ordinal'], eligibleSources: ['Outcome', 'Calculation'], fields: 0, successCriteriaLabel: 'At Most', successCriteriaFields: 1 },
+    { id: 'approximately', label: 'Target', icon: '◎', eligibleVariables: ['Continuous', 'Ordinal', 'Nominal'], eligibleSources: ['Outcome', 'Calculation'], fields: 1, successCriteriaLabel: 'Within', successCriteriaFields: 2 },
+    { id: 'between', label: 'Between', icon: '↔', eligibleVariables: ['Continuous', 'Ordinal'], eligibleSources: ['Outcome', 'Calculation'], fields: 2, successCriteriaLabel: null, successCriteriaFields: 0 },
   ];
 
   // Keyboard shortcuts
@@ -241,8 +241,8 @@ const ObjectivesModal = ({ onClose }) => {
     let items = allObjectiveItems;
     
     if (libraryFilter !== 'All') {
-      if (libraryFilter === 'Combination') {
-        items = items.filter(i => i.sourceType === 'Combination');
+      if (libraryFilter === 'Calculation') {
+        items = items.filter(i => i.sourceType === 'Calculation');
       } else {
         items = items.filter(i => i.outcomeType === libraryFilter);
       }
@@ -272,7 +272,7 @@ const ObjectivesModal = ({ onClose }) => {
       'Analytical': { bg: 'rgba(96, 165, 250, 0.15)', text: '#60A5FA', border: 'rgba(96, 165, 250, 0.3)' },
       'Sensory': { bg: 'rgba(251, 146, 60, 0.15)', text: '#FB923C', border: 'rgba(251, 146, 60, 0.3)' },
       'Consumer': { bg: 'rgba(244, 114, 182, 0.15)', text: '#F472B6', border: 'rgba(244, 114, 182, 0.3)' },
-      'Combination': { bg: 'rgba(167, 139, 250, 0.15)', text: '#A78BFA', border: 'rgba(167, 139, 250, 0.3)' },
+      'Calculation': { bg: 'rgba(167, 139, 250, 0.15)', text: '#A78BFA', border: 'rgba(167, 139, 250, 0.3)' },
       'Other': { bg: 'rgba(113, 113, 122, 0.15)', text: theme.textSecondary, border: 'rgba(113, 113, 122, 0.3)' },
     };
     const c = colors[type] || colors['Other'];
@@ -289,7 +289,7 @@ const ObjectivesModal = ({ onClose }) => {
         textTransform: 'uppercase',
         letterSpacing: '0.03em',
       }}>
-        {type === 'Analytical' ? 'Analyt' : type === 'Combination' ? 'Combo' : type}
+        {type === 'Analytical' ? 'Analyt' : type === 'Calculation' ? 'Calc' : type}
       </span>
     );
   };
@@ -597,7 +597,7 @@ const ObjectivesModal = ({ onClose }) => {
                 fontSize: '12px',
                 color: theme.textTertiary,
               }}>
-                {objectives.length} objective{objectives.length !== 1 ? 's' : ''} • Define optimization goals on outcomes and combinations
+                {objectives.length} objective{objectives.length !== 1 ? 's' : ''} • Define optimization goals on outcomes and calculations
               </p>
             </div>
           </div>
@@ -745,7 +745,7 @@ const ObjectivesModal = ({ onClose }) => {
                       maxWidth: '320px',
                       lineHeight: 1.5,
                     }}>
-                      Add objectives to optimize outcomes and combinations. Select from the library on the right or click "Add Objective".
+                      Add objectives to optimize outcomes and calculations. Select from the library on the right or click "Add Objective".
                     </p>
                   </div>
                 </div>
@@ -1375,7 +1375,7 @@ const ObjectivesModal = ({ onClose }) => {
                   textTransform: 'uppercase',
                   letterSpacing: '0.08em',
                 }}>
-                  Outcomes & Combinations
+                  Outcomes & Calculations
                 </span>
                 <div style={{ display: 'flex', gap: '6px' }}>
                   <button style={{
@@ -1414,7 +1414,7 @@ const ObjectivesModal = ({ onClose }) => {
                       <line x1="12" y1="5" x2="12" y2="19" />
                       <line x1="5" y1="12" x2="19" y2="12" />
                     </svg>
-                    Add Combo
+                    Add Calc
                   </button>
                 </div>
               </div>
@@ -1429,14 +1429,14 @@ const ObjectivesModal = ({ onClose }) => {
                   type="text"
                   value={librarySearch}
                   onChange={(e) => setLibrarySearch(e.target.value)}
-                  placeholder="Search outcomes & combinations..."
+                  placeholder="Search outcomes & calculations..."
                   className="objective-field"
                   style={{ width: '100%', paddingLeft: '32px', fontSize: '12px', background: `${theme.cardBg}` }}
                 />
               </div>
 
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                {['All', 'Combination', 'Analytical', 'Sensory', 'Consumer', 'Other'].map((filter) => (
+                {['All', 'Calculation', 'Analytical', 'Sensory', 'Consumer', 'Other'].map((filter) => (
                   <button
                     key={filter}
                     onClick={() => setLibraryFilter(filter)}
@@ -1451,7 +1451,7 @@ const ObjectivesModal = ({ onClose }) => {
                       cursor: 'pointer',
                     }}
                   >
-                    {filter === 'Combination' ? 'Combos' : filter === 'Analytical' ? 'Analyt.' : filter}
+                    {filter === 'Calculation' ? 'Calcs' : filter === 'Analytical' ? 'Analyt.' : filter}
                   </button>
                 ))}
               </div>

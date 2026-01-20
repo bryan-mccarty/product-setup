@@ -61,15 +61,19 @@ export interface Objective {
   tags?: string[];
 }
 
-export interface Combination {
+export interface Calculation {
   id: string;
   name: string;
   description: string;
-  terms: Array<{
+  // For user-created (linear calculations):
+  terms?: Array<{
     inputId: string;
     inputName: string;
     coefficient: number;
   }>;
+  // For library items:
+  formula?: string;
+  unit?: string;
 }
 
 export interface Project {
@@ -129,21 +133,13 @@ export interface ProjectMetadata {
   labelTolerance?: string;
   matchOutcomes?: boolean;
   substituteSelections?: Record<string, any[]>;
+  inputColumns?: string[];
 }
 
 // Product category definition
 export interface ProductCategory {
   value: string;
   label: string;
-}
-
-// Calculation definition (for derived metrics)
-export interface Calculation {
-  id: string;
-  name: string;
-  description: string;
-  formula: string;
-  unit?: string;
 }
 
 // ============================================================================

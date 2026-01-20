@@ -2,22 +2,22 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useData } from '../contexts/DataContext';
 import { useTheme } from '../contexts/ThemeContext';
 
-const CombinationsModal = ({ onClose }) => {
+const CalculationsModal = ({ onClose }) => {
   const { combinations, setCombinations, inputs } = useData();
   const { theme, isDarkMode } = useTheme();
   const [expandedId, setExpandedId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [focusNewCombination, setFocusNewCombination] = useState(null);
-  const [directEntryMode, setDirectEntryMode] = useState({}); // { [comboId]: boolean }
-  const [directEntryText, setDirectEntryText] = useState({}); // { [comboId]: string }
-  const [mentionState, setMentionState] = useState({ active: false, comboId: null, query: '', position: 0 });
+  const [focusNewCalculation, setFocusNewCombination] = useState(null);
+  const [directEntryMode, setDirectEntryMode] = useState({}); // { [calcId]: boolean }
+  const [directEntryText, setDirectEntryText] = useState({}); // { [calcId]: string }
+  const [mentionState, setMentionState] = useState({ active: false, calcId: null, query: '', position: 0 });
   const [mentionIndex, setMentionIndex] = useState(0);
   const directEntryRefs = useRef({});
 
   // Get available inputs from context
   const availableInputs = inputs;
 
-  // Theme color for Combinations - Purple
+  // Theme color for Calculations - Purple
   const themeColor = '#A78BFA';
   const themeColorRgb = '167, 139, 250';
 
@@ -30,7 +30,7 @@ const CombinationsModal = ({ onClose }) => {
       }
       if (e.key === 'Escape') {
         if (mentionState.active) {
-          setMentionState({ active: false, comboId: null, query: '', position: 0 });
+          setMentionState({ active: false, calcId: null, query: '', position: 0 });
           setMentionIndex(0);
         } else if (expandedId) {
           setExpandedId(null);
@@ -45,84 +45,84 @@ const CombinationsModal = ({ onClose }) => {
   }, [expandedId, mentionState.active]);
 
   const handleAddNew = () => {
-    const newId = `combo-${Date.now()}`;
-    const newCombination = {
+    const newId = `calc-${Date.now()}`;
+    const newCalculation = {
       id: newId,
       name: '',
       description: '',
       terms: [], // { inputId, inputName, coefficient }
     };
-    setCombinations(prev => [...prev, newCombination]);
+    setCombinations(prev => [...prev, newCalculation]);
     setExpandedId(newId);
     setFocusNewCombination(newId);
   };
 
-  const updateCombination = (id, field, value) => {
-    setCombinations(prev => prev.map(combo => {
-      if (combo.id !== id) return combo;
-      return { ...combo, [field]: value };
+  const updateCalculation = (id, field, value) => {
+    setCombinations(prev => prev.map(calc => {
+      if (calc.id !== id) return calc;
+      return { ...calc, [field]: value };
     }));
   };
 
-  const addTermToCombination = (comboId, input) => {
-    setCombinations(prev => prev.map(combo => {
-      if (combo.id !== comboId) return combo;
+  const addTermToCalculation = (calcId, input) => {
+    setCombinations(prev => prev.map(calc => {
+      if (calc.id !== calcId) return calc;
       // Don't add if already exists
-      if (combo.terms.find(t => t.inputId === input.id)) return combo;
+      if (calc.terms.find(t => t.inputId === input.id)) return calc;
       return {
-        ...combo,
-        terms: [...combo.terms, { inputId: input.id, inputName: input.name, coefficient: 1 }]
+        ...calc,
+        terms: [...calc.terms, { inputId: input.id, inputName: input.name, coefficient: 1 }]
       };
     }));
     setSearchQuery('');
   };
 
-  const updateTermCoefficient = (comboId, inputId, coefficient) => {
-    setCombinations(prev => prev.map(combo => {
-      if (combo.id !== comboId) return combo;
+  const updateTermCoefficient = (calcId, inputId, coefficient) => {
+    setCombinations(prev => prev.map(calc => {
+      if (calc.id !== calcId) return calc;
       return {
-        ...combo,
-        terms: combo.terms.map(term => 
+        ...calc,
+        terms: calc.terms.map(term => 
           term.inputId === inputId ? { ...term, coefficient: parseFloat(coefficient) || 0 } : term
         )
       };
     }));
   };
 
-  const removeTerm = (comboId, inputId) => {
-    setCombinations(prev => prev.map(combo => {
-      if (combo.id !== comboId) return combo;
+  const removeTerm = (calcId, inputId) => {
+    setCombinations(prev => prev.map(calc => {
+      if (calc.id !== calcId) return calc;
       return {
-        ...combo,
-        terms: combo.terms.filter(term => term.inputId !== inputId)
+        ...calc,
+        terms: calc.terms.filter(term => term.inputId !== inputId)
       };
     }));
   };
 
-  const deleteCombination = (id) => {
-    setCombinations(prev => prev.filter(combo => combo.id !== id));
+  const deleteCalculation = (id) => {
+    setCombinations(prev => prev.filter(calc => calc.id !== id));
     if (expandedId === id) setExpandedId(null);
   };
 
   // Toggle direct entry mode for a combination
-  const toggleDirectEntry = (comboId) => {
-    const isEntering = !directEntryMode[comboId];
-    setDirectEntryMode(prev => ({ ...prev, [comboId]: isEntering }));
+  const toggleDirectEntry = (calcId) => {
+    const isEntering = !directEntryMode[calcId];
+    setDirectEntryMode(prev => ({ ...prev, [calcId]: isEntering }));
     
     if (isEntering) {
       // Convert current terms to text format
-      const combo = combinations.find(c => c.id === comboId);
-      const text = termsToText(combo?.terms || []);
-      setDirectEntryText(prev => ({ ...prev, [comboId]: text }));
+      const calc = combinations.find(c => c.id === calcId);
+      const text = termsToText(calc?.terms || []);
+      setDirectEntryText(prev => ({ ...prev, [calcId]: text }));
     } else {
       // Parse text back to terms
-      const text = directEntryText[comboId] || '';
+      const text = directEntryText[calcId] || '';
       const parsed = parseDirectEntry(text);
       if (parsed.valid) {
-        updateCombination(comboId, 'terms', parsed.terms);
+        updateCalculation(calcId, 'terms', parsed.terms);
       }
     }
-    setMentionState({ active: false, comboId: null, query: '', position: 0 });
+    setMentionState({ active: false, calcId: null, query: '', position: 0 });
   };
 
   // Convert terms array to readable text
@@ -171,11 +171,11 @@ const CombinationsModal = ({ onClose }) => {
   };
 
   // Handle direct entry text change with @mention detection
-  const handleDirectEntryChange = (comboId, value) => {
-    setDirectEntryText(prev => ({ ...prev, [comboId]: value }));
+  const handleDirectEntryChange = (calcId, value) => {
+    setDirectEntryText(prev => ({ ...prev, [calcId]: value }));
     
     // Check for @ trigger
-    const textarea = directEntryRefs.current[comboId];
+    const textarea = directEntryRefs.current[calcId];
     if (textarea) {
       const cursorPos = textarea.selectionStart;
       const textBeforeCursor = value.substring(0, cursorPos);
@@ -187,7 +187,7 @@ const CombinationsModal = ({ onClose }) => {
         if (!/[\s+\-*]/.test(textAfterAt) || textAfterAt === '') {
           setMentionState({
             active: true,
-            comboId,
+            calcId,
             query: textAfterAt,
             position: atIndex
           });
@@ -196,7 +196,7 @@ const CombinationsModal = ({ onClose }) => {
         }
       }
     }
-    setMentionState({ active: false, comboId: null, query: '', position: 0 });
+    setMentionState({ active: false, calcId: null, query: '', position: 0 });
   };
 
   // Get filtered inputs for mention autocomplete
@@ -208,19 +208,19 @@ const CombinationsModal = ({ onClose }) => {
   };
 
   // Insert selected mention
-  const insertMention = (comboId, input) => {
-    const currentText = directEntryText[comboId] || '';
+  const insertMention = (calcId, input) => {
+    const currentText = directEntryText[calcId] || '';
     const beforeAt = currentText.substring(0, mentionState.position);
     const afterCursor = currentText.substring(mentionState.position + mentionState.query.length + 1);
     
     const newText = `${beforeAt}@${input.name}${afterCursor}`;
-    setDirectEntryText(prev => ({ ...prev, [comboId]: newText }));
-    setMentionState({ active: false, comboId: null, query: '', position: 0 });
+    setDirectEntryText(prev => ({ ...prev, [calcId]: newText }));
+    setMentionState({ active: false, calcId: null, query: '', position: 0 });
     setMentionIndex(0);
     
     // Refocus and position cursor
     setTimeout(() => {
-      const textarea = directEntryRefs.current[comboId];
+      const textarea = directEntryRefs.current[calcId];
       if (textarea) {
         textarea.focus();
         const newPos = beforeAt.length + input.name.length + 1;
@@ -230,7 +230,7 @@ const CombinationsModal = ({ onClose }) => {
   };
 
   // Handle keyboard navigation in mention dropdown
-  const handleDirectEntryKeyDown = (e, comboId) => {
+  const handleDirectEntryKeyDown = (e, calcId) => {
     if (!mentionState.active) return;
     
     const suggestions = getMentionSuggestions();
@@ -244,28 +244,28 @@ const CombinationsModal = ({ onClose }) => {
       setMentionIndex(prev => Math.max(prev - 1, 0));
     } else if (e.key === 'Enter' || e.key === 'Tab') {
       e.preventDefault();
-      insertMention(comboId, suggestions[mentionIndex]);
+      insertMention(calcId, suggestions[mentionIndex]);
     } else if (e.key === 'Escape') {
       e.preventDefault();
-      setMentionState({ active: false, comboId: null, query: '', position: 0 });
+      setMentionState({ active: false, calcId: null, query: '', position: 0 });
     }
   };
 
-  const duplicateCombination = (combo) => {
-    const newId = `combo-${Date.now()}`;
+  const duplicateCalculation = (calc) => {
+    const newId = `calc-${Date.now()}`;
     const newCombo = {
-      ...combo,
+      ...calc,
       id: newId,
-      name: `${combo.name} (copy)`,
+      name: `${calc.name} (copy)`,
     };
     setCombinations(prev => [...prev, newCombo]);
     setExpandedId(newId);
   };
 
   // Filter available inputs based on search and exclude already added
-  const getFilteredInputs = (comboId) => {
-    const combo = combinations.find(c => c.id === comboId);
-    const addedIds = combo?.terms.map(t => t.inputId) || [];
+  const getFilteredInputs = (calcId) => {
+    const calc = combinations.find(c => c.id === calcId);
+    const addedIds = calc?.terms.map(t => t.inputId) || [];
     
     return availableInputs.filter(input => {
       const matchesSearch = !searchQuery || 
@@ -302,13 +302,13 @@ const CombinationsModal = ({ onClose }) => {
   // Focus management
   const nameInputRefs = useRef({});
   useEffect(() => {
-    if (focusNewCombination && nameInputRefs.current[focusNewCombination]) {
+    if (focusNewCalculation && nameInputRefs.current[focusNewCalculation]) {
       setTimeout(() => {
-        nameInputRefs.current[focusNewCombination]?.focus();
+        nameInputRefs.current[focusNewCalculation]?.focus();
       }, 100);
       setFocusNewCombination(null);
     }
-  }, [focusNewCombination, combinations]);
+  }, [focusNewCalculation, combinations]);
 
   const InputTypeChip = ({ type }) => {
     const colors = {
@@ -394,7 +394,7 @@ const CombinationsModal = ({ onClose }) => {
           color: #52525b;
         }
         
-        .combo-field {
+        .calc-field {
           padding: 8px 12px;
           font-size: 13px;
           background: theme.inputBg;
@@ -405,12 +405,12 @@ const CombinationsModal = ({ onClose }) => {
           font-family: inherit;
           transition: all 0.15s ease;
         }
-        .combo-field:focus {
+        .calc-field:focus {
           border-color: rgba(167, 139, 250, 0.5);
           background: rgba(167, 139, 250, 0.05);
           box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.1);
         }
-        .combo-field:hover:not(:focus) {
+        .calc-field:hover:not(:focus) {
           border-color: theme.borderStrong;
         }
         
@@ -547,7 +547,7 @@ const CombinationsModal = ({ onClose }) => {
               alignItems: 'center',
               justifyContent: 'center',
             }}>
-              {/* Grid/Combinations icon */}
+              {/* Grid/Calculations icon */}
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={themeColor} strokeWidth="2">
                 <rect x="3" y="3" width="7" height="7" rx="1" />
                 <rect x="14" y="3" width="7" height="7" rx="1" />
@@ -563,14 +563,14 @@ const CombinationsModal = ({ onClose }) => {
                 color: theme.text,
                 letterSpacing: '-0.02em',
               }}>
-                Linear Combinations
+                Linear Calculations
               </h2>
               <p style={{
                 margin: '3px 0 0 0',
                 fontSize: '12px',
                 color: theme.textTertiary,
               }}>
-                {combinations.length} combination{combinations.length !== 1 ? 's' : ''} • Define weighted sums of continuous inputs
+                {combinations.length} calculation{combinations.length !== 1 ? 's' : ''} • Define weighted sums of continuous inputs
               </p>
             </div>
           </div>
@@ -605,7 +605,7 @@ const CombinationsModal = ({ onClose }) => {
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            New Combination
+            New Calculation
             <kbd style={{
               padding: '2px 6px',
               borderRadius: '4px',
@@ -657,7 +657,7 @@ const CombinationsModal = ({ onClose }) => {
                   fontWeight: 500,
                   color: theme.textSecondary,
                 }}>
-                  No combinations yet
+                  No calculations yet
                 </p>
                 <p style={{
                   margin: 0,
@@ -666,7 +666,7 @@ const CombinationsModal = ({ onClose }) => {
                   maxWidth: '320px',
                   lineHeight: 1.5,
                 }}>
-                  Create linear combinations like <span style={{ color: themeColor, fontFamily: "'JetBrains Mono', monospace", fontSize: '12px' }}>0.5×Sugar + 0.3×Butter</span> to use in constraints and objectives.
+                  Create linear calculations like <span style={{ color: themeColor, fontFamily: "'JetBrains Mono', monospace", fontSize: '12px' }}>0.5×Sugar + 0.3×Butter</span> to use in constraints and objectives.
                 </p>
               </div>
               <button
@@ -698,18 +698,18 @@ const CombinationsModal = ({ onClose }) => {
                   <line x1="12" y1="5" x2="12" y2="19" />
                   <line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
-                Create your first combination
+                Create your first calculation
               </button>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {combinations.map((combo) => {
-                const isExpanded = expandedId === combo.id;
-                const filteredInputs = getFilteredInputs(combo.id);
+              {combinations.map((calc) => {
+                const isExpanded = expandedId === calc.id;
+                const filteredInputs = getFilteredInputs(calc.id);
                 
                 return (
                   <div
-                    key={combo.id}
+                    key={calc.id}
                     style={{
                       background: isExpanded 
                         ? `linear-gradient(135deg, rgba(${themeColorRgb}, 0.06) 0%, rgba(${themeColorRgb}, 0.02) 100%)`
@@ -722,7 +722,7 @@ const CombinationsModal = ({ onClose }) => {
                   >
                     {/* Card Header - Always visible */}
                     <div
-                      onClick={() => setExpandedId(isExpanded ? null : combo.id)}
+                      onClick={() => setExpandedId(isExpanded ? null : calc.id)}
                       style={{
                         padding: '14px 16px',
                         cursor: 'pointer',
@@ -760,20 +760,20 @@ const CombinationsModal = ({ onClose }) => {
                           <div style={{ 
                             fontSize: '14px', 
                             fontWeight: 600, 
-                            color: combo.name ? theme.text : theme.textMuted,
+                            color: calc.name ? theme.text : theme.textMuted,
                             marginBottom: '2px',
                           }}>
-                            {combo.name || 'Untitled combination'}
+                            {calc.name || 'Untitled calculation'}
                           </div>
                           <div style={{ 
                             fontSize: '12px', 
                             color: theme.textTertiary,
-                            fontFamily: combo.terms.length > 0 ? "'JetBrains Mono', monospace" : 'inherit',
+                            fontFamily: calc.terms.length > 0 ? "'JetBrains Mono', monospace" : 'inherit',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
                           }}>
-                            {formatEquation(combo.terms)}
+                            {formatEquation(calc.terms)}
                           </div>
                         </div>
                       </div>
@@ -787,7 +787,7 @@ const CombinationsModal = ({ onClose }) => {
                           color: theme.textTertiary,
                           fontWeight: 500,
                         }}>
-                          {combo.terms.length} term{combo.terms.length !== 1 ? 's' : ''}
+                          {calc.terms.length} term{calc.terms.length !== 1 ? 's' : ''}
                         </span>
                         <svg 
                           width="16" 
@@ -833,12 +833,12 @@ const CombinationsModal = ({ onClose }) => {
                               Name
                             </label>
                             <input
-                              ref={el => nameInputRefs.current[combo.id] = el}
+                              ref={el => nameInputRefs.current[calc.id] = el}
                               type="text"
-                              value={combo.name}
-                              onChange={(e) => updateCombination(combo.id, 'name', e.target.value)}
+                              value={calc.name}
+                              onChange={(e) => updateCalculation(calc.id, 'name', e.target.value)}
                               placeholder="e.g., Total Sugar Content"
-                              className="combo-field"
+                              className="calc-field"
                               style={{ width: '100%' }}
                             />
                           </div>
@@ -856,10 +856,10 @@ const CombinationsModal = ({ onClose }) => {
                             </label>
                             <input
                               type="text"
-                              value={combo.description}
-                              onChange={(e) => updateCombination(combo.id, 'description', e.target.value)}
+                              value={calc.description}
+                              onChange={(e) => updateCalculation(calc.id, 'description', e.target.value)}
                               placeholder="What does this combination represent?"
-                              className="combo-field"
+                              className="calc-field"
                               style={{ width: '100%' }}
                             />
                           </div>
@@ -883,7 +883,7 @@ const CombinationsModal = ({ onClose }) => {
                               Terms
                             </label>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                              {combo.terms.length > 0 && !directEntryMode[combo.id] && (
+                              {calc.terms.length > 0 && !directEntryMode[calc.id] && (
                                 <div style={{
                                   fontSize: '11px',
                                   color: theme.textMuted,
@@ -896,17 +896,17 @@ const CombinationsModal = ({ onClose }) => {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  toggleDirectEntry(combo.id);
+                                  toggleDirectEntry(calc.id);
                                 }}
                                 style={{
                                   padding: '4px 10px',
                                   fontSize: '10px',
                                   fontWeight: 600,
-                                  background: directEntryMode[combo.id] 
+                                  background: directEntryMode[calc.id] 
                                     ? `rgba(${themeColorRgb}, 0.15)` 
                                     : `${theme.borderLight}`,
-                                  color: directEntryMode[combo.id] ? themeColor : theme.textTertiary,
-                                  border: `1px solid ${directEntryMode[combo.id] 
+                                  color: directEntryMode[calc.id] ? themeColor : theme.textTertiary,
+                                  border: `1px solid ${directEntryMode[calc.id] 
                                     ? `rgba(${themeColorRgb}, 0.3)` 
                                     : `${theme.inputBorder}`}`,
                                   borderRadius: '4px',
@@ -927,21 +927,21 @@ const CombinationsModal = ({ onClose }) => {
                             </div>
                           </div>
 
-                          {directEntryMode[combo.id] ? (
+                          {directEntryMode[calc.id] ? (
                             /* Direct Entry Mode */
                             <div style={{ position: 'relative' }}>
                               <textarea
-                                ref={el => directEntryRefs.current[combo.id] = el}
-                                value={directEntryText[combo.id] || ''}
-                                onChange={(e) => handleDirectEntryChange(combo.id, e.target.value)}
-                                onKeyDown={(e) => handleDirectEntryKeyDown(e, combo.id)}
+                                ref={el => directEntryRefs.current[calc.id] = el}
+                                value={directEntryText[calc.id] || ''}
+                                onChange={(e) => handleDirectEntryChange(calc.id, e.target.value)}
+                                onKeyDown={(e) => handleDirectEntryKeyDown(e, calc.id)}
                                 onBlur={() => {
                                   // Parse on blur if not selecting from dropdown
                                   setTimeout(() => {
                                     if (!mentionState.active) {
-                                      const parsed = parseDirectEntry(directEntryText[combo.id] || '');
+                                      const parsed = parseDirectEntry(directEntryText[calc.id] || '');
                                       if (parsed.valid) {
-                                        updateCombination(combo.id, 'terms', parsed.terms);
+                                        updateCalculation(calc.id, 'terms', parsed.terms);
                                       }
                                     }
                                   }, 150);
@@ -952,7 +952,7 @@ const CombinationsModal = ({ onClose }) => {
                               />
                               
                               {/* Mention Autocomplete Dropdown */}
-                              {mentionState.active && mentionState.comboId === combo.id && (() => {
+                              {mentionState.active && mentionState.calcId === calc.id && (() => {
                                 const suggestions = getMentionSuggestions();
                                 if (suggestions.length === 0) return null;
                                 
@@ -978,7 +978,7 @@ const CombinationsModal = ({ onClose }) => {
                                         className={`mention-item ${idx === mentionIndex ? 'active' : ''}`}
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          insertMention(combo.id, input);
+                                          insertMention(calc.id, input);
                                         }}
                                         onMouseEnter={() => setMentionIndex(idx)}
                                       >
@@ -1021,7 +1021,7 @@ const CombinationsModal = ({ onClose }) => {
                             /* Visual Builder Mode */
                             <>
                               {/* Current Terms */}
-                              {combo.terms.length > 0 && (
+                              {calc.terms.length > 0 && (
                                 <div style={{
                                   display: 'flex',
                                   flexWrap: 'wrap',
@@ -1029,7 +1029,7 @@ const CombinationsModal = ({ onClose }) => {
                                   marginBottom: '12px',
                                   alignItems: 'center',
                                 }}>
-                                  {combo.terms.map((term, idx) => (
+                                  {calc.terms.map((term, idx) => (
                                     <React.Fragment key={term.inputId}>
                                       {idx > 0 && (
                                         <span style={{ 
@@ -1044,7 +1044,7 @@ const CombinationsModal = ({ onClose }) => {
                                           type="number"
                                           step="0.01"
                                           value={term.coefficient}
-                                          onChange={(e) => updateTermCoefficient(combo.id, term.inputId, e.target.value)}
+                                          onChange={(e) => updateTermCoefficient(calc.id, term.inputId, e.target.value)}
                                           className="coef-input"
                                           onClick={(e) => e.stopPropagation()}
                                         />
@@ -1065,7 +1065,7 @@ const CombinationsModal = ({ onClose }) => {
                                         <button
                                           onClick={(e) => {
                                             e.stopPropagation();
-                                            removeTerm(combo.id, term.inputId);
+                                            removeTerm(calc.id, term.inputId);
                                           }}
                                           style={{
                                             padding: '2px',
@@ -1127,7 +1127,7 @@ const CombinationsModal = ({ onClose }) => {
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Search inputs to add..."
-                                className="combo-field"
+                                className="calc-field"
                                 style={{ 
                                   width: '100%', 
                                   paddingLeft: '36px',
@@ -1152,7 +1152,7 @@ const CombinationsModal = ({ onClose }) => {
                                   className="input-chip"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    addTermToCombination(combo.id, input);
+                                    addTermToCalculation(calc.id, input);
                                   }}
                                 >
                                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={themeColor} strokeWidth="2.5">
@@ -1189,7 +1189,7 @@ const CombinationsModal = ({ onClose }) => {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                duplicateCombination(combo);
+                                duplicateCalculation(calc);
                               }}
                               style={{
                                 padding: '6px 12px',
@@ -1223,7 +1223,7 @@ const CombinationsModal = ({ onClose }) => {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                deleteCombination(combo.id);
+                                deleteCalculation(calc.id);
                               }}
                               style={{
                                 padding: '6px 12px',
@@ -1260,7 +1260,7 @@ const CombinationsModal = ({ onClose }) => {
                           </div>
                           
                           {/* Equation Preview */}
-                          {combo.terms.length > 0 && (
+                          {calc.terms.length > 0 && (
                             <div style={{
                               padding: '8px 12px',
                               background: theme.cardBgDark,
@@ -1273,7 +1273,7 @@ const CombinationsModal = ({ onClose }) => {
                               textOverflow: 'ellipsis',
                               whiteSpace: 'nowrap',
                             }}>
-                              {formatEquation(combo.terms)}
+                              {formatEquation(calc.terms)}
                             </div>
                           )}
                         </div>
@@ -1383,7 +1383,7 @@ const CombinationsModal = ({ onClose }) => {
                 }
               }}
             >
-              Save Combinations
+              Save Calculations
             </button>
           </div>
         </div>
@@ -1392,4 +1392,4 @@ const CombinationsModal = ({ onClose }) => {
   );
 };
 
-export default CombinationsModal;
+export default CalculationsModal;

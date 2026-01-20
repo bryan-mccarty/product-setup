@@ -4,7 +4,7 @@ import { useData } from './contexts/DataContext';
 import { useTheme } from './contexts/ThemeContext';
 import InputsModal from './pages/inputs';
 import OutcomesModal from './pages/outcomes';
-import CombinationsModal from './pages/combinations';
+import CalculationsModal from './pages/calculations';
 import ConstraintsModal from './pages/constraints';
 import ObjectivesModal from './pages/objectives';
 import DataUploadModal from './pages/upload';
@@ -23,7 +23,7 @@ const SetupFlow = () => {
   const [dataUploaded, setDataUploaded] = useState(false);
   const [showInputsModal, setShowInputsModal] = useState(false);
   const [showOutcomesModal, setShowOutcomesModal] = useState(false);
-  const [showCombinationsModal, setShowCombinationsModal] = useState(false);
+  const [showCalculationsModal, setShowCalculationsModal] = useState(false);
   const [showConstraintsModal, setShowConstraintsModal] = useState(false);
   const [showObjectivesModal, setShowObjectivesModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -40,7 +40,7 @@ const SetupFlow = () => {
       items: outcomes.length,
       required: true
     },
-    combinations: {
+    calculations: {
       complete: combinations.length > 0,
       items: combinations.length,
       required: false
@@ -123,10 +123,10 @@ const SetupFlow = () => {
       required: true
     },
     {
-      id: 'combinations',
-      label: 'Combinations',
+      id: 'calculations',
+      label: 'Calculations',
       x: 94, y: 129,
-      color: theme.accentCombinations,
+      color: theme.accentCalculations,
       colorDark: '#A78BFA',
       colorLight: '#7c3aed',
       description: 'Click to configure',
@@ -195,7 +195,7 @@ const SetupFlow = () => {
             <circle cx="12" cy="12" r="2" fill="currentColor" />
           </svg>
         );
-      case 'combinations':
+      case 'calculations':
         return (
           <svg style={iconStyle} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <rect x="3" y="3" width="7" height="7" rx="1" />
@@ -689,8 +689,8 @@ const SetupFlow = () => {
                       setShowInputsModal(true);
                     } else if (node.id === 'outcomes') {
                       setShowOutcomesModal(true);
-                    } else if (node.id === 'combinations') {
-                      setShowCombinationsModal(true);
+                    } else if (node.id === 'calculations') {
+                      setShowCalculationsModal(true);
                     } else if (node.id === 'constraints') {
                       setShowConstraintsModal(true);
                     } else if (node.id === 'objectives') {
@@ -979,10 +979,10 @@ const SetupFlow = () => {
         />
       )}
 
-      {/* Combinations Modal */}
-      {showCombinationsModal && (
-        <CombinationsModal
-          onClose={() => setShowCombinationsModal(false)}
+      {/* Calculations Modal */}
+      {showCalculationsModal && (
+        <CalculationsModal
+          onClose={() => setShowCalculationsModal(false)}
         />
       )}
 

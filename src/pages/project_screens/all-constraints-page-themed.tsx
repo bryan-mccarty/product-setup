@@ -30,7 +30,7 @@ const productConstraints = [
     id: 'pc-2', 
     targetId: 'combo-4', 
     targetName: 'Total Cost', 
-    targetType: 'combination',
+    targetType: 'calculation',
     constraintType: 'at_most', 
     value1: '2.50', 
     value2: '',
@@ -70,7 +70,7 @@ const productConstraints = [
     id: 'pc-6', 
     targetId: 'combo-1', 
     targetName: 'Total Fat Content', 
-    targetType: 'combination',
+    targetType: 'calculation',
     constraintType: 'at_most', 
     value1: '40', 
     value2: '',
@@ -96,6 +96,7 @@ const constraintTypes = [
   { id: 'between', label: '↔ Between', symbol: '↔', eligibleVariables: ['Continuous', 'Ordinal'], fields: 2 },
   { id: 'at_least', label: '≥ At Least', symbol: '≥', eligibleVariables: ['Continuous', 'Ordinal'], fields: 1 },
   { id: 'at_most', label: '≤ At Most', symbol: '≤', eligibleVariables: ['Continuous', 'Ordinal'], fields: 1 },
+  { id: 'choose_x_y_of_z', label: '⊞ Choose X-Y of Z', symbol: '⊞', eligibleVariables: ['Continuous'], eligibleSources: ['calculation'], fields: 2 },
 ];
 
 // ============================================
@@ -180,7 +181,7 @@ const InputTypeTag = ({ type, small }) => {
   const colors = {
     'Ingredient': { bg: 'rgba(45, 212, 191, 0.15)', text: '#2DD4BF', border: 'rgba(45, 212, 191, 0.3)' },
     'Processing': { bg: 'rgba(251, 146, 60, 0.15)', text: '#FB923C', border: 'rgba(251, 146, 60, 0.3)' },
-    'Combination': { bg: 'rgba(167, 139, 250, 0.15)', text: '#A78BFA', border: 'rgba(167, 139, 250, 0.3)' },
+    'Calculation': { bg: 'rgba(167, 139, 250, 0.15)', text: '#A78BFA', border: 'rgba(167, 139, 250, 0.3)' },
     'Other': { bg: 'rgba(113, 113, 122, 0.15)', text: '#A1A1AA', border: 'rgba(113, 113, 122, 0.3)' },
   };
   const c = colors[type] || colors['Other'];
@@ -197,7 +198,7 @@ const InputTypeTag = ({ type, small }) => {
       textTransform: 'uppercase',
       letterSpacing: '0.03em',
     }}>
-      {type === 'Processing' ? 'Process' : type === 'Combination' ? 'Combo' : type}
+      {type === 'Processing' ? 'Process' : type === 'Calculation' ? 'Calc' : type}
     </span>
   );
 };
@@ -383,8 +384,8 @@ export default function AllConstraintsPage() {
         return {
           ...c,
           targetId: matchedInput?.id || null,
-          targetType: matchedInput ? 'input' : 'combination',
-          targetInputType: matchedInput?.inputType || 'Combination',
+          targetType: matchedInput ? 'input' : 'calculation',
+          targetInputType: matchedInput?.inputType || 'Calculation',
           targetVariableType: matchedInput?.variableType || 'Continuous',
           mappedDraftId: null,
           needsConfirmation: false,
@@ -397,8 +398,8 @@ export default function AllConstraintsPage() {
     draftConstraints.forEach(draft => {
       // Try to match draft to an input or combination
       const matchedInput = projectInputs.find(i => i.name === draft.metricName);
-      const matchedCombo = projectCombinations.find(c => c.name === draft.metricName);
-      const matched = matchedInput || matchedCombo;
+      const matchedCalc = projectCombinations.find(c => c.name === draft.metricName);
+      const matched = matchedInput || matchedCalc;
 
       if (matched && draft.metricRef) {
         // Create a constraint that needs confirmation
@@ -406,8 +407,8 @@ export default function AllConstraintsPage() {
           id: `auto-${draft.id}`,
           targetId: matched.id,
           targetName: draft.metricName,
-          targetType: matchedInput ? 'input' : 'combination',
-          targetInputType: matchedInput?.inputType || 'Combination',
+          targetType: matchedInput ? 'input' : 'calculation',
+          targetInputType: matchedInput?.inputType || 'Calculation',
           targetVariableType: matchedInput?.variableType || 'Continuous',
           constraintType: draft.operator,
           value1: draft.value1,
@@ -426,8 +427,8 @@ export default function AllConstraintsPage() {
   const [drafts, setDrafts] = useState(() => {
     return draftConstraints.map(draft => {
       const matchedInput = projectInputs.find(i => i.name === draft.metricName);
-      const matchedCombo = projectCombinations.find(c => c.name === draft.metricName);
-      const matched = matchedInput || matchedCombo;
+      const matchedCalc = projectCombinations.find(c => c.name === draft.metricName);
+      const matched = matchedInput || matchedCalc;
 
       if (matched && draft.metricRef) {
         return { ...draft, mappedConstraintId: `auto-${draft.id}`, needsConfirmation: true };
@@ -542,14 +543,14 @@ export default function AllConstraintsPage() {
   const getFilteredLibraryItems = () => {
     const allItems = [
       ...projectInputs.map(i => ({ ...i, itemType: 'input' })),
-      ...projectCombinations.map(c => ({ ...c, itemType: 'combination', inputType: 'Combination' })),
+      ...projectCombinations.map(c => ({ ...c, itemType: 'calculation', inputType: 'Calculation' })),
     ];
     
     let filtered = allItems;
     
     if (sidebarFilter !== 'All') {
-      if (sidebarFilter === 'Combination') {
-        filtered = filtered.filter(i => i.itemType === 'combination');
+      if (sidebarFilter === 'Calculation') {
+        filtered = filtered.filter(i => i.itemType === 'calculation');
       } else {
         filtered = filtered.filter(i => i.inputType === sidebarFilter);
       }
@@ -567,19 +568,55 @@ export default function AllConstraintsPage() {
   };
   
   // Get autocomplete suggestions for constraint subject
-  const getAutocompleteSuggestions = (query) => {
-    const allItems = [
+  const getAutocompleteSuggestions = (query, constraintType = null) => {
+    let allItems = [
       ...projectInputs.map(i => ({ ...i, itemType: 'input' })),
-      ...projectCombinations.map(c => ({ ...c, itemType: 'combination', inputType: 'Combination' })),
+      ...projectCombinations.map(c => ({ ...c, itemType: 'calculation', inputType: 'Calculation' })),
     ];
-    
+
+    // Filter by constraint type eligibility (e.g., choose_x_y_of_z only allows combinations)
+    if (constraintType) {
+      const constraintTypeDef = constraintTypes.find(ct => ct.id === constraintType);
+      if (constraintTypeDef?.eligibleSources) {
+        allItems = allItems.filter(i => constraintTypeDef.eligibleSources.includes(i.itemType));
+      }
+    }
+
     if (!query || query.length < 1) return allItems.slice(0, 6);
-    
+
     const search = query.toLowerCase();
-    return allItems.filter(i => 
+    return allItems.filter(i =>
       i.name.toLowerCase().includes(search) ||
       i.description?.toLowerCase().includes(search)
     ).slice(0, 6);
+  };
+
+  // Handle constraint type change - reset target if not eligible
+  const handleConstraintTypeChange = (constraintId, newConstraintType) => {
+    const constraint = constraints.find(c => c.id === constraintId);
+    if (!constraint) return;
+
+    const constraintTypeDef = constraintTypes.find(ct => ct.id === newConstraintType);
+
+    // Check if current target is still eligible for the new constraint type
+    if (constraint.targetId && constraintTypeDef?.eligibleSources) {
+      const isEligible = constraintTypeDef.eligibleSources.includes(constraint.targetType);
+      if (!isEligible) {
+        // Reset target because it's not eligible for this constraint type
+        updateConstraint(constraintId, {
+          constraintType: newConstraintType,
+          targetId: null,
+          targetName: '',
+          targetType: null,
+          targetInputType: null,
+          targetVariableType: null,
+        });
+        return;
+      }
+    }
+
+    // Target is still valid, just update the constraint type
+    updateConstraint(constraintId, { constraintType: newConstraintType });
   };
   
   // Apply autocomplete selection
@@ -1588,7 +1625,7 @@ export default function AllConstraintsPage() {
               <div className="section-text">
                 <h2 className="section-title">All Constraints</h2>
                 <p className="section-subtitle">
-                  Hard Limits on Inputs and their Combinations
+                  Hard Limits on Inputs and their Calculations
                 </p>
               </div>
             </div>
@@ -1751,7 +1788,7 @@ export default function AllConstraintsPage() {
                       <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
                       <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
                     </svg>
-                    Inputs & Combinations
+                    Inputs & Calculations
                   </span>
                   <div style={{ display: 'flex', gap: '4px' }}>
                     <button
@@ -1794,7 +1831,7 @@ export default function AllConstraintsPage() {
                         <line x1="12" y1="5" x2="12" y2="19" />
                         <line x1="5" y1="12" x2="19" y2="12" />
                       </svg>
-                      Combo
+                      Calc
                     </button>
                   </div>
                 </div>
@@ -1811,13 +1848,13 @@ export default function AllConstraintsPage() {
                     />
                   </div>
                   <div className="filter-buttons">
-                    {['All', 'Ingredient', 'Processing', 'Combination'].map((filter) => (
+                    {['All', 'Ingredient', 'Processing', 'Calculation'].map((filter) => (
                       <button
                         key={filter}
                         className={`filter-btn ${sidebarFilter === filter ? 'active' : ''}`}
                         onClick={() => setSidebarFilter(filter)}
                       >
-                        {filter === 'Combination' ? 'Combos' : filter}
+                        {filter === 'Calculation' ? 'Calcs' : filter}
                       </button>
                     ))}
                   </div>
@@ -1827,7 +1864,7 @@ export default function AllConstraintsPage() {
                   {getFilteredLibraryItems().length === 0 ? (
                     <div style={{ padding: '20px', textAlign: 'center' }}>
                       <p style={{ fontSize: '11px', color: '#52525b', margin: 0 }}>
-                        No inputs or combinations found
+                        No inputs or calculations found
                       </p>
                     </div>
                   ) : (
@@ -1905,7 +1942,7 @@ export default function AllConstraintsPage() {
                     </div>
                     <p className="empty-state-title">No constraints defined</p>
                     <p className="empty-state-text">
-                      Add constraints from your product library, create new ones, or click an input/combination 
+                      Add constraints from your product library, create new ones, or click an input/calculation 
                       from the sidebar to get started.
                     </p>
                   </div>
@@ -1954,7 +1991,7 @@ export default function AllConstraintsPage() {
                             setTimeout(() => setActiveAutocomplete(null), 150);
                           }}
                           onKeyDown={(e) => {
-                            const suggestions = getAutocompleteSuggestions(constraint.targetName);
+                            const suggestions = getAutocompleteSuggestions(constraint.targetName, constraint.constraintType);
                             if (activeAutocomplete === constraint.id && suggestions.length > 0) {
                               if (e.key === 'ArrowDown') {
                                 e.preventDefault();
@@ -1974,7 +2011,7 @@ export default function AllConstraintsPage() {
                         
                         {/* Autocomplete Dropdown */}
                         {activeAutocomplete === constraint.id && (() => {
-                          const suggestions = getAutocompleteSuggestions(constraint.targetName);
+                          const suggestions = getAutocompleteSuggestions(constraint.targetName, constraint.constraintType);
                           if (suggestions.length === 0) return null;
                           
                           return (
@@ -2032,12 +2069,12 @@ export default function AllConstraintsPage() {
                         })()}
                       </div>
                       
-                      {/* Constraint Type - disabled until input/combo selected */}
+                      {/* Constraint Type - disabled until input/calc selected */}
                       <select
                         className="constraint-field"
-                        style={{ flex: '0 0 110px' }}
+                        style={{ flex: '0 0 130px' }}
                         value={constraint.constraintType || ''}
-                        onChange={(e) => updateConstraint(constraint.id, { constraintType: e.target.value || null })}
+                        onChange={(e) => handleConstraintTypeChange(constraint.id, e.target.value || null)}
                         disabled={!constraint.targetId}
                       >
                         <option value="">Type...</option>
@@ -2046,17 +2083,17 @@ export default function AllConstraintsPage() {
                         ))}
                       </select>
                       
-                      {/* Values - disabled until input/combo AND type selected */}
+                      {/* Values - disabled until input/calc AND type selected */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: '0 0 160px' }}>
                         <input
                           type="text"
                           className="value-field"
                           value={constraint.value1}
                           onChange={(e) => updateConstraint(constraint.id, { value1: e.target.value })}
-                          placeholder={constraint.constraintType === 'between' ? 'Min' : 'Value'}
+                          placeholder={(constraint.constraintType === 'between' || constraint.constraintType === 'choose_x_y_of_z') ? 'Min' : 'Value'}
                           disabled={!constraint.targetId || !constraint.constraintType}
                         />
-                        {constraint.constraintType === 'between' && (
+                        {(constraint.constraintType === 'between' || constraint.constraintType === 'choose_x_y_of_z') && (
                           <>
                             <span style={{ color: '#52525b', fontSize: '11px' }}>–</span>
                             <input
@@ -2071,7 +2108,7 @@ export default function AllConstraintsPage() {
                         )}
                       </div>
                       
-                      {/* Tags - disabled until input/combo selected */}
+                      {/* Tags - disabled until input/calc selected */}
                       <div style={{ flex: 1, display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center', opacity: constraint.targetId ? 1 : 0.4 }}>
                         {(constraint.tags || []).map(tag => (
                           <ConstraintTagPill
@@ -2086,7 +2123,7 @@ export default function AllConstraintsPage() {
                           />
                         ))}
                         
-                        {/* Tag Input with Autocomplete - only if input/combo selected */}
+                        {/* Tag Input with Autocomplete - only if input/calc selected */}
                         {constraint.targetId && (
                         <div style={{ position: 'relative' }}>
                           <input

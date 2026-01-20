@@ -79,7 +79,7 @@ const GoalsIcon = () => (
 const MetricTypeTag = ({ type, theme }: { type: string; theme: any }) => {
   const config: Record<string, { text: string; label: string }> = {
     'input': { text: theme.accentInputs, label: 'Input' },
-    'combination': { text: theme.accentCombinations, label: 'Combo' },
+    'calculation': { text: theme.accentCalculations, label: 'Calc' },
     'calculation': { text: theme.accentObjectives, label: 'Calc' },
     'outcome': { text: theme.accentOutcomes, label: 'Outcome' },
   };
@@ -108,7 +108,7 @@ const CategoryTag = ({ category, theme }: { category: string; theme: any }) => {
     'Processing': theme.accentConstraints,
     'Analytical': theme.accentObjectives,
     'Sensory': theme.accentOutcomes,
-    'Consumer': theme.accentCombinations,
+    'Consumer': theme.accentCalculations,
   };
   const color = colors[category] || theme.textTertiary;
   return (
@@ -1202,7 +1202,7 @@ export default function GoalsClaimsPage() {
         .toggle-btn.active.calculated {
           background: rgba(167, 139, 250, 0.1);
           border-color: rgba(167, 139, 250, 0.4);
-          color: ${theme.accentCombinations};
+          color: ${theme.accentCalculations};
         }
 
         .toggle-btn.active.predicted {

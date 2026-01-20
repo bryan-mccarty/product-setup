@@ -30,7 +30,7 @@ const productObjectives = [
     id: 'po-2', 
     targetId: 'combo-4', 
     targetName: 'Total Cost', 
-    targetType: 'combination',
+    targetType: 'calculation',
     objectiveType: 'minimize', 
     value1: '', 
     value2: '',
@@ -159,7 +159,7 @@ const OutcomeTypeTag = ({ type, small }) => {
     'Sensory': { bg: 'rgba(251, 146, 60, 0.15)', text: '#FB923C', border: 'rgba(251, 146, 60, 0.3)' },
     'Consumer': { bg: 'rgba(244, 114, 182, 0.15)', text: '#F472B6', border: 'rgba(244, 114, 182, 0.3)' },
     'Analytical': { bg: 'rgba(96, 165, 250, 0.15)', text: '#60A5FA', border: 'rgba(96, 165, 250, 0.3)' },
-    'Combination': { bg: 'rgba(167, 139, 250, 0.15)', text: '#A78BFA', border: 'rgba(167, 139, 250, 0.3)' },
+    'Calculation': { bg: 'rgba(167, 139, 250, 0.15)', text: '#A78BFA', border: 'rgba(167, 139, 250, 0.3)' },
     'Other': { bg: 'rgba(113, 113, 122, 0.15)', text: '#A1A1AA', border: 'rgba(113, 113, 122, 0.3)' },
   };
   const c = colors[type] || colors['Other'];
@@ -176,7 +176,7 @@ const OutcomeTypeTag = ({ type, small }) => {
       textTransform: 'uppercase',
       letterSpacing: '0.03em',
     }}>
-      {type === 'Analytical' ? 'Analyt' : type === 'Combination' ? 'Combo' : type}
+      {type === 'Analytical' ? 'Analyt' : type === 'Calculation' ? 'Calc' : type}
     </span>
   );
 };
@@ -607,7 +607,7 @@ export default function AllObjectivesPage() {
   };
 
   // ========== STATE ==========
-  // Auto-generate objectives from drafts that can be matched to outcomes/combinations
+  // Auto-generate objectives from drafts that can be matched to outcomes/calculations
   const [objectives, setObjectives] = useState<any[]>(() => {
     // If we have existing project objectives, use those
     if (projectObjectives.length > 0) {
@@ -616,8 +616,8 @@ export default function AllObjectivesPage() {
         return {
           ...o,
           targetId: matchedOutcome?.id || null,
-          targetType: matchedOutcome ? 'outcome' : 'combination',
-          targetOutcomeType: matchedOutcome?.outcomeType || 'Combination',
+          targetType: matchedOutcome ? 'outcome' : 'calculation',
+          targetOutcomeType: matchedOutcome?.outcomeType || 'Calculation',
           targetVariableType: matchedOutcome?.variableType || 'Continuous',
           mappedDraftId: null,
           needsConfirmation: false,
@@ -630,8 +630,8 @@ export default function AllObjectivesPage() {
     draftObjectives.forEach((draft: any) => {
       // Try to match draft to an outcome or combination
       const matchedOutcome = projectOutcomes.find((o: any) => o.name === draft.metricName);
-      const matchedCombo = projectCombinations.find((c: any) => c.name === draft.metricName);
-      const matched = matchedOutcome || matchedCombo;
+      const matchedCalc = projectCombinations.find((c: any) => c.name === draft.metricName);
+      const matched = matchedOutcome || matchedCalc;
 
       if (matched && draft.metricRef) {
         // Create an objective that needs confirmation
@@ -639,8 +639,8 @@ export default function AllObjectivesPage() {
           id: `auto-${draft.id}`,
           targetId: matched.id,
           targetName: draft.metricName,
-          targetType: matchedOutcome ? 'outcome' : 'combination',
-          targetOutcomeType: matchedOutcome?.outcomeType || 'Combination',
+          targetType: matchedOutcome ? 'outcome' : 'calculation',
+          targetOutcomeType: matchedOutcome?.outcomeType || 'Calculation',
           targetVariableType: matchedOutcome?.variableType || 'Continuous',
           objectiveType: draft.operator,
           value1: draft.value1,
@@ -659,8 +659,8 @@ export default function AllObjectivesPage() {
   const [drafts, setDrafts] = useState(() => {
     return draftObjectives.map((draft: any) => {
       const matchedOutcome = projectOutcomes.find((o: any) => o.name === draft.metricName);
-      const matchedCombo = projectCombinations.find((c: any) => c.name === draft.metricName);
-      const matched = matchedOutcome || matchedCombo;
+      const matchedCalc = projectCombinations.find((c: any) => c.name === draft.metricName);
+      const matched = matchedOutcome || matchedCalc;
 
       if (matched && draft.metricRef) {
         return { ...draft, mappedObjectiveId: `auto-${draft.id}`, needsConfirmation: true };
@@ -793,14 +793,14 @@ export default function AllObjectivesPage() {
   const getFilteredLibraryItems = () => {
     const allItems = [
       ...projectOutcomes.map(o => ({ ...o, itemType: 'outcome' })),
-      ...projectCombinations.map(c => ({ ...c, itemType: 'combination', outcomeType: 'Combination' })),
+      ...projectCombinations.map(c => ({ ...c, itemType: 'calculation', outcomeType: 'Calculation' })),
     ];
     
     let filtered = allItems;
     
     if (sidebarFilter !== 'All') {
-      if (sidebarFilter === 'Combination') {
-        filtered = filtered.filter(i => i.itemType === 'combination');
+      if (sidebarFilter === 'Calculation') {
+        filtered = filtered.filter(i => i.itemType === 'calculation');
       } else {
         filtered = filtered.filter(i => i.outcomeType === sidebarFilter);
       }
@@ -821,7 +821,7 @@ export default function AllObjectivesPage() {
   const getAutocompleteSuggestions = (query) => {
     const allItems = [
       ...projectOutcomes.map(o => ({ ...o, itemType: 'outcome' })),
-      ...projectCombinations.map(c => ({ ...c, itemType: 'combination', outcomeType: 'Combination' })),
+      ...projectCombinations.map(c => ({ ...c, itemType: 'calculation', outcomeType: 'Calculation' })),
     ];
     
     if (!query || query.length < 1) return allItems.slice(0, 6);
@@ -1857,7 +1857,7 @@ export default function AllObjectivesPage() {
                   </span>
                 </h2>
                 <p className="section-subtitle">
-                  Set all Aims for Optimizations on Outcomes and Combinations
+                  Set all Aims for Optimizations on Outcomes and Calculations
                 </p>
               </div>
             </div>
@@ -2020,7 +2020,7 @@ export default function AllObjectivesPage() {
                       <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
                       <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
                     </svg>
-                    Outcomes & Combinations
+                    Outcomes & Calculations
                   </span>
                   <div style={{ display: 'flex', gap: '4px' }}>
                     <button
@@ -2063,7 +2063,7 @@ export default function AllObjectivesPage() {
                         <line x1="12" y1="5" x2="12" y2="19" />
                         <line x1="5" y1="12" x2="19" y2="12" />
                       </svg>
-                      Combo
+                      Calc
                     </button>
                   </div>
                 </div>
@@ -2080,13 +2080,13 @@ export default function AllObjectivesPage() {
                     />
                   </div>
                   <div className="filter-buttons">
-                    {['All', 'Sensory', 'Consumer', 'Analytical', 'Combination'].map((filter) => (
+                    {['All', 'Sensory', 'Consumer', 'Analytical', 'Calculation'].map((filter) => (
                       <button
                         key={filter}
                         className={`filter-btn ${sidebarFilter === filter ? 'active' : ''}`}
                         onClick={() => setSidebarFilter(filter)}
                       >
-                        {filter === 'Combination' ? 'Combos' : filter === 'Analytical' ? 'Analyt' : filter}
+                        {filter === 'Calculation' ? 'Calcs' : filter === 'Analytical' ? 'Analyt' : filter}
                       </button>
                     ))}
                   </div>
@@ -2096,7 +2096,7 @@ export default function AllObjectivesPage() {
                   {getFilteredLibraryItems().length === 0 ? (
                     <div style={{ padding: '20px', textAlign: 'center' }}>
                       <p style={{ fontSize: '11px', color: '#52525b', margin: 0 }}>
-                        No outcomes or combinations found
+                        No outcomes or calculations found
                       </p>
                     </div>
                   ) : (
@@ -2207,7 +2207,7 @@ export default function AllObjectivesPage() {
                     </div>
                     <p className="empty-state-title">No objectives defined</p>
                     <p className="empty-state-text">
-                      Add objectives from your product library, import defaults, or click an outcome/combination 
+                      Add objectives from your product library, import defaults, or click an outcome/calculation 
                       from the sidebar to get started.
                     </p>
                   </div>

@@ -3,7 +3,7 @@ import { useData } from '../contexts/DataContext';
 import { useTheme } from '../contexts/ThemeContext';
 
 const ConstraintsModal = ({ onClose }) => {
-  // Get constraints, inputs, and combinations from global context
+  // Get constraints, inputs, and calculations from global context
   const { constraints, setConstraints, inputs, combinations } = useData();
   const { theme, isDarkMode } = useTheme();
   const [hoveredRow, setHoveredRow] = useState(null);
@@ -35,16 +35,16 @@ const ConstraintsModal = ({ onClose }) => {
     sourceType: 'Input' as const
   }));
 
-  // Get available combinations from context and map to format expected by component
-  const availableCombinations = combinations.map(c => ({
+  // Get available calculations from context and map to format expected by component
+  const availableCalculations = combinations.map(c => ({
     ...c,
-    sourceType: 'Combination' as const,
-    inputType: 'Combination',
+    sourceType: 'Calculation' as const,
+    inputType: 'Calculation',
     variableType: 'Continuous'
   }));
 
   // Combined list for autocomplete
-  const allConstrainableItems = [...availableInputs, ...availableCombinations];
+  const allConstrainableItems = [...availableInputs, ...availableCalculations];
 
   // Theme color for Constraints - Orange
   const themeColor = '#FB923C';
@@ -52,11 +52,11 @@ const ConstraintsModal = ({ onClose }) => {
 
   // Constraint types and their eligibility
   const constraintTypes = [
-    { id: 'equals', label: 'Equals To', eligibleVariables: ['Continuous', 'Ordinal', 'Nominal'], eligibleSources: ['Input', 'Combination'], fields: 1 },
-    { id: 'between', label: 'Between', eligibleVariables: ['Continuous', 'Ordinal'], eligibleSources: ['Input', 'Combination'], fields: 2 },
-    { id: 'at_least', label: 'At Least', eligibleVariables: ['Continuous', 'Ordinal'], eligibleSources: ['Input', 'Combination'], fields: 1 },
-    { id: 'at_most', label: 'At Most', eligibleVariables: ['Continuous', 'Ordinal'], eligibleSources: ['Input', 'Combination'], fields: 1 },
-    { id: 'use_x_types', label: 'Use X Types', eligibleVariables: ['Continuous'], eligibleSources: ['Combination'], fields: 2 },
+    { id: 'equals', label: 'Equals To', eligibleVariables: ['Continuous', 'Ordinal', 'Nominal'], eligibleSources: ['Input', 'Calculation'], fields: 1 },
+    { id: 'between', label: 'Between', eligibleVariables: ['Continuous', 'Ordinal'], eligibleSources: ['Input', 'Calculation'], fields: 2 },
+    { id: 'at_least', label: 'At Least', eligibleVariables: ['Continuous', 'Ordinal'], eligibleSources: ['Input', 'Calculation'], fields: 1 },
+    { id: 'at_most', label: 'At Most', eligibleVariables: ['Continuous', 'Ordinal'], eligibleSources: ['Input', 'Calculation'], fields: 1 },
+    { id: 'choose_x_y_of_z', label: 'Choose X-Y of Z', eligibleVariables: ['Continuous'], eligibleSources: ['Calculation'], fields: 2 },
   ];
 
   // Keyboard shortcuts
@@ -240,8 +240,8 @@ const ConstraintsModal = ({ onClose }) => {
     
     // Apply category filter
     if (libraryFilter !== 'All') {
-      if (libraryFilter === 'Combination') {
-        items = items.filter(i => i.sourceType === 'Combination');
+      if (libraryFilter === 'Calculation') {
+        items = items.filter(i => i.sourceType === 'Calculation');
       } else {
         items = items.filter(i => i.inputType === libraryFilter);
       }
@@ -273,7 +273,7 @@ const ConstraintsModal = ({ onClose }) => {
     const colors = {
       'Ingredient': { bg: 'rgba(45, 212, 191, 0.15)', text: '#2DD4BF', border: 'rgba(45, 212, 191, 0.3)' },
       'Processing': { bg: 'rgba(251, 146, 60, 0.15)', text: '#FB923C', border: 'rgba(251, 146, 60, 0.3)' },
-      'Combination': { bg: 'rgba(167, 139, 250, 0.15)', text: '#A78BFA', border: 'rgba(167, 139, 250, 0.3)' },
+      'Calculation': { bg: 'rgba(167, 139, 250, 0.15)', text: '#A78BFA', border: 'rgba(167, 139, 250, 0.3)' },
       'Other': { bg: 'rgba(113, 113, 122, 0.15)', text: theme.textSecondary, border: 'rgba(113, 113, 122, 0.3)' },
     };
     const c = colors[type] || colors['Other'];
@@ -290,7 +290,7 @@ const ConstraintsModal = ({ onClose }) => {
         textTransform: 'uppercase',
         letterSpacing: '0.03em',
       }}>
-        {type === 'Processing' ? 'Process' : type === 'Combination' ? 'Combo' : type}
+        {type === 'Processing' ? 'Process' : type === 'Calculation' ? 'Calc' : type}
       </span>
     );
   };
@@ -577,7 +577,7 @@ const ConstraintsModal = ({ onClose }) => {
                 fontSize: '12px',
                 color: theme.textTertiary,
               }}>
-                {constraints.length} constraint{constraints.length !== 1 ? 's' : ''} • Define limits on inputs and combinations
+                {constraints.length} constraint{constraints.length !== 1 ? 's' : ''} • Define limits on inputs and calculations
               </p>
             </div>
           </div>
@@ -730,7 +730,7 @@ const ConstraintsModal = ({ onClose }) => {
                       maxWidth: '280px',
                       lineHeight: 1.5,
                     }}>
-                      Add constraints to limit values of inputs and combinations. Select from the library on the right or click "Add Constraint".
+                      Add constraints to limit values of inputs and calculations. Select from the library on the right or click "Add Constraint".
                     </p>
                   </div>
                 </div>
@@ -1243,7 +1243,7 @@ const ConstraintsModal = ({ onClose }) => {
                       <line x1="12" y1="5" x2="12" y2="19" />
                       <line x1="5" y1="12" x2="19" y2="12" />
                     </svg>
-                    Add Combo
+                    Add Calc
                   </button>
                 </div>
               </div>
@@ -1272,7 +1272,7 @@ const ConstraintsModal = ({ onClose }) => {
                   type="text"
                   value={librarySearch}
                   onChange={(e) => setLibrarySearch(e.target.value)}
-                  placeholder="Search inputs & combinations..."
+                  placeholder="Search inputs & calculations..."
                   className="constraint-field"
                   style={{ 
                     width: '100%', 
@@ -1289,7 +1289,7 @@ const ConstraintsModal = ({ onClose }) => {
                 gap: '6px',
                 flexWrap: 'wrap',
               }}>
-                {['All', 'Combination', 'Ingredient', 'Processing', 'Other'].map((filter) => (
+                {['All', 'Calculation', 'Ingredient', 'Processing', 'Other'].map((filter) => (
                   <button
                     key={filter}
                     onClick={() => setLibraryFilter(filter)}
@@ -1311,7 +1311,7 @@ const ConstraintsModal = ({ onClose }) => {
                       transition: 'all 0.15s ease',
                     }}
                   >
-                    {filter === 'Combination' ? 'Combos' : filter}
+                    {filter === 'Calculation' ? 'Calcs' : filter}
                   </button>
                 ))}
               </div>

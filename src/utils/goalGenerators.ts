@@ -1,5 +1,6 @@
 // Goal generators for auto-creating goals from getting-started operations
 import { Goal, GoalItem } from '../contexts/DataContext';
+import { Calculation } from '../data/demoLibrary';
 
 // ID generator
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -8,6 +9,25 @@ const generateId = () => Math.random().toString(36).substr(2, 9);
 interface LibraryItem {
   id: string;
   name: string;
+  inputType?: string;  // 'Ingredient' | 'Processing' - used for filtering
+  suggestedMin?: string;
+  suggestedMax?: string;
+}
+
+// Substitute item from the library selection
+interface SubstituteItem {
+  id: string;
+  name: string;
+  inputType?: string;
+  variableType?: string;
+  description?: string;
+  cost?: number | null;
+}
+
+// Result type for generateGoalsFromOperations
+interface GenerateGoalsResult {
+  goals: Goal[];
+  calculations: Calculation[];
 }
 
 /**
@@ -39,16 +59,25 @@ function findLibraryMatch(
 
 /**
  * Generate goals for ingredient substitution
- * Creates one goal per original ingredient being substituted
+ * Creates one goal per original ingredient being substituted with:
+ * - An equality constraint setting the removed input to 0
+ * - A choose 1-1 from Z constraint on the substitute combination
  */
 interface SubstituteGoalParams {
   selectedIngredientsToSub: Record<string, boolean>;
+  substituteSelections: Record<string, SubstituteItem[]>;
   inputLibrary: LibraryItem[];
 }
 
-function generateSubstituteIngredientGoals(params: SubstituteGoalParams): Goal[] {
-  const { selectedIngredientsToSub } = params;
+interface SubstituteGoalsResult {
+  goals: Goal[];
+  calculations: Calculation[];
+}
+
+function generateSubstituteIngredientGoals(params: SubstituteGoalParams): SubstituteGoalsResult {
+  const { selectedIngredientsToSub, substituteSelections, inputLibrary } = params;
   const goals: Goal[] = [];
+  const calculations: Calculation[] = [];
 
   // Get all ingredients marked for substitution
   const ingredientsToSubstitute = Object.entries(selectedIngredientsToSub)
@@ -57,19 +86,62 @@ function generateSubstituteIngredientGoals(params: SubstituteGoalParams): Goal[]
 
   for (const ingredientName of ingredientsToSubstitute) {
     const displayName = ingredientName.replace(/_/g, ' ');
+    const substitutes = substituteSelections[ingredientName] || [];
 
+    // Skip if no substitutes selected for this ingredient
+    if (substitutes.length === 0) continue;
+
+    // 1. Create a Combination for the substitute options
+    const combinationId = `combo-sub-${generateId()}`;
+    const calculation: Calculation = {
+      id: combinationId,
+      name: `${displayName} Substitutes`,
+      description: `Substitute options for ${displayName}`,
+      terms: substitutes.map(sub => ({
+        inputId: sub.id,
+        inputName: sub.name,
+        coefficient: 1,
+      })),
+    };
+    calculations.push(calculation);
+
+    // 2. Find original input's library reference
+    const originalInputRef = findLibraryMatch(ingredientName, inputLibrary, 'input');
+
+    // 3. Create Goal with TWO constraints
     const goal: Goal = {
       id: generateId(),
       name: `Substitute ${displayName} ingredient`,
       valueType: 'calculated',
-      items: [],
+      items: [
+        // Constraint 1: Set removed ingredient to 0
+        {
+          id: generateId(),
+          type: 'constraint',
+          metricName: displayName,
+          metricRef: originalInputRef,
+          operator: 'equals',
+          value1: '0',
+          value2: '',
+        },
+        // Constraint 2: Choose exactly 1 substitute from combination
+        {
+          id: generateId(),
+          type: 'constraint',
+          metricName: `${displayName} Substitutes`,
+          metricRef: { id: combinationId, type: 'combination' },
+          operator: 'choose_x_y_of_z',
+          value1: '1',
+          value2: '1',
+        },
+      ],
       isCollapsed: false
     };
 
     goals.push(goal);
   }
 
-  return goals;
+  return { goals, calculations };
 }
 
 /**
@@ -95,6 +167,17 @@ function generatePreserveLabelGoal(params: PreserveLabelGoalParams): Goal {
 
     const numericValue = parseFloat(currentValue);
     if (isNaN(numericValue)) continue;
+
+    // Look up input type from library - only constrain Ingredient types
+    const normalizedName = inputName.replace(/_/g, ' ').toLowerCase();
+    const libraryItem = inputLibrary.find(item =>
+      item.name.toLowerCase() === normalizedName
+    );
+
+    // Skip non-ingredient inputs (e.g., Processing conditions)
+    if (libraryItem?.inputType && libraryItem.inputType !== 'Ingredient') {
+      continue;
+    }
 
     // Calculate tolerance bounds
     const toleranceAmount = numericValue * (tolerancePercent / 100);
@@ -183,6 +266,7 @@ interface GenerateGoalsParams {
   // Operations state
   substituteIngredient: boolean;
   selectedIngredientsToSub: Record<string, boolean>;
+  substituteSelections: Record<string, SubstituteItem[]>;
   preserveLabel: boolean;
   referenceFormula: Record<string, any> | null;
   labelTolerance: string;
@@ -198,8 +282,9 @@ interface GenerateGoalsParams {
   outcomeLibrary: LibraryItem[];
 }
 
-function generateGoalsFromOperations(params: GenerateGoalsParams): Goal[] {
+function generateGoalsFromOperations(params: GenerateGoalsParams): GenerateGoalsResult {
   const goals: Goal[] = [];
+  const calculations: Calculation[] = [];
 
   // 1. Substitute Ingredient Goals
   if (params.substituteIngredient) {
@@ -207,11 +292,13 @@ function generateGoalsFromOperations(params: GenerateGoalsParams): Goal[] {
       .some(isSelected => isSelected);
 
     if (hasSelectedIngredients) {
-      const substituteGoals = generateSubstituteIngredientGoals({
+      const result = generateSubstituteIngredientGoals({
         selectedIngredientsToSub: params.selectedIngredientsToSub,
+        substituteSelections: params.substituteSelections,
         inputLibrary: params.inputLibrary
       });
-      goals.push(...substituteGoals);
+      goals.push(...result.goals);
+      calculations.push(...result.calculations);
     }
   }
 
@@ -236,13 +323,14 @@ function generateGoalsFromOperations(params: GenerateGoalsParams): Goal[] {
     goals.push(matchGoal);
   }
 
-  return goals;
+  return { goals, calculations };
 }
 
 /**
  * Generate inputs from a reference formula
  * Creates one input per column in the reference formula
  * Uses preserve label tolerance for min/max values when applicable
+ * Sets 0-0 range for inputs being substituted
  */
 interface GenerateInputsParams {
   referenceFormula: Record<string, any>;
@@ -250,6 +338,7 @@ interface GenerateInputsParams {
   inputLibrary: LibraryItem[];
   preserveLabel: boolean;
   labelTolerance: string;
+  substituteSelections?: Record<string, SubstituteItem[]>;
 }
 
 interface GeneratedInput {
@@ -268,9 +357,16 @@ interface GeneratedInput {
 }
 
 function generateInputsFromReferenceFormula(params: GenerateInputsParams): GeneratedInput[] {
-  const { referenceFormula, inputColumns, inputLibrary, preserveLabel, labelTolerance } = params;
+  const { referenceFormula, inputColumns, inputLibrary, preserveLabel, labelTolerance, substituteSelections = {} } = params;
   const tolerancePercent = parseFloat(labelTolerance) || 5;
   const inputs: GeneratedInput[] = [];
+
+  // Build set of ingredients being substituted (should have 0-0 range)
+  const substitutedIngredients = new Set(
+    Object.entries(substituteSelections)
+      .filter(([_, subs]) => Array.isArray(subs) && subs.length > 0)
+      .map(([name]) => name.toLowerCase().replace(/_/g, ' '))
+  );
 
   for (const inputName of inputColumns) {
     const currentValue = referenceFormula[inputName];
@@ -284,13 +380,27 @@ function generateInputsFromReferenceFormula(params: GenerateInputsParams): Gener
       item.name.toLowerCase() === displayName.toLowerCase()
     );
 
-    // Calculate min/max based on preserve label tolerance
+    // Check if this input is being substituted
+    const isSubstituted = substitutedIngredients.has(displayName.toLowerCase());
+
+    // Calculate min/max based on preserve label tolerance (only for Ingredients)
     let minValue = '';
     let maxValue = '';
-    if (preserveLabel && !isNaN(numericValue)) {
+    const isIngredient = !libraryMatch?.inputType || libraryMatch.inputType === 'Ingredient';
+
+    if (isSubstituted) {
+      // Force 0-0 range for inputs being substituted
+      minValue = '0';
+      maxValue = '0';
+    } else if (preserveLabel && !isNaN(numericValue) && isIngredient) {
+      // Apply tolerance bounds only to Ingredients
       const toleranceAmount = numericValue * (tolerancePercent / 100);
       minValue = (numericValue - toleranceAmount).toFixed(2);
       maxValue = (numericValue + toleranceAmount).toFixed(2);
+    } else if (libraryMatch?.suggestedMin && libraryMatch?.suggestedMax) {
+      // Use library defaults for non-ingredients
+      minValue = libraryMatch.suggestedMin;
+      maxValue = libraryMatch.suggestedMax;
     }
 
     const input: GeneratedInput = {
@@ -311,6 +421,39 @@ function generateInputsFromReferenceFormula(params: GenerateInputsParams): Gener
     inputs.push(input);
   }
 
+  // Add substitute inputs to the list with ranges from the library
+  const existingNames = new Set(inputs.map(i => i.name.toLowerCase()));
+  for (const [_, substitutes] of Object.entries(substituteSelections)) {
+    if (!Array.isArray(substitutes) || substitutes.length === 0) continue;
+
+    for (const sub of substitutes) {
+      // Skip if already in the list
+      if (existingNames.has(sub.name.toLowerCase())) continue;
+      existingNames.add(sub.name.toLowerCase());
+
+      // Look up the substitute in the input library for suggested ranges
+      const libMatch = inputLibrary.find(item =>
+        item.name.toLowerCase() === sub.name.toLowerCase()
+      );
+
+      const substituteInput: GeneratedInput = {
+        id: `sub-${generateId()}`,
+        name: sub.name,
+        inputType: sub.inputType || 'Ingredient',
+        variableType: sub.variableType || 'Continuous',
+        description: sub.description || 'Substitute ingredient',
+        cost: sub.cost || null,
+        minValue: libMatch?.suggestedMin || '',
+        maxValue: libMatch?.suggestedMax || '',
+        status: 'draft',
+        source: 'Substitute',
+        levelsText: '',
+        comment: '',
+      };
+      inputs.push(substituteInput);
+    }
+  }
+
   return inputs;
 }
 
@@ -322,3 +465,5 @@ export {
   findLibraryMatch,
   generateInputsFromReferenceFormula
 };
+
+export type { GenerateGoalsResult };

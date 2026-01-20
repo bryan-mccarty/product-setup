@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
+import { AgentSidebar } from '../components/AgentSidebar';
+import { ChatMessage, GraphAPI, AgentHighlights } from '../types/agent';
 
 interface NodeStatus {
   complete: boolean;
@@ -49,7 +51,7 @@ interface GraphViewProps {
 const getAllNodes = (isDarkMode: boolean) => [
   { id: 'inputs', label: 'Inputs', color: isDarkMode ? '#2DD4BF' : '#0f766e', description: 'View and manage inputs' },
   { id: 'outcomes', label: 'Outcomes', color: isDarkMode ? '#F472B6' : '#be185d', description: 'View and manage outcomes' },
-  { id: 'combinations', label: 'Combinations', color: isDarkMode ? '#A78BFA' : '#6d28d9', description: 'View combinations' },
+  { id: 'calculations', label: 'Calculations', color: isDarkMode ? '#A78BFA' : '#6d28d9', description: 'View calculations' },
   { id: 'constraints', label: 'Constraints', color: isDarkMode ? '#FB923C' : '#c2410c', description: 'View constraints' },
   { id: 'objectives', label: 'Objectives', color: isDarkMode ? '#60A5FA' : '#1d4ed8', description: 'View objectives' },
   { id: 'competitors', label: 'Competitors', color: isDarkMode ? '#EC4899' : '#be185d', description: 'View competitors' },
@@ -63,7 +65,7 @@ const getAllNodes = (isDarkMode: boolean) => [
 const DEFAULT_VISIBILITY: Record<string, boolean> = {
   inputs: true,
   outcomes: true,
-  combinations: true,
+  calculations: true,
   constraints: true,
   objectives: true,
   competitors: false,
@@ -177,6 +179,11 @@ const GraphView: React.FC<GraphViewProps> = ({
 
   // Fullscreen state
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Agent sidebar state
+  const [isAgentSidebarOpen, setIsAgentSidebarOpen] = useState(false);
+  const [agentHighlights, setAgentHighlights] = useState<AgentHighlights>({ pills: new Set(), connections: new Set() });
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
   // All nodes with theme-aware colors
   const ALL_NODES = useMemo(() => getAllNodes(isDarkMode), [isDarkMode]);
@@ -293,7 +300,7 @@ const GraphView: React.FC<GraphViewProps> = ({
             <circle cx="12" cy="12" r="2" fill="currentColor" />
           </svg>
         );
-      case 'combinations':
+      case 'calculations':
         return (
           <svg style={iconStyle} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <rect x="3" y="3" width="7" height="7" rx="1" />
@@ -915,6 +922,87 @@ const GraphView: React.FC<GraphViewProps> = ({
     return visited;
   }, [connectionGraph]);
 
+  // Graph API for agent sidebar
+  const graphAPI = useMemo<GraphAPI>(() => ({
+    // Read operations
+    getVisibleNodes: () => nodesWithPositions,
+    getAllNodes: () => ALL_NODES,
+    getNodeItems: (nodeId: string) => nodeItems[nodeId] || [],
+    getAllItems: () => nodeItems,
+    getConnections: () => connections,
+    getExpandedNodes: () => expandedNodes,
+    getVisibleNodeIds: () => visibleNodes,
+    getConnectionGraph: () => connectionGraph,
+    getConnectedItems: (startKey: string) => getConnectedItems(startKey),
+    getNodeStatus: () => nodeStatus,
+
+    // Mutation operations
+    expandNode: (nodeId: string) => {
+      setExpandedNodes(prev => new Set(prev).add(nodeId));
+    },
+    collapseNode: (nodeId: string) => {
+      setExpandedNodes(prev => {
+        const next = new Set(prev);
+        next.delete(nodeId);
+        return next;
+      });
+    },
+    setNodeVisibility: (nodeId: string, visible: boolean) => {
+      setVisibleNodes(prev => ({ ...prev, [nodeId]: visible }));
+    },
+    setAllNodesVisibility: (visible: boolean) => {
+      setVisibleNodes(prev => {
+        const updated = { ...prev };
+        Object.keys(updated).forEach(k => updated[k] = visible);
+        return updated;
+      });
+    },
+    selectPill: (pillKey: string | null) => {
+      setSelectedPillId(pillKey);
+    },
+    setConnectionMode: (mode: 'all' | 'onClick') => {
+      setConnectionMode(mode);
+    },
+    activatePill: (pillKey: string | null) => {
+      // Deprecated - now handled via selectPill for graph mode
+      setSelectedPillId(pillKey);
+    },
+
+    // Navigation operations
+    focusOnItem: (nodeId: string, itemId: string, zoomLevel?: number) => {
+      const pillKey = `${nodeId}-${itemId}`;
+      const pos = calculatedPillPositions[pillKey];
+      if (!pos || !viewportRef.current) return;
+
+      const { width, height } = viewportRef.current.getBoundingClientRect();
+      const targetZoom = zoomLevel ?? zoom;
+      setPanOffset({
+        x: width / 2 - pos.x * targetZoom,
+        y: height / 2 - pos.y * targetZoom,
+      });
+      if (zoomLevel) setZoom(zoomLevel);
+    },
+    focusOnNode: (nodeId: string, zoomLevel?: number) => {
+      const node = nodesWithPositions.find(n => n.id === nodeId);
+      if (!node || !viewportRef.current) return;
+
+      const { width, height } = viewportRef.current.getBoundingClientRect();
+      const targetZoom = zoomLevel ?? zoom;
+      setPanOffset({
+        x: width / 2 - (WORLD_CENTER + node.x) * targetZoom,
+        y: height / 2 - (WORLD_CENTER + node.y) * targetZoom,
+      });
+      if (zoomLevel) setZoom(zoomLevel);
+    },
+    resetView: () => {
+      handleZoomReset();
+    },
+  }), [
+    nodesWithPositions, ALL_NODES, nodeItems, connections, expandedNodes,
+    visibleNodes, connectionGraph, getConnectedItems, nodeStatus,
+    calculatedPillPositions, zoom, handleZoomReset
+  ]);
+
   // Determine which connections to render based on mode
   const connectionsToRender = useMemo(() => {
     if (connectionMode === 'all') {
@@ -965,20 +1053,22 @@ const GraphView: React.FC<GraphViewProps> = ({
   const TERMINAL_NODE_TYPES = new Set(['suppliers', 'manufacturingSites', 'distributionChannels']);
 
   // Get highlighted connection indices using hierarchical DFS
+  // Responds to hover (in 'all' mode only)
   const highlightedConnectionIndices = useMemo(() => {
-    if (connectionMode !== 'all' || !hoveredPillKey) return null;
+    const activePill = hoveredPillKey;
+    if (connectionMode !== 'all' || !activePill) return null;
 
-    const [startNodeType] = hoveredPillKey.split('-');
+    const [startNodeType] = activePill.split('-');
     const startedFromData = startNodeType === 'data';
 
-    const visitedPills = new Set<string>([hoveredPillKey]);
+    const visitedPills = new Set<string>([activePill]);
     const highlightedIndices = new Set<number>();
-    const queue = [hoveredPillKey];
+    const queue = [activePill];
 
     while (queue.length > 0) {
       const currentPill = queue.shift()!;
       const [currentNodeType] = currentPill.split('-');
-      const isStartNode = currentPill === hoveredPillKey;
+      const isStartNode = currentPill === activePill;
 
       // Terminal check: stop traversing FROM terminal nodes (unless we started there)
       const isTerminal = TERMINAL_NODE_TYPES.has(currentNodeType);
@@ -1281,6 +1371,11 @@ const GraphView: React.FC<GraphViewProps> = ({
     };
   }, [nodesWithPositions, allItemPositions]);
 
+  // Calculate sidebar-aware positioning offsets
+  const sidebarWidth = 340;
+  const controlOffset = (isFullscreen && isAgentSidebarOpen) ? sidebarWidth / 2 : 0;
+  const rightControlOffset = (isFullscreen && isAgentSidebarOpen) ? sidebarWidth + 20 : 20;
+
   return (
     <div style={{
       ...(isFullscreen ? {
@@ -1294,11 +1389,19 @@ const GraphView: React.FC<GraphViewProps> = ({
         flex: 1,
       }),
       display: 'flex',
-      flexDirection: 'column',
+      flexDirection: 'row',
       overflow: 'hidden',
       position: isFullscreen ? 'fixed' : 'relative',
       background: theme.background,
     }}>
+      {/* Graph area wrapper */}
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
       <style>{`
         @keyframes nodeAppear {
           from { opacity: 0; transform: scale(0.8); }
@@ -1324,8 +1427,9 @@ const GraphView: React.FC<GraphViewProps> = ({
       <div style={{
         position: 'absolute',
         top: '20px',
-        left: '50%',
+        left: controlOffset > 0 ? `calc(50% - ${controlOffset}px)` : '50%',
         transform: 'translateX(-50%)',
+        transition: 'left 0.2s ease',
         display: 'flex',
         alignItems: 'center',
         gap: '12px',
@@ -1386,10 +1490,11 @@ const GraphView: React.FC<GraphViewProps> = ({
       <div style={{
         position: 'absolute',
         top: '20px',
-        right: '20px',
+        right: `${rightControlOffset}px`,
         display: 'flex',
         gap: '8px',
         zIndex: 100,
+        transition: 'right 0.2s ease',
       }}>
         {/* Connection toggle menu */}
         <div style={{ position: 'relative' }}>
@@ -1660,7 +1765,7 @@ const GraphView: React.FC<GraphViewProps> = ({
       <div style={{
         position: 'fixed',
         bottom: '20px',
-        right: isFullscreen ? '20px' : '394px', // 374px panel width + 20px margin when not fullscreen
+        right: isFullscreen ? `${rightControlOffset}px` : '394px', // 374px panel width + 20px margin when not fullscreen
         display: 'flex',
         flexDirection: 'column',
         gap: '8px',
@@ -1825,7 +1930,7 @@ const GraphView: React.FC<GraphViewProps> = ({
       <div style={{
         position: 'fixed',
         bottom: '20px',
-        left: isFullscreen ? '50%' : 'calc(50% - 187px)', // Offset by half of 374px right panel when not fullscreen
+        left: isFullscreen ? (controlOffset > 0 ? `calc(50% - ${controlOffset}px)` : '50%') : 'calc(50% - 187px)', // Offset by half of 374px right panel when not fullscreen
         transform: 'translateX(-50%)',
         display: 'flex',
         gap: '24px',
@@ -2016,11 +2121,11 @@ const GraphView: React.FC<GraphViewProps> = ({
                       ? '#10B981' // Green for suppliers
                       : '#A78BFA'; // Purple default
 
-                // Calculate opacity for hover dimming (only in 'all' mode)
+                // Calculate opacity for hover/activation dimming (only in 'all' mode)
                 const isHighlighted = highlightedConnectionIndices?.has(idx) ?? false;
-                const somethingIsHovered = highlightedConnectionIndices !== null;
+                const somethingIsActive = highlightedConnectionIndices !== null;
                 const dimmedOpacity = isDarkMode ? 0.12 : 0.2;
-                const connectionOpacity = connectionMode === 'all' && somethingIsHovered && !isHighlighted
+                const connectionOpacity = connectionMode === 'all' && somethingIsActive && !isHighlighted
                   ? dimmedOpacity
                   : 0.8;
 
@@ -2304,6 +2409,7 @@ const GraphView: React.FC<GraphViewProps> = ({
                       conn => (conn.fromNodeId === node.id && conn.fromItemId === item.id) ||
                               (conn.toNodeId === node.id && conn.toItemId === item.id)
                     );
+                    const isAmberHighlighted = agentHighlights.pills.has(item.dragKey);
 
                     return (
                       <div
@@ -2336,8 +2442,8 @@ const GraphView: React.FC<GraphViewProps> = ({
                             maxWidth: '100px',
                             height: '20px',
                             borderRadius: '10px',
-                            background: hasConnection ? `${node.color}25` : `${node.color}15`,
-                            border: `1px solid ${hasConnection ? node.color : `${node.color}50`}`,
+                            background: isAmberHighlighted ? 'rgba(245, 158, 11, 0.25)' : hasConnection ? `${node.color}25` : `${node.color}15`,
+                            border: isAmberHighlighted ? '2px solid #F59E0B' : `1px solid ${hasConnection ? node.color : `${node.color}50`}`,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -2345,11 +2451,13 @@ const GraphView: React.FC<GraphViewProps> = ({
                             cursor: 'grab',
                             boxShadow: isDragging
                               ? `0 4px 12px rgba(0,0,0,0.4), 0 0 0 2px ${node.color}`
-                              : hasConnection
-                                ? `0 2px 8px ${node.color}40`
-                                : '0 1px 3px rgba(0,0,0,0.2)',
+                              : isAmberHighlighted
+                                ? '0 0 12px rgba(245, 158, 11, 0.6)'
+                                : hasConnection
+                                  ? `0 2px 8px ${node.color}40`
+                                  : '0 1px 3px rgba(0,0,0,0.2)',
                             transform: isDragging ? 'scale(1.1)' : 'scale(1)',
-                            transition: 'transform 0.1s, box-shadow 0.1s',
+                            transition: 'transform 0.1s, box-shadow 0.1s, border 0.1s',
                           }}
                           onMouseDown={(e) => {
                             handlePillMouseDown(e, item.dragKey);
@@ -2384,6 +2492,20 @@ const GraphView: React.FC<GraphViewProps> = ({
           </div>
         </div>
       </div>
+      </div>
+
+      {/* Agent Sidebar - only visible in fullscreen mode */}
+      {isFullscreen && (
+        <AgentSidebar
+          isOpen={isAgentSidebarOpen}
+          onToggle={() => setIsAgentSidebarOpen(prev => !prev)}
+          graphAPI={graphAPI}
+          highlights={agentHighlights}
+          onHighlightsChange={setAgentHighlights}
+          messages={chatMessages}
+          onMessagesChange={setChatMessages}
+        />
+      )}
     </div>
   );
 };

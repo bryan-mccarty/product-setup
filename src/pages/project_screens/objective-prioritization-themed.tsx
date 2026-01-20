@@ -15,7 +15,7 @@ const outcomeTypeConfig = {
   'Sensory': { color: '#F472B6', bg: 'rgba(244, 114, 182, 0.12)', border: 'rgba(244, 114, 182, 0.25)' },
   'Analytical': { color: '#60A5FA', bg: 'rgba(96, 165, 250, 0.12)', border: 'rgba(96, 165, 250, 0.25)' },
   'Consumer': { color: '#A78BFA', bg: 'rgba(167, 139, 250, 0.12)', border: 'rgba(167, 139, 250, 0.25)' },
-  'Combination': { color: '#FB923C', bg: 'rgba(251, 146, 60, 0.12)', border: 'rgba(251, 146, 60, 0.25)' },
+  'Calculation': { color: '#A78BFA', bg: 'rgba(167, 139, 250, 0.12)', border: 'rgba(167, 139, 250, 0.25)' },
 };
 
 // ============================================
@@ -1875,7 +1875,7 @@ export default function ObjectivePrioritization() {
               {/* Filter Bar */}
               <div className="filter-bar">
                 <div className="filter-tabs">
-                  {['All', 'Sensory', 'Analytical', 'Consumer', 'Combination'].map(filter => (
+                  {['All', 'Sensory', 'Analytical', 'Consumer', 'Calculation'].map(filter => (
                     <button
                       key={filter}
                       className={`filter-tab ${activeFilter === filter ? 'active' : ''}`}

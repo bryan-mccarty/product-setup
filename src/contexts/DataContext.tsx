@@ -4,14 +4,13 @@ import {
   Outcome,
   Constraint,
   Objective,
-  Combination,
+  Calculation,
   Project,
   Idea,
   Supplier,
   Tag,
   ProjectMetadata,
   ProductCategory,
-  Calculation,
   INPUT_LIBRARY,
   OUTCOME_LIBRARY,
   DEFAULT_PROJECTS,
@@ -97,39 +96,39 @@ interface DataContextType {
   outcomes: Outcome[];
   constraints: Constraint[];
   objectives: Objective[];
-  combinations: Combination[];
+  combinations: Calculation[];
 
   // Project-specific data (selected for current project setup)
   projectInputs: Input[];
   projectOutcomes: Outcome[];
   projectConstraints: Constraint[];
   projectObjectives: Objective[];
-  projectCombinations: Combination[];
+  projectCombinations: Calculation[];
 
   // Project setup data
   projectMetadata: ProjectMetadata | null;
   productCategories: ProductCategory[];
   tags: Tag[];
-  calculations: Calculation[];
+  libraryCalculations: Calculation[];
 
   // Setters (support both direct values and callback functions like React setState)
   setInputs: (value: Input[] | ((prev: Input[]) => Input[])) => void;
   setOutcomes: (value: Outcome[] | ((prev: Outcome[]) => Outcome[])) => void;
   setConstraints: (value: Constraint[] | ((prev: Constraint[]) => Constraint[])) => void;
   setObjectives: (value: Objective[] | ((prev: Objective[]) => Objective[])) => void;
-  setCombinations: (value: Combination[] | ((prev: Combination[]) => Combination[])) => void;
+  setCombinations: (value: Calculation[] | ((prev: Calculation[]) => Calculation[])) => void;
 
   setProjectMetadata: (value: ProjectMetadata | null) => void;
   setProductCategories: (value: ProductCategory[] | ((prev: ProductCategory[]) => ProductCategory[])) => void;
   setTags: (value: Tag[] | ((prev: Tag[]) => Tag[])) => void;
-  setCalculations: (value: Calculation[] | ((prev: Calculation[]) => Calculation[])) => void;
+  setLibraryCalculations: (value: Calculation[] | ((prev: Calculation[]) => Calculation[])) => void;
 
   // Project-specific setters
   setProjectInputs: (value: Input[] | ((prev: Input[]) => Input[])) => void;
   setProjectOutcomes: (value: Outcome[] | ((prev: Outcome[]) => Outcome[])) => void;
   setProjectConstraints: (value: Constraint[] | ((prev: Constraint[]) => Constraint[])) => void;
   setProjectObjectives: (value: Objective[] | ((prev: Objective[]) => Objective[])) => void;
-  setProjectCombinations: (value: Combination[] | ((prev: Combination[]) => Combination[])) => void;
+  setProjectCombinations: (value: Calculation[] | ((prev: Calculation[]) => Calculation[])) => void;
 
   // Project-specific CRUD
   addProjectInput: (input: Input) => void;
@@ -140,7 +139,7 @@ interface DataContextType {
   removeProjectConstraint: (id: string) => void;
   addProjectObjective: (objective: Objective) => void;
   removeProjectObjective: (id: string) => void;
-  addProjectCombination: (combination: Combination) => void;
+  addProjectCombination: (combination: Calculation) => void;
   removeProjectCombination: (id: string) => void;
 
   // CRUD operations
@@ -160,8 +159,8 @@ interface DataContextType {
   updateObjective: (id: string, updates: Partial<Objective>) => void;
   removeObjective: (id: string) => void;
 
-  addCombination: (combination: Combination) => void;
-  updateCombination: (id: string, updates: Partial<Combination>) => void;
+  addCombination: (combination: Calculation) => void;
+  updateCombination: (id: string, updates: Partial<Calculation>) => void;
   removeCombination: (id: string) => void;
 
   // Dashboard-specific data
@@ -224,7 +223,7 @@ const STORAGE_KEYS = {
   projectMetadata: 'product_setup_project_metadata',
   productCategories: 'product_setup_product_categories',
   tags: 'product_setup_tags',
-  calculations: 'product_setup_calculations',
+  libraryCalculations: 'product_setup_library_calculations',
   stepStatuses: 'product_setup_step_statuses',
   // Project-specific storage
   projectInputs: 'product_setup_project_inputs',
@@ -285,7 +284,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     loadFromSessionStorage(STORAGE_KEYS.objectives, [])
   );
 
-  const [combinations, setCombinationsState] = useState<Combination[]>(() =>
+  const [combinations, setCombinationsState] = useState<Calculation[]>(() =>
     loadFromSessionStorage(STORAGE_KEYS.combinations, [])
   );
 
@@ -333,8 +332,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     loadFromSessionStorage(STORAGE_KEYS.tags, [...CONSTRAINT_TAGS, ...OBJECTIVE_TAGS])
   );
 
-  const [calculations, setCalculationsState] = useState<Calculation[]>(() =>
-    loadFromSessionStorage(STORAGE_KEYS.calculations, CALCULATIONS_LIBRARY)
+  const [libraryCalculations, setLibraryCalculationsState] = useState<Calculation[]>(() =>
+    loadFromSessionStorage(STORAGE_KEYS.libraryCalculations, CALCULATIONS_LIBRARY)
   );
 
   // Project-specific data - empty by default, user populates during setup
@@ -354,7 +353,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     loadFromSessionStorage(STORAGE_KEYS.projectObjectives, [])
   );
 
-  const [projectCombinations, setProjectCombinationsState] = useState<Combination[]>(() =>
+  const [projectCombinations, setProjectCombinationsState] = useState<Calculation[]>(() =>
     loadFromSessionStorage(STORAGE_KEYS.projectCombinations, [])
   );
 
@@ -424,8 +423,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [tags]);
 
   useEffect(() => {
-    saveToSessionStorage(STORAGE_KEYS.calculations, calculations);
-  }, [calculations]);
+    saveToSessionStorage(STORAGE_KEYS.libraryCalculations, libraryCalculations);
+  }, [libraryCalculations]);
 
   // Project-specific data persistence
   useEffect(() => {
@@ -550,7 +549,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   // Combinations - support both direct values and callback functions
-  const setCombinations = useCallback((value: Combination[] | ((prev: Combination[]) => Combination[])) => {
+  const setCombinations = useCallback((value: Calculation[] | ((prev: Calculation[]) => Calculation[])) => {
     if (typeof value === 'function') {
       setCombinationsState(value);
     } else {
@@ -558,11 +557,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
-  const addCombination = useCallback((combination: Combination) => {
+  const addCombination = useCallback((combination: Calculation) => {
     setCombinationsState(prev => [...prev, combination]);
   }, []);
 
-  const updateCombination = useCallback((id: string, updates: Partial<Combination>) => {
+  const updateCombination = useCallback((id: string, updates: Partial<Calculation>) => {
     setCombinationsState(prev => prev.map(item => (item.id === id ? { ...item, ...updates } : item)));
   }, []);
 
@@ -620,11 +619,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
-  const setCalculations = useCallback((value: Calculation[] | ((prev: Calculation[]) => Calculation[])) => {
+  const setLibraryCalculations = useCallback((value: Calculation[] | ((prev: Calculation[]) => Calculation[])) => {
     if (typeof value === 'function') {
-      setCalculationsState(value);
+      setLibraryCalculationsState(value);
     } else {
-      setCalculationsState(value);
+      setLibraryCalculationsState(value);
     }
   }, []);
 
@@ -693,7 +692,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setProjectObjectivesState(prev => prev.filter(item => item.id !== id));
   }, []);
 
-  const setProjectCombinations = useCallback((value: Combination[] | ((prev: Combination[]) => Combination[])) => {
+  const setProjectCombinations = useCallback((value: Calculation[] | ((prev: Calculation[]) => Calculation[])) => {
     if (typeof value === 'function') {
       setProjectCombinationsState(value);
     } else {
@@ -701,7 +700,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
-  const addProjectCombination = useCallback((combination: Combination) => {
+  const addProjectCombination = useCallback((combination: Calculation) => {
     setProjectCombinationsState(prev => [...prev, combination]);
   }, []);
 
@@ -807,20 +806,20 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Set demo uploaded data (matches sample CSV from upload modal)
     setUploadedDataState({
       parsedData: [
-        { Formulation_ID: 'F001', Flour: 250, Sugar: 120, Butter: 100, Eggs: 2, Vanilla_Extract: 5, Cocoa_Powder: 30, Milk: 80, Salt: 2, Baking_Temp: 175, Mix_Duration: 8, Bake_Time: 25, Moisture_Content: 6.2, pH_Level: 5.8, Overall_Liking: 7.5, Texture_Score: 8.1, Sweetness_Intensity: 72, Purchase_Intent: 4 },
-        { Formulation_ID: 'F002', Flour: 275, Sugar: 100, Butter: 120, Eggs: 3, Vanilla_Extract: 4, Cocoa_Powder: 25, Milk: 90, Salt: 3, Baking_Temp: 180, Mix_Duration: 10, Bake_Time: 28, Moisture_Content: 5.8, pH_Level: 5.6, Overall_Liking: 8.2, Texture_Score: 7.8, Sweetness_Intensity: 68, Purchase_Intent: 5 },
-        { Formulation_ID: 'F003', Flour: 225, Sugar: 140, Butter: 90, Eggs: 2, Vanilla_Extract: 6, Cocoa_Powder: 35, Milk: 70, Salt: 2, Baking_Temp: 170, Mix_Duration: 7, Bake_Time: 22, Moisture_Content: 6.8, pH_Level: 5.9, Overall_Liking: 6.9, Texture_Score: 7.5, Sweetness_Intensity: 78, Purchase_Intent: 3 },
-        { Formulation_ID: 'F004', Flour: 260, Sugar: 110, Butter: 110, Eggs: 3, Vanilla_Extract: 5, Cocoa_Powder: 28, Milk: 85, Salt: 2, Baking_Temp: 178, Mix_Duration: 9, Bake_Time: 26, Moisture_Content: 6.0, pH_Level: 5.7, Overall_Liking: 7.8, Texture_Score: 8.0, Sweetness_Intensity: 70, Purchase_Intent: 4 },
-        { Formulation_ID: 'F005', Flour: 240, Sugar: 130, Butter: 95, Eggs: 2, Vanilla_Extract: 4, Cocoa_Powder: 32, Milk: 75, Salt: 3, Baking_Temp: 172, Mix_Duration: 8, Bake_Time: 24, Moisture_Content: 6.5, pH_Level: 5.8, Overall_Liking: 7.2, Texture_Score: 7.6, Sweetness_Intensity: 75, Purchase_Intent: 4 },
-        { Formulation_ID: 'F006', Flour: 280, Sugar: 95, Butter: 125, Eggs: 3, Vanilla_Extract: 5, Cocoa_Powder: 22, Milk: 95, Salt: 2, Baking_Temp: 182, Mix_Duration: 11, Bake_Time: 30, Moisture_Content: 5.5, pH_Level: 5.5, Overall_Liking: 8.5, Texture_Score: 8.3, Sweetness_Intensity: 65, Purchase_Intent: 5 },
-        { Formulation_ID: 'F007', Flour: 230, Sugar: 135, Butter: 88, Eggs: 2, Vanilla_Extract: 6, Cocoa_Powder: 38, Milk: 72, Salt: 2, Baking_Temp: 168, Mix_Duration: 7, Bake_Time: 21, Moisture_Content: 7.0, pH_Level: 6.0, Overall_Liking: 6.5, Texture_Score: 7.2, Sweetness_Intensity: 80, Purchase_Intent: 3 },
-        { Formulation_ID: 'F008', Flour: 265, Sugar: 105, Butter: 115, Eggs: 3, Vanilla_Extract: 4, Cocoa_Powder: 26, Milk: 88, Salt: 3, Baking_Temp: 179, Mix_Duration: 10, Bake_Time: 27, Moisture_Content: 5.9, pH_Level: 5.6, Overall_Liking: 8.0, Texture_Score: 7.9, Sweetness_Intensity: 69, Purchase_Intent: 5 },
-        { Formulation_ID: 'F009', Flour: 245, Sugar: 125, Butter: 98, Eggs: 2, Vanilla_Extract: 5, Cocoa_Powder: 30, Milk: 78, Salt: 2, Baking_Temp: 174, Mix_Duration: 8, Bake_Time: 25, Moisture_Content: 6.3, pH_Level: 5.8, Overall_Liking: 7.4, Texture_Score: 7.7, Sweetness_Intensity: 73, Purchase_Intent: 4 },
-        { Formulation_ID: 'F010', Flour: 255, Sugar: 115, Butter: 108, Eggs: 3, Vanilla_Extract: 5, Cocoa_Powder: 29, Milk: 82, Salt: 2, Baking_Temp: 176, Mix_Duration: 9, Bake_Time: 26, Moisture_Content: 6.1, pH_Level: 5.7, Overall_Liking: 7.7, Texture_Score: 7.9, Sweetness_Intensity: 71, Purchase_Intent: 4 },
-        { Formulation_ID: 'F011', Flour: 235, Sugar: 138, Butter: 92, Eggs: 2, Vanilla_Extract: 6, Cocoa_Powder: 34, Milk: 73, Salt: 2, Baking_Temp: 169, Mix_Duration: 7, Bake_Time: 23, Moisture_Content: 6.7, pH_Level: 5.9, Overall_Liking: 7.0, Texture_Score: 7.4, Sweetness_Intensity: 77, Purchase_Intent: 3 },
-        { Formulation_ID: 'F012', Flour: 270, Sugar: 98, Butter: 122, Eggs: 3, Vanilla_Extract: 4, Cocoa_Powder: 24, Milk: 92, Salt: 3, Baking_Temp: 181, Mix_Duration: 10, Bake_Time: 29, Moisture_Content: 5.6, pH_Level: 5.5, Overall_Liking: 8.3, Texture_Score: 8.2, Sweetness_Intensity: 66, Purchase_Intent: 5 },
+        { Formulation_ID: 'F001', Flour: 250, Sugar: 120, Butter: 100, Eggs: 2, Vanilla_Extract: 5, Cocoa_Powder: 30, Milk: 80, Salt: 2, Baking_Temperature: 175, Mix_Duration: 8, Bake_Time: 25, Moisture_Content: 6.2, pH_Level: 5.8, Overall_Liking: 7.5, Texture_Score: 8.1, Sweetness_Intensity: 72, Purchase_Intent: 4 },
+        { Formulation_ID: 'F002', Flour: 275, Sugar: 100, Butter: 120, Eggs: 3, Vanilla_Extract: 4, Cocoa_Powder: 25, Milk: 90, Salt: 3, Baking_Temperature: 180, Mix_Duration: 10, Bake_Time: 28, Moisture_Content: 5.8, pH_Level: 5.6, Overall_Liking: 8.2, Texture_Score: 7.8, Sweetness_Intensity: 68, Purchase_Intent: 5 },
+        { Formulation_ID: 'F003', Flour: 225, Sugar: 140, Butter: 90, Eggs: 2, Vanilla_Extract: 6, Cocoa_Powder: 35, Milk: 70, Salt: 2, Baking_Temperature: 170, Mix_Duration: 7, Bake_Time: 22, Moisture_Content: 6.8, pH_Level: 5.9, Overall_Liking: 6.9, Texture_Score: 7.5, Sweetness_Intensity: 78, Purchase_Intent: 3 },
+        { Formulation_ID: 'F004', Flour: 260, Sugar: 110, Butter: 110, Eggs: 3, Vanilla_Extract: 5, Cocoa_Powder: 28, Milk: 85, Salt: 2, Baking_Temperature: 178, Mix_Duration: 9, Bake_Time: 26, Moisture_Content: 6.0, pH_Level: 5.7, Overall_Liking: 7.8, Texture_Score: 8.0, Sweetness_Intensity: 70, Purchase_Intent: 4 },
+        { Formulation_ID: 'F005', Flour: 240, Sugar: 130, Butter: 95, Eggs: 2, Vanilla_Extract: 4, Cocoa_Powder: 32, Milk: 75, Salt: 3, Baking_Temperature: 172, Mix_Duration: 8, Bake_Time: 24, Moisture_Content: 6.5, pH_Level: 5.8, Overall_Liking: 7.2, Texture_Score: 7.6, Sweetness_Intensity: 75, Purchase_Intent: 4 },
+        { Formulation_ID: 'F006', Flour: 280, Sugar: 95, Butter: 125, Eggs: 3, Vanilla_Extract: 5, Cocoa_Powder: 22, Milk: 95, Salt: 2, Baking_Temperature: 182, Mix_Duration: 11, Bake_Time: 30, Moisture_Content: 5.5, pH_Level: 5.5, Overall_Liking: 8.5, Texture_Score: 8.3, Sweetness_Intensity: 65, Purchase_Intent: 5 },
+        { Formulation_ID: 'F007', Flour: 230, Sugar: 135, Butter: 88, Eggs: 2, Vanilla_Extract: 6, Cocoa_Powder: 38, Milk: 72, Salt: 2, Baking_Temperature: 168, Mix_Duration: 7, Bake_Time: 21, Moisture_Content: 7.0, pH_Level: 6.0, Overall_Liking: 6.5, Texture_Score: 7.2, Sweetness_Intensity: 80, Purchase_Intent: 3 },
+        { Formulation_ID: 'F008', Flour: 265, Sugar: 105, Butter: 115, Eggs: 3, Vanilla_Extract: 4, Cocoa_Powder: 26, Milk: 88, Salt: 3, Baking_Temperature: 179, Mix_Duration: 10, Bake_Time: 27, Moisture_Content: 5.9, pH_Level: 5.6, Overall_Liking: 8.0, Texture_Score: 7.9, Sweetness_Intensity: 69, Purchase_Intent: 5 },
+        { Formulation_ID: 'F009', Flour: 245, Sugar: 125, Butter: 98, Eggs: 2, Vanilla_Extract: 5, Cocoa_Powder: 30, Milk: 78, Salt: 2, Baking_Temperature: 174, Mix_Duration: 8, Bake_Time: 25, Moisture_Content: 6.3, pH_Level: 5.8, Overall_Liking: 7.4, Texture_Score: 7.7, Sweetness_Intensity: 73, Purchase_Intent: 4 },
+        { Formulation_ID: 'F010', Flour: 255, Sugar: 115, Butter: 108, Eggs: 3, Vanilla_Extract: 5, Cocoa_Powder: 29, Milk: 82, Salt: 2, Baking_Temperature: 176, Mix_Duration: 9, Bake_Time: 26, Moisture_Content: 6.1, pH_Level: 5.7, Overall_Liking: 7.7, Texture_Score: 7.9, Sweetness_Intensity: 71, Purchase_Intent: 4 },
+        { Formulation_ID: 'F011', Flour: 235, Sugar: 138, Butter: 92, Eggs: 2, Vanilla_Extract: 6, Cocoa_Powder: 34, Milk: 73, Salt: 2, Baking_Temperature: 169, Mix_Duration: 7, Bake_Time: 23, Moisture_Content: 6.7, pH_Level: 5.9, Overall_Liking: 7.0, Texture_Score: 7.4, Sweetness_Intensity: 77, Purchase_Intent: 3 },
+        { Formulation_ID: 'F012', Flour: 270, Sugar: 98, Butter: 122, Eggs: 3, Vanilla_Extract: 4, Cocoa_Powder: 24, Milk: 92, Salt: 3, Baking_Temperature: 181, Mix_Duration: 10, Bake_Time: 29, Moisture_Content: 5.6, pH_Level: 5.5, Overall_Liking: 8.3, Texture_Score: 8.2, Sweetness_Intensity: 66, Purchase_Intent: 5 },
       ],
-      columns: ['Formulation_ID', 'Flour', 'Sugar', 'Butter', 'Eggs', 'Vanilla_Extract', 'Cocoa_Powder', 'Milk', 'Salt', 'Baking_Temp', 'Mix_Duration', 'Bake_Time', 'Moisture_Content', 'pH_Level', 'Overall_Liking', 'Texture_Score', 'Sweetness_Intensity', 'Purchase_Intent'],
+      columns: ['Formulation_ID', 'Flour', 'Sugar', 'Butter', 'Eggs', 'Vanilla_Extract', 'Cocoa_Powder', 'Milk', 'Salt', 'Baking_Temperature', 'Mix_Duration', 'Bake_Time', 'Moisture_Content', 'pH_Level', 'Overall_Liking', 'Texture_Score', 'Sweetness_Intensity', 'Purchase_Intent'],
       fileName: 'sample_formulations.csv',
       uploadedAt: Date.now(),
     });
@@ -854,7 +853,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     projectMetadata,
     productCategories,
     tags,
-    calculations,
+    libraryCalculations,
 
     // Product data setters
     setInputs,
@@ -869,7 +868,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setProjectMetadata,
     setProductCategories,
     setTags,
-    setCalculations,
+    setLibraryCalculations,
 
     // Project-specific setters
     setProjectInputs,

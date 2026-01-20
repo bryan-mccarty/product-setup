@@ -9,15 +9,15 @@ const generateId = () => Math.random().toString(36).substr(2, 9);
 
 // Sample formulation data (matching the upload.tsx structure)
 const sampleFormulations = [
-  { Formulation_ID: 'F001', Flour: 250, Sugar: 120, Butter: 100, Eggs: 2, Cocoa_Powder: 30, Baking_Temp: 175, Moisture_Content: 6.2, pH_Level: 5.8, Overall_Liking: 7.5, Texture_Score: 8.1, Purchase_Intent: 4 },
-  { Formulation_ID: 'F002', Flour: 275, Sugar: 100, Butter: 120, Eggs: 3, Cocoa_Powder: 25, Baking_Temp: 180, Moisture_Content: 5.8, pH_Level: 5.6, Overall_Liking: 8.2, Texture_Score: 7.8, Purchase_Intent: 5 },
-  { Formulation_ID: 'F003', Flour: 225, Sugar: 140, Butter: 90, Eggs: 2, Cocoa_Powder: 35, Baking_Temp: 170, Moisture_Content: 6.8, pH_Level: 5.9, Overall_Liking: 6.9, Texture_Score: 7.5, Purchase_Intent: 3 },
-  { Formulation_ID: 'F004', Flour: 260, Sugar: 110, Butter: 110, Eggs: 3, Cocoa_Powder: 28, Baking_Temp: 178, Moisture_Content: 6.0, pH_Level: 5.7, Overall_Liking: 7.8, Texture_Score: 8.0, Purchase_Intent: 4 },
-  { Formulation_ID: 'F005', Flour: 240, Sugar: 130, Butter: 95, Eggs: 2, Cocoa_Powder: 32, Baking_Temp: 172, Moisture_Content: 6.5, pH_Level: 5.8, Overall_Liking: 7.2, Texture_Score: 7.6, Purchase_Intent: 4 },
-  { Formulation_ID: 'F006', Flour: 280, Sugar: 95, Butter: 125, Eggs: 3, Cocoa_Powder: 22, Baking_Temp: 182, Moisture_Content: 5.5, pH_Level: 5.5, Overall_Liking: 8.5, Texture_Score: 8.3, Purchase_Intent: 5 },
+  { Formulation_ID: 'F001', Flour: 250, Sugar: 120, Butter: 100, Eggs: 2, Cocoa_Powder: 30, Baking_Temperature: 175, Moisture_Content: 6.2, pH_Level: 5.8, Overall_Liking: 7.5, Texture_Score: 8.1, Purchase_Intent: 4 },
+  { Formulation_ID: 'F002', Flour: 275, Sugar: 100, Butter: 120, Eggs: 3, Cocoa_Powder: 25, Baking_Temperature: 180, Moisture_Content: 5.8, pH_Level: 5.6, Overall_Liking: 8.2, Texture_Score: 7.8, Purchase_Intent: 5 },
+  { Formulation_ID: 'F003', Flour: 225, Sugar: 140, Butter: 90, Eggs: 2, Cocoa_Powder: 35, Baking_Temperature: 170, Moisture_Content: 6.8, pH_Level: 5.9, Overall_Liking: 6.9, Texture_Score: 7.5, Purchase_Intent: 3 },
+  { Formulation_ID: 'F004', Flour: 260, Sugar: 110, Butter: 110, Eggs: 3, Cocoa_Powder: 28, Baking_Temperature: 178, Moisture_Content: 6.0, pH_Level: 5.7, Overall_Liking: 7.8, Texture_Score: 8.0, Purchase_Intent: 4 },
+  { Formulation_ID: 'F005', Flour: 240, Sugar: 130, Butter: 95, Eggs: 2, Cocoa_Powder: 32, Baking_Temperature: 172, Moisture_Content: 6.5, pH_Level: 5.8, Overall_Liking: 7.2, Texture_Score: 7.6, Purchase_Intent: 4 },
+  { Formulation_ID: 'F006', Flour: 280, Sugar: 95, Butter: 125, Eggs: 3, Cocoa_Powder: 22, Baking_Temperature: 182, Moisture_Content: 5.5, pH_Level: 5.5, Overall_Liking: 8.5, Texture_Score: 8.3, Purchase_Intent: 5 },
 ];
 
-const inputColumns = ['Flour', 'Sugar', 'Butter', 'Eggs', 'Cocoa_Powder', 'Baking_Temp'];
+const inputColumns = ['Flour', 'Sugar', 'Butter', 'Eggs', 'Cocoa_Powder', 'Baking_Temperature'];
 const outcomeColumns = ['Moisture_Content', 'pH_Level', 'Overall_Liking', 'Texture_Score', 'Purchase_Intent'];
 
 // Sample input library for substitutions
@@ -567,7 +567,8 @@ export default function GettingStartedPage() {
     setProjectMetadata,
     stepStatuses,
     setStepStatus,
-    setProjectGoals
+    setProjectGoals,
+    setProjectCombinations
   } = useData();
 
   const currentStep = 1;
@@ -613,10 +614,11 @@ export default function GettingStartedPage() {
       return;
     }
 
-    // Generate goals from operations
-    const generatedGoals = generateGoalsFromOperations({
+    // Generate goals and combinations from operations
+    const { goals: generatedGoals, calculations: generatedCalculations } = generateGoalsFromOperations({
       substituteIngredient,
       selectedIngredientsToSub,
+      substituteSelections,
       preserveLabel,
       referenceFormula,
       labelTolerance,
@@ -633,6 +635,11 @@ export default function GettingStartedPage() {
       setProjectGoals(generatedGoals);
     }
 
+    // Save generated combinations to context
+    if (generatedCalculations.length > 0) {
+      setProjectCombinations(generatedCalculations);
+    }
+
     setProjectMetadata({
       id: projectMetadata?.id || generateId(),
       name: projectName,
@@ -647,6 +654,7 @@ export default function GettingStartedPage() {
       labelTolerance: labelTolerance,
       matchOutcomes: matchOutcomes,
       substituteSelections: substituteSelections,
+      inputColumns: inputColumns,
     });
 
     setStepStatus(currentStep, 'completed');
@@ -665,10 +673,11 @@ export default function GettingStartedPage() {
       }
     }
 
-    // Generate goals from operations
-    const generatedGoals = generateGoalsFromOperations({
+    // Generate goals and combinations from operations
+    const { goals: generatedGoals, calculations: generatedCalculations } = generateGoalsFromOperations({
       substituteIngredient,
       selectedIngredientsToSub: ingredientsToSubstitute,
+      substituteSelections,
       preserveLabel,
       referenceFormula,
       labelTolerance,
@@ -685,6 +694,11 @@ export default function GettingStartedPage() {
       setProjectGoals(generatedGoals);
     }
 
+    // Save generated combinations to context
+    if (generatedCalculations.length > 0) {
+      setProjectCombinations(generatedCalculations);
+    }
+
     setProjectMetadata({
       id: projectMetadata?.id || generateId(),
       name: projectName,
@@ -699,6 +713,7 @@ export default function GettingStartedPage() {
       labelTolerance: labelTolerance,
       matchOutcomes: matchOutcomes,
       substituteSelections: substituteSelections,
+      inputColumns: inputColumns,
     });
 
     setStepStatus(currentStep, 'completed');
@@ -2858,7 +2873,7 @@ export default function GettingStartedPage() {
                   {/* LEFT: Ingredient List - Always Visible */}
                   <div className="sub-ingredients-list">
                     <div className="sub-list-header">Ingredients</div>
-                    {inputColumns.filter(col => col !== 'Baking_Temp').map(col => {
+                    {inputColumns.filter(col => col !== 'Baking_Temperature').map(col => {
                       const isActive = activeSubIngredient === col;
                       const subs = substituteSelections[col] || [];
                       const hasSubs = subs.length > 0;

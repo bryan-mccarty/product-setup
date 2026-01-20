@@ -10,6 +10,14 @@ import { generateInputsFromReferenceFormula } from '../../utils/goalGenerators';
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
 // ============================================================================
+// SORT INPUTS BY TYPE
+// ============================================================================
+const sortInputsByType = (inputs) => {
+  const typeOrder = { 'Ingredient': 0, 'Processing': 1, 'Other': 2 };
+  return [...inputs].sort((a, b) => (typeOrder[a.inputType] ?? 3) - (typeOrder[b.inputType] ?? 3));
+};
+
+// ============================================================================
 // HISTORICAL DATA FOR RANGE EXPLORER
 // ============================================================================
 const getHistoricalData = (inputName) => {
@@ -641,7 +649,7 @@ const LibraryPanel = ({ activeTab, onTabChange, productInputs, libraryInputs, on
 // ============================================================================
 // INPUT ROW COMPONENT WITH AUTOCOMPLETE
 // ============================================================================
-const InputRow = ({ input, onUpdate, onDelete, onConfirm, onOpenRangeExplorer, allProductInputs, allLibraryInputs }) => {
+const InputRow = ({ input, onUpdate, onDelete, onConfirm, onOpenRangeExplorer, allProductInputs, allLibraryInputs, isNewGroup }) => {
   const [showCommentPopover, setShowCommentPopover] = useState(false);
   const [commentDraft, setCommentDraft] = useState(input.comment || '');
   const [showAutocomplete, setShowAutocomplete] = useState(false);
@@ -762,8 +770,20 @@ const InputRow = ({ input, onUpdate, onDelete, onConfirm, onOpenRangeExplorer, a
   const isDraft = input.status === 'draft';
   const hasComment = input.comment && input.comment.trim().length > 0;
 
+  // Left border color based on input type
+  const borderColor = {
+    'Ingredient': '#2DD4BF',
+    'Processing': '#FB923C',
+    'Other': '#A78BFA'
+  }[input.inputType] || '#A78BFA';
+
   return (
-    <tr className={`input-row ${isDraft ? 'draft-row' : ''}`}>
+    <tr
+      className={`input-row ${isDraft ? 'draft-row' : ''} ${isNewGroup ? 'new-group' : ''}`}
+      style={{
+        borderLeft: `3px solid ${borderColor}`,
+      }}
+    >
       {/* Name with Autocomplete */}
       <td style={{ position: 'relative' }}>
         <input
@@ -1124,14 +1144,14 @@ export default function InputsPage() {
     }
 
     // If we have a reference formula from getting-started, generate inputs
-    if (projectMetadata?.referenceFormula) {
-      const inputColumns = ['Flour', 'Sugar', 'Butter', 'Eggs', 'Cocoa_Powder', 'Baking_Temp'];
+    if (projectMetadata?.referenceFormula && projectMetadata?.inputColumns) {
       return generateInputsFromReferenceFormula({
         referenceFormula: projectMetadata.referenceFormula,
-        inputColumns: inputColumns,
+        inputColumns: projectMetadata.inputColumns,
         inputLibrary: INPUT_LIBRARY,
         preserveLabel: projectMetadata.preserveLabel || false,
         labelTolerance: projectMetadata.labelTolerance || '5',
+        substituteSelections: projectMetadata.substituteSelections || {},
       });
     }
 
@@ -2009,8 +2029,14 @@ export default function InputsPage() {
           background: rgba(251, 191, 36, 0.08);
         }
 
-        .input-row.draft-row td:first-child {
-          border-left: 3px solid #FBBF24;
+        .group-separator {
+          height: 12px;
+          background: rgba(0, 0, 0, 0.2);
+        }
+
+        .group-separator td {
+          padding: 0 !important;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.06);
         }
 
         .input-row td {
@@ -3359,18 +3385,29 @@ export default function InputsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {inputs.map(input => (
-                    <InputRow
-                      key={input.id}
-                      input={input}
-                      onUpdate={(updated) => setInputs(prev => prev.map(i => i.id === input.id ? updated : i))}
-                      onDelete={() => deleteInput(input.id)}
-                      onConfirm={confirmInput}
-                      onOpenRangeExplorer={setRangeExplorerInput}
-                      allProductInputs={productInputs}
-                      allLibraryInputs={libraryInputs}
-                    />
-                  ))}
+                  {sortInputsByType(inputs).map((input, index, sortedInputs) => {
+                    const prevInput = index > 0 ? sortedInputs[index - 1] : null;
+                    const isNewGroup = prevInput && prevInput.inputType !== input.inputType;
+                    return (
+                      <React.Fragment key={input.id}>
+                        {isNewGroup && (
+                          <tr className="group-separator">
+                            <td colSpan={7} />
+                          </tr>
+                        )}
+                        <InputRow
+                          input={input}
+                          onUpdate={(updated) => setInputs(prev => prev.map(i => i.id === input.id ? updated : i))}
+                          onDelete={() => deleteInput(input.id)}
+                          onConfirm={confirmInput}
+                          onOpenRangeExplorer={setRangeExplorerInput}
+                          allProductInputs={productInputs}
+                          allLibraryInputs={libraryInputs}
+                          isNewGroup={false}
+                        />
+                      </React.Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             )}

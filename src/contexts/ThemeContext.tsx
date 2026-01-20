@@ -34,7 +34,7 @@ interface ThemeColors {
   // Accent colors (light mode variants)
   accentInputs: string;
   accentOutcomes: string;
-  accentCombinations: string;
+  accentCalculations: string;
   accentConstraints: string;
   accentObjectives: string;
   accentSuccess: string;
@@ -94,7 +94,7 @@ const themeConfig = {
     // Accent colors (same as dark mode - bright colors)
     accentInputs: '#2DD4BF',
     accentOutcomes: '#F472B6',
-    accentCombinations: '#A78BFA',
+    accentCalculations: '#A78BFA',
     accentConstraints: '#FB923C',
     accentObjectives: '#60A5FA',
     accentSuccess: '#22C55E',
@@ -144,7 +144,7 @@ const themeConfig = {
     // Accent colors (darker, more saturated for light mode)
     accentInputs: '#0f766e',
     accentOutcomes: '#be185d',
-    accentCombinations: '#6d28d9',
+    accentCalculations: '#6d28d9',
     accentConstraints: '#c2410c',
     accentObjectives: '#1d4ed8',
     accentSuccess: '#15803d',

@@ -7,7 +7,7 @@ import GraphView from './graph_view';
 import DataView from './data_view';
 import InputsModal from './inputs';
 import OutcomesModal from './outcomes';
-import CombinationsModal from './combinations';
+import CalculationsModal from './calculations';
 import ConstraintsModal from './constraints';
 import ObjectivesModal from './objectives';
 
@@ -62,7 +62,7 @@ const CPGCategoryDashboard = () => {
   // Modal states
   const [showInputsModal, setShowInputsModal] = useState(false);
   const [showOutcomesModal, setShowOutcomesModal] = useState(false);
-  const [showCombinationsModal, setShowCombinationsModal] = useState(false);
+  const [showCalculationsModal, setShowCalculationsModal] = useState(false);
   const [showConstraintsModal, setShowConstraintsModal] = useState(false);
   const [showObjectivesModal, setShowObjectivesModal] = useState(false);
 
@@ -144,8 +144,8 @@ const CPGCategoryDashboard = () => {
       case 'outcomes':
         setShowOutcomesModal(true);
         break;
-      case 'combinations':
-        setShowCombinationsModal(true);
+      case 'calculations':
+        setShowCalculationsModal(true);
         break;
       case 'constraints':
         setShowConstraintsModal(true);
@@ -723,9 +723,9 @@ const CPGCategoryDashboard = () => {
         />
       )}
 
-      {showCombinationsModal && (
-        <CombinationsModal
-          onClose={() => setShowCombinationsModal(false)}
+      {showCalculationsModal && (
+        <CalculationsModal
+          onClose={() => setShowCalculationsModal(false)}
         />
       )}
 
