@@ -175,6 +175,9 @@ const GraphView: React.FC<GraphViewProps> = ({
   const [minimapDragging, setMinimapDragging] = useState(false);
   const minimapRef = useRef<SVGSVGElement>(null);
 
+  // Fullscreen state
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
   // All nodes with theme-aware colors
   const ALL_NODES = useMemo(() => getAllNodes(isDarkMode), [isDarkMode]);
 
@@ -204,6 +207,17 @@ const GraphView: React.FC<GraphViewProps> = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // ESC key to exit fullscreen
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreen]);
 
   // Initialize pan offset to center the graph in viewport
   useEffect(() => {
@@ -1269,11 +1283,20 @@ const GraphView: React.FC<GraphViewProps> = ({
 
   return (
     <div style={{
-      flex: 1,
+      ...(isFullscreen ? {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 9999,
+      } : {
+        flex: 1,
+      }),
       display: 'flex',
       flexDirection: 'column',
       overflow: 'hidden',
-      position: 'relative',
+      position: isFullscreen ? 'fixed' : 'relative',
       background: theme.background,
     }}>
       <style>{`
@@ -1597,17 +1620,52 @@ const GraphView: React.FC<GraphViewProps> = ({
             </div>
           )}
         </div>
+
+        {/* Fullscreen toggle button */}
+        <button
+          onClick={() => setIsFullscreen(!isFullscreen)}
+          style={{
+            padding: '10px',
+            background: theme.overlayBgStrong,
+            backdropFilter: isDarkMode ? 'blur(12px)' : 'none',
+            border: `1px solid ${theme.border}`,
+            borderRadius: '10px',
+            color: theme.textSecondary,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          title={isFullscreen ? 'Exit fullscreen (Esc)' : 'Fullscreen'}
+        >
+          {isFullscreen ? (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="4 14 10 14 10 20" />
+              <polyline points="20 10 14 10 14 4" />
+              <line x1="14" y1="10" x2="21" y2="3" />
+              <line x1="3" y1="21" x2="10" y2="14" />
+            </svg>
+          ) : (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="15 3 21 3 21 9" />
+              <polyline points="9 21 3 21 3 15" />
+              <line x1="21" y1="3" x2="14" y2="10" />
+              <line x1="3" y1="21" x2="10" y2="14" />
+            </svg>
+          )}
+        </button>
       </div>
 
       {/* Zoom Controls - Bottom right (FIXED to viewport) */}
       <div style={{
         position: 'fixed',
         bottom: '20px',
-        right: '394px', // 374px panel width + 20px margin
+        right: isFullscreen ? '20px' : '394px', // 374px panel width + 20px margin when not fullscreen
         display: 'flex',
         flexDirection: 'column',
         gap: '8px',
-        zIndex: 100,
+        zIndex: isFullscreen ? 10000 : 100,
+        transition: 'right 0.2s ease',
       }}>
         <div style={{
           background: theme.overlayBgStrong,
@@ -1639,7 +1697,7 @@ const GraphView: React.FC<GraphViewProps> = ({
           borderRadius: '10px',
           border: `1px solid ${minimapHovered ? 'rgba(45, 212, 191, 0.4)' : theme.border}`,
           overflow: 'hidden',
-          zIndex: 100,
+          zIndex: isFullscreen ? 10000 : 100,
           transition: 'width 0.2s ease-out, height 0.2s ease-out, border-color 0.2s ease-out',
           cursor: minimapDragging ? 'grabbing' : 'pointer',
         }}
@@ -1763,11 +1821,11 @@ const GraphView: React.FC<GraphViewProps> = ({
         </div>
       </div>
 
-      {/* Legend - Bottom center (FIXED to viewport, offset for right panel) */}
+      {/* Legend - Bottom center (FIXED to viewport, offset for right panel when not fullscreen) */}
       <div style={{
         position: 'fixed',
         bottom: '20px',
-        left: 'calc(50% - 187px)', // Offset by half of 374px right panel
+        left: isFullscreen ? '50%' : 'calc(50% - 187px)', // Offset by half of 374px right panel when not fullscreen
         transform: 'translateX(-50%)',
         display: 'flex',
         gap: '24px',
@@ -1776,7 +1834,8 @@ const GraphView: React.FC<GraphViewProps> = ({
         padding: '10px 20px',
         borderRadius: '10px',
         border: `1px solid ${theme.border}`,
-        zIndex: 100,
+        zIndex: isFullscreen ? 10000 : 100,
+        transition: 'left 0.2s ease',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 8px #22C55E' }} />
