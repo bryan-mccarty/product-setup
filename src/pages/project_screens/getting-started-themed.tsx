@@ -811,7 +811,7 @@ export default function GettingStartedPage() {
   const [targetFormula, setTargetFormula] = useState(null);
   const [linkPanels, setLinkPanels] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
   
   // Project requirements
   const [preserveLabel, setPreserveLabel] = useState(false);

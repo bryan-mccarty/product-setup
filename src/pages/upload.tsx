@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { useData } from '../contexts/DataContext';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -12,9 +13,30 @@ const DataUploadModal = ({ onClose, onSave }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [classificationProgress, setClassificationProgress] = useState(0);
-  const [classifications, setClassifications] = useState([]);
-  const [hoveredItem, setHoveredItem] = useState(null);
+  const [classifications, setClassifications] = useState<Array<{
+    id: string;
+    name: string;
+    originalName: string;
+    classification: 'input' | 'outcome';
+    displayColumn: 'ingredients' | 'processing' | 'outcomes';
+    subType: string;
+    variableType: string;
+    confidence: number;
+    confirmed: boolean;
+    // Store original AI draft for restore functionality
+    aiDraft: {
+      classification: 'input' | 'outcome';
+      displayColumn: 'ingredients' | 'processing' | 'outcomes';
+      subType: string;
+      confidence: number;
+    };
+  }>>([]);
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const [recentlyMoved, setRecentlyMoved] = useState<Set<string>>(new Set());
+  const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
+  const [dropTargetColumn, setDropTargetColumn] = useState<'ingredients' | 'processing' | 'outcomes' | null>(null);
   const fileInputRef = useRef(null);
+  const columnsContainerRef = useRef<HTMLDivElement>(null);
 
   // Theme color for Upload - Cyan/Teal gradient
   const themeColor = '#22D3EE';
@@ -61,7 +83,7 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
         if (['flour', 'sugar', 'butter', 'eggs', 'vanilla', 'cocoa', 'milk', 'salt'].some(kw => lowerCol.includes(kw))) {
           subType = 'Ingredient';
         } else {
-          subType = 'Processing Condition';
+          subType = 'Processing';
         }
       } else if (isOutcome && !isInput) {
         classification = 'outcome';
@@ -80,7 +102,7 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
         // Ambiguous - default to input
         classification = 'input';
         confidence = 0.65;
-        subType = 'Processing Condition';
+        subType = 'Processing';
       } else {
         // Unknown - guess based on position (first half inputs, second half outcomes)
         classification = index < cols.length / 2 ? 'input' : 'outcome';
@@ -93,15 +115,33 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
         variableType = 'Ordinal';
       }
       
+      // Determine display column based on classification and subType
+      let displayColumn: 'ingredients' | 'processing' | 'outcomes';
+      if (classification === 'outcome') {
+        displayColumn = 'outcomes';
+      } else if (subType === 'Ingredient') {
+        displayColumn = 'ingredients';
+      } else {
+        displayColumn = 'processing';
+      }
+
       return {
         id: `col-${index}`,
         name: col.replace(/_/g, ' '),
         originalName: col,
         classification,
+        displayColumn,
         subType,
         variableType,
         confidence,
         confirmed: false,
+        // Store original AI draft for restore functionality
+        aiDraft: {
+          classification,
+          displayColumn,
+          subType,
+          confidence,
+        },
       };
     });
   };
@@ -202,15 +242,93 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
     }, 100);
   };
 
-  // Toggle classification for an item
-  const toggleClassification = (id) => {
+  // Mark item as recently moved (for highlight animation)
+  const markAsMoved = (id: string) => {
+    setRecentlyMoved(prev => new Set(prev).add(id));
+    setTimeout(() => {
+      setRecentlyMoved(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }, 2000);
+  };
+
+  // Move item to a specific column
+  const moveToColumn = (id: string, targetColumn: 'ingredients' | 'processing' | 'outcomes') => {
     setClassifications(prev => prev.map(item => {
       if (item.id !== id) return item;
+      if (item.displayColumn === targetColumn) return item; // Already in target column
+
+      const newClassification = targetColumn === 'outcomes' ? 'outcome' : 'input';
+
+      // Set appropriate subType for the target column
+      let newSubType = item.subType;
+      if (targetColumn === 'ingredients') {
+        newSubType = 'Ingredient';
+      } else if (targetColumn === 'processing') {
+        // Keep subType if already Processing/Other, otherwise default to Processing
+        if (newSubType === 'Ingredient' || !['Processing', 'Other'].includes(newSubType)) {
+          newSubType = 'Processing';
+        }
+      } else {
+        // outcomes - keep subType if already an outcome type, else default to Other
+        if (!['Analytical', 'Sensory', 'Consumer', 'Other'].includes(newSubType)) {
+          newSubType = 'Other';
+        }
+      }
+
+      markAsMoved(id);
+
       return {
         ...item,
-        classification: item.classification === 'input' ? 'outcome' : 'input',
-        subType: item.classification === 'input' ? 'Other' : 'Ingredient',
-        confidence: 0.5, // User override
+        classification: newClassification,
+        displayColumn: targetColumn,
+        subType: newSubType,
+        confidence: 0.5,
+      };
+    }));
+  };
+
+  // Restore item to AI draft
+  const restoreAiDraft = (id: string) => {
+    setClassifications(prev => prev.map(item => {
+      if (item.id !== id) return item;
+      markAsMoved(id);
+      return {
+        ...item,
+        classification: item.aiDraft.classification,
+        displayColumn: item.aiDraft.displayColumn,
+        subType: item.aiDraft.subType,
+        confidence: item.aiDraft.confidence,
+        confirmed: false,
+      };
+    }));
+  };
+
+  // Check if item differs from AI draft
+  const isDifferentFromDraft = (item: typeof classifications[0]) => {
+    return item.classification !== item.aiDraft.classification ||
+           item.displayColumn !== item.aiDraft.displayColumn ||
+           item.subType !== item.aiDraft.subType;
+  };
+
+  // Restore ALL items to AI draft
+  const restoreAllToAiDraft = () => {
+    setClassifications(prev => prev.map(item => {
+      if (item.classification === item.aiDraft.classification &&
+          item.displayColumn === item.aiDraft.displayColumn &&
+          item.subType === item.aiDraft.subType) {
+        return item; // Already matches draft
+      }
+      markAsMoved(item.id);
+      return {
+        ...item,
+        classification: item.aiDraft.classification,
+        displayColumn: item.aiDraft.displayColumn,
+        subType: item.aiDraft.subType,
+        confidence: item.aiDraft.confidence,
+        confirmed: false,
       };
     }));
   };
@@ -237,10 +355,18 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
   };
 
   // Count stats
-  const inputCount = classifications.filter(c => c.classification === 'input').length;
-  const outcomeCount = classifications.filter(c => c.classification === 'outcome').length;
+  const ingredientCount = classifications.filter(c => c.displayColumn === 'ingredients').length;
+  const processingCount = classifications.filter(c => c.displayColumn === 'processing').length;
+  const outcomeCount = classifications.filter(c => c.displayColumn === 'outcomes').length;
   const confirmedCount = classifications.filter(c => c.confirmed).length;
   const allConfirmed = classifications.length > 0 && confirmedCount === classifications.length;
+
+  // Column colors
+  const columnColors = {
+    ingredients: '#2DD4BF',
+    processing: '#FB923C',
+    outcomes: '#F472B6',
+  };
 
   // Tag components
   const ClassificationTag = ({ type, small, draft }) => {
@@ -281,7 +407,7 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
   const SubTypeTag = ({ type, classification, small }) => {
     const inputColors = {
       'Ingredient': { bg: 'rgba(45, 212, 191, 0.12)', text: '#2DD4BF', border: 'rgba(45, 212, 191, 0.25)' },
-      'Processing Condition': { bg: 'rgba(251, 146, 60, 0.12)', text: '#FB923C', border: 'rgba(251, 146, 60, 0.25)' },
+      'Processing': { bg: 'rgba(251, 146, 60, 0.12)', text: '#FB923C', border: 'rgba(251, 146, 60, 0.25)' },
       'Other': { bg: 'rgba(167, 139, 250, 0.12)', text: '#A78BFA', border: 'rgba(167, 139, 250, 0.25)' },
     };
     const outcomeColors = {
@@ -292,7 +418,7 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
     };
     const colors = classification === 'input' ? inputColors : outcomeColors;
     const c = colors[type] || colors['Other'];
-    const displayType = type === 'Processing Condition' ? 'Process' : type;
+    const displayType = type;
     return (
       <span style={{
         padding: small ? '2px 6px' : '3px 8px',
@@ -399,7 +525,15 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
           0%, 100% { box-shadow: 0 0 8px currentColor; }
           50% { box-shadow: 0 0 16px currentColor, 0 0 24px currentColor; }
         }
-        
+
+        @keyframes moveHighlight {
+          0% { box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.6), 0 0 12px rgba(34, 211, 238, 0.3); }
+          100% { box-shadow: 0 0 0 2px transparent, 0 0 0 transparent; }
+        }
+        .just-moved {
+          animation: moveHighlight 2s ease-out;
+        }
+
         .custom-scrollbar::-webkit-scrollbar {
           width: 5px;
         }
@@ -502,7 +636,7 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
 
       {/* Main Modal */}
       <div style={{
-        width: stage === 'upload' ? '580px' : stage === 'preview' ? '1000px' : '900px',
+        width: stage === 'upload' ? '580px' : stage === 'preview' ? '1000px' : '1100px',
         maxWidth: '95vw',
         maxHeight: '90vh',
         background: theme.modalBg,
@@ -968,61 +1102,77 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
                     justifyContent: 'space-between',
                     flexShrink: 0,
                   }}>
-                    <div style={{ display: 'flex', gap: '16px' }}>
+                    <div style={{ display: 'flex', gap: '12px' }}>
                       <div style={{
-                        padding: '8px 14px',
+                        padding: '6px 12px',
                         borderRadius: '8px',
                         background: 'rgba(45, 212, 191, 0.08)',
                         border: '1px solid rgba(45, 212, 191, 0.2)',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '8px',
+                        gap: '6px',
                       }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" strokeWidth="2">
-                          <rect x="3" y="3" width="18" height="18" rx="2" />
-                          <line x1="3" y1="9" x2="21" y2="9" />
-                          <line x1="9" y1="21" x2="9" y2="9" />
-                        </svg>
-                        <span style={{ fontSize: '13px', fontWeight: 600, color: '#2DD4BF' }}>{inputCount}</span>
-                        <span style={{ fontSize: '12px', color: theme.textTertiary }}>Inputs</span>
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: '#2DD4BF' }}>{ingredientCount}</span>
+                        <span style={{ fontSize: '11px', color: theme.textTertiary }}>Ingredients</span>
                       </div>
-                      
+
                       <div style={{
-                        padding: '8px 14px',
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        background: 'rgba(251, 146, 60, 0.08)',
+                        border: '1px solid rgba(251, 146, 60, 0.2)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                      }}>
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: '#FB923C' }}>{processingCount}</span>
+                        <span style={{ fontSize: '11px', color: theme.textTertiary }}>Processing</span>
+                      </div>
+
+                      <div style={{
+                        padding: '6px 12px',
                         borderRadius: '8px',
                         background: 'rgba(244, 114, 182, 0.08)',
                         border: '1px solid rgba(244, 114, 182, 0.2)',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '8px',
+                        gap: '6px',
                       }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F472B6" strokeWidth="2">
-                          <circle cx="12" cy="12" r="10" />
-                          <circle cx="12" cy="12" r="6" />
-                          <circle cx="12" cy="12" r="2" fill="#F472B6" />
-                        </svg>
-                        <span style={{ fontSize: '13px', fontWeight: 600, color: '#F472B6' }}>{outcomeCount}</span>
-                        <span style={{ fontSize: '12px', color: theme.textTertiary }}>Outcomes</span>
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: '#F472B6' }}>{outcomeCount}</span>
+                        <span style={{ fontSize: '11px', color: theme.textTertiary }}>Outcomes</span>
                       </div>
                     </div>
                     
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        padding: '6px 12px',
-                        borderRadius: '6px',
-                        background: 'rgba(167, 139, 250, 0.08)',
-                        border: '1px dashed rgba(167, 139, 250, 0.25)',
-                      }}>
+                      <button
+                        onClick={restoreAllToAiDraft}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '6px 12px',
+                          borderRadius: '6px',
+                          background: 'rgba(167, 139, 250, 0.08)',
+                          border: '1px dashed rgba(167, 139, 250, 0.25)',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'rgba(167, 139, 250, 0.15)';
+                          e.currentTarget.style.borderColor = 'rgba(167, 139, 250, 0.4)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'rgba(167, 139, 250, 0.08)';
+                          e.currentTarget.style.borderColor = 'rgba(167, 139, 250, 0.25)';
+                        }}
+                      >
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" strokeWidth="2">
                           <path d="M12 2L2 7l10 5 10-5-10-5z" />
                           <path d="M2 17l10 5 10-5" />
                           <path d="M2 12l10 5 10-5" />
                         </svg>
-                        <span style={{ fontSize: '11px', color: '#A78BFA' }}>AI Draft</span>
-                      </div>
+                        <span style={{ fontSize: '11px', color: '#A78BFA' }}>Restore AI Draft</span>
+                      </button>
                       
                       <button
                         onClick={confirmAll}
@@ -1050,273 +1200,222 @@ F012,270,98,122,3,4,24,92,3,181,10,29,5.6,5.5,8.3,8.2,66,5`;
                     </div>
                   </div>
 
-                  {/* Classification List */}
+                  {/* Classification List - 3 Columns with Cross-Column Drag */}
                   <div className="custom-scrollbar" style={{
                     flex: 1,
                     overflow: 'auto',
                     padding: '16px',
                   }}>
-                    <div style={{ display: 'flex', gap: '16px' }}>
-                      {/* Inputs Column */}
-                      <div style={{ flex: 1 }}>
-                        <div style={{
-                          padding: '10px 14px',
-                          marginBottom: '12px',
-                          borderRadius: '8px',
-                          background: 'rgba(45, 212, 191, 0.05)',
-                          border: '1px solid rgba(45, 212, 191, 0.15)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '10px',
-                        }}>
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" strokeWidth="2">
-                            <rect x="3" y="3" width="18" height="18" rx="2" />
-                            <line x1="3" y1="9" x2="21" y2="9" />
-                            <line x1="9" y1="21" x2="9" y2="9" />
-                          </svg>
-                          <span style={{ fontSize: '13px', fontWeight: 600, color: '#2DD4BF' }}>Inputs</span>
-                          <span style={{ fontSize: '11px', color: theme.textTertiary, marginLeft: 'auto' }}>
-                            {classifications.filter(c => c.classification === 'input' && c.confirmed).length}/{inputCount} confirmed
-                          </span>
-                        </div>
-                        
-                        {classifications.filter(c => c.classification === 'input').map((item) => (
-                          <div
-                            key={item.id}
-                            className={`classification-row ${item.confirmed ? 'confirmed' : ''}`}
-                            onMouseEnter={() => setHoveredItem(item.id)}
-                            onMouseLeave={() => setHoveredItem(null)}
-                          >
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                                <span style={{ fontSize: '13px', fontWeight: 500, color: theme.text }}>
-                                  {item.name}
-                                </span>
-                                {!item.confirmed && (
-                                  <ConfidenceIndicator confidence={item.confidence} />
-                                )}
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <select
-                                  className="subtype-select"
-                                  value={item.subType}
-                                  onChange={(e) => { e.stopPropagation(); updateSubType(item.id, e.target.value); }}
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <option value="Ingredient">Ingredient</option>
-                                  <option value="Processing Condition">Processing</option>
-                                  <option value="Other">Other</option>
-                                </select>
-                                {!item.confirmed && (
-                                  <span style={{ fontSize: '9px', color: '#A78BFA', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                      <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                                    </svg>
-                                    AI
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              {/* Swap Button */}
-                              <button
-                                onClick={(e) => { e.stopPropagation(); toggleClassification(item.id); }}
-                                style={{
-                                  padding: '6px',
-                                  background: `${theme.borderLight}`,
-                                  border: `1px solid ${theme.borderLight}`,
-                                  borderRadius: '5px',
-                                  cursor: 'pointer',
-                                  color: theme.textTertiary,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  opacity: hoveredItem === item.id ? 1 : 0,
-                                  transition: 'all 0.15s ease',
-                                }}
-                                title="Move to Outcomes"
-                              >
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <path d="M7 16V4M7 4L3 8M7 4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" />
-                                </svg>
-                              </button>
-                              
-                              {/* Confirm Button */}
-                              <button
-                                onClick={(e) => { e.stopPropagation(); confirmItem(item.id); }}
-                                disabled={item.confirmed}
-                                style={{
-                                  padding: '6px 10px',
-                                  background: item.confirmed 
-                                    ? 'rgba(34, 197, 94, 0.15)' 
-                                    : `${theme.borderLight}`,
-                                  border: item.confirmed 
-                                    ? '1px solid rgba(34, 197, 94, 0.3)' 
-                                    : `1px solid ${theme.borderLight}`,
-                                  borderRadius: '5px',
-                                  cursor: item.confirmed ? 'default' : 'pointer',
-                                  color: item.confirmed ? '#22C55E' : theme.textTertiary,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  gap: '4px',
-                                  fontSize: '10px',
-                                  fontWeight: 600,
-                                  transition: 'all 0.15s ease',
-                                }}
-                              >
-                                {item.confirmed ? (
-                                  <>
-                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ animation: item.confirmed ? 'checkPop 0.3s ease-out' : 'none' }}>
-                                      <polyline points="20 6 9 17 4 12" />
-                                    </svg>
-                                    Done
-                                  </>
-                                ) : (
-                                  <>
-                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                      <polyline points="20 6 9 17 4 12" />
-                                    </svg>
-                                    Confirm
-                                  </>
-                                )}
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                    <div ref={columnsContainerRef} style={{ display: 'flex', gap: '12px' }}>
+                      {/* Render each column as a drop zone */}
+                      {(['ingredients', 'processing', 'outcomes'] as const).map((columnId) => {
+                        const columnConfig = {
+                          ingredients: { label: 'Ingredients', color: '#2DD4BF', bgColor: 'rgba(45, 212, 191,' },
+                          processing: { label: 'Processing', color: '#FB923C', bgColor: 'rgba(251, 146, 60,' },
+                          outcomes: { label: 'Outcomes', color: '#F472B6', bgColor: 'rgba(244, 114, 182,' },
+                        }[columnId];
+                        const columnItems = classifications.filter(c => c.displayColumn === columnId);
+                        const confirmedInColumn = columnItems.filter(c => c.confirmed).length;
+                        const isDropTarget = dropTargetColumn === columnId && draggedItemId !== null;
 
-                      {/* Outcomes Column */}
-                      <div style={{ flex: 1 }}>
-                        <div style={{
-                          padding: '10px 14px',
-                          marginBottom: '12px',
-                          borderRadius: '8px',
-                          background: 'rgba(244, 114, 182, 0.05)',
-                          border: '1px solid rgba(244, 114, 182, 0.15)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '10px',
-                        }}>
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F472B6" strokeWidth="2">
-                            <circle cx="12" cy="12" r="10" />
-                            <circle cx="12" cy="12" r="6" />
-                            <circle cx="12" cy="12" r="2" fill="#F472B6" />
-                          </svg>
-                          <span style={{ fontSize: '13px', fontWeight: 600, color: '#F472B6' }}>Outcomes</span>
-                          <span style={{ fontSize: '11px', color: theme.textTertiary, marginLeft: 'auto' }}>
-                            {classifications.filter(c => c.classification === 'outcome' && c.confirmed).length}/{outcomeCount} confirmed
-                          </span>
-                        </div>
-                        
-                        {classifications.filter(c => c.classification === 'outcome').map((item) => (
+                        return (
                           <div
-                            key={item.id}
-                            className={`classification-row ${item.confirmed ? 'confirmed' : ''}`}
-                            onMouseEnter={() => setHoveredItem(item.id)}
-                            onMouseLeave={() => setHoveredItem(null)}
+                            key={columnId}
+                            style={{ flex: 1, minWidth: 0 }}
+                            onDragOver={(e) => {
+                              e.preventDefault();
+                              if (draggedItemId) setDropTargetColumn(columnId);
+                            }}
+                            onDragLeave={() => setDropTargetColumn(null)}
+                            onDrop={(e) => {
+                              e.preventDefault();
+                              if (draggedItemId) {
+                                moveToColumn(draggedItemId, columnId);
+                                setDraggedItemId(null);
+                                setDropTargetColumn(null);
+                              }
+                            }}
                           >
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                                <span style={{ fontSize: '13px', fontWeight: 500, color: theme.text }}>
-                                  {item.name}
-                                </span>
-                                {!item.confirmed && (
-                                  <ConfidenceIndicator confidence={item.confidence} />
-                                )}
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <select
-                                  className="subtype-select"
-                                  value={item.subType}
-                                  onChange={(e) => { e.stopPropagation(); updateSubType(item.id, e.target.value); }}
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <option value="Analytical">Analytical</option>
-                                  <option value="Sensory">Sensory</option>
-                                  <option value="Consumer">Consumer</option>
-                                  <option value="Other">Other</option>
-                                </select>
-                                {!item.confirmed && (
-                                  <span style={{ fontSize: '9px', color: '#A78BFA', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                      <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                                    </svg>
-                                    AI
-                                  </span>
-                                )}
-                              </div>
+                            {/* Column Header */}
+                            <div style={{
+                              padding: '8px 12px',
+                              marginBottom: '10px',
+                              borderRadius: '8px',
+                              background: `${columnConfig.bgColor} ${isDropTarget ? '0.15)' : '0.05)'}`,
+                              border: `1px solid ${columnConfig.bgColor} ${isDropTarget ? '0.4)' : '0.15)'}`,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              transition: 'all 0.15s ease',
+                            }}>
+                              <span style={{ fontSize: '12px', fontWeight: 600, color: columnConfig.color }}>{columnConfig.label}</span>
+                              <span style={{ fontSize: '10px', color: theme.textTertiary, marginLeft: 'auto' }}>
+                                {confirmedInColumn}/{columnItems.length}
+                              </span>
                             </div>
-                            
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              {/* Swap Button */}
-                              <button
-                                onClick={(e) => { e.stopPropagation(); toggleClassification(item.id); }}
-                                style={{
-                                  padding: '6px',
-                                  background: `${theme.borderLight}`,
-                                  border: `1px solid ${theme.borderLight}`,
-                                  borderRadius: '5px',
-                                  cursor: 'pointer',
-                                  color: theme.textTertiary,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  opacity: hoveredItem === item.id ? 1 : 0,
-                                  transition: 'all 0.15s ease',
-                                }}
-                                title="Move to Inputs"
-                              >
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <path d="M7 16V4M7 4L3 8M7 4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" />
-                                </svg>
-                              </button>
-                              
-                              {/* Confirm Button */}
-                              <button
-                                onClick={(e) => { e.stopPropagation(); confirmItem(item.id); }}
-                                disabled={item.confirmed}
-                                style={{
-                                  padding: '6px 10px',
-                                  background: item.confirmed 
-                                    ? 'rgba(34, 197, 94, 0.15)' 
-                                    : `${theme.borderLight}`,
-                                  border: item.confirmed 
-                                    ? '1px solid rgba(34, 197, 94, 0.3)' 
-                                    : `1px solid ${theme.borderLight}`,
-                                  borderRadius: '5px',
-                                  cursor: item.confirmed ? 'default' : 'pointer',
-                                  color: item.confirmed ? '#22C55E' : theme.textTertiary,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  gap: '4px',
-                                  fontSize: '10px',
-                                  fontWeight: 600,
-                                  transition: 'all 0.15s ease',
-                                }}
-                              >
-                                {item.confirmed ? (
-                                  <>
-                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ animation: item.confirmed ? 'checkPop 0.3s ease-out' : 'none' }}>
+
+                            {/* Column Items */}
+                            <div style={{ minHeight: '50px' }}>
+                              {columnItems.map((item) => (
+                                <motion.div
+                                  key={item.id}
+                                  draggable
+                                  onDragStart={() => setDraggedItemId(item.id)}
+                                  onDragEnd={() => {
+                                    setDraggedItemId(null);
+                                    setDropTargetColumn(null);
+                                  }}
+                                  whileDrag={{ scale: 1.02, boxShadow: '0 8px 24px rgba(0,0,0,0.2)', zIndex: 100, opacity: 0.9 }}
+                                  className={`classification-row ${item.confirmed ? 'confirmed' : ''} ${recentlyMoved.has(item.id) ? 'just-moved' : ''}`}
+                                  onMouseEnter={() => setHoveredItem(item.id)}
+                                  onMouseLeave={() => setHoveredItem(null)}
+                                  style={{ cursor: 'grab' }}
+                                >
+                                  {/* Drag Handle */}
+                                  <div style={{
+                                    padding: '4px',
+                                    color: theme.textMuted,
+                                    opacity: hoveredItem === item.id ? 0.8 : 0.3,
+                                    transition: 'opacity 0.15s ease',
+                                    marginRight: '6px',
+                                  }}>
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                                      <circle cx="9" cy="6" r="2" />
+                                      <circle cx="15" cy="6" r="2" />
+                                      <circle cx="9" cy="12" r="2" />
+                                      <circle cx="15" cy="12" r="2" />
+                                      <circle cx="9" cy="18" r="2" />
+                                      <circle cx="15" cy="18" r="2" />
+                                    </svg>
+                                  </div>
+
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+                                      <span style={{ fontSize: '12px', fontWeight: 500, color: theme.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        {item.name}
+                                      </span>
+                                      {!item.confirmed && (
+                                        <ConfidenceIndicator confidence={item.confidence} />
+                                      )}
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                      {/* I-P-O Buttons */}
+                                      <div style={{ display: 'flex', gap: '2px' }}>
+                                        {(['ingredients', 'processing', 'outcomes'] as const).map(col => (
+                                          <button
+                                            key={col}
+                                            onClick={(e) => { e.stopPropagation(); moveToColumn(item.id, col); }}
+                                            style={{
+                                              width: '18px', height: '18px',
+                                              fontSize: '9px', fontWeight: 600,
+                                              background: item.displayColumn === col ? columnColors[col] : 'transparent',
+                                              color: item.displayColumn === col ? '#fff' : theme.textMuted,
+                                              border: `1px solid ${item.displayColumn === col ? columnColors[col] : theme.border}`,
+                                              borderRadius: '3px',
+                                              cursor: 'pointer',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              transition: 'all 0.15s ease',
+                                            }}
+                                          >
+                                            {col[0].toUpperCase()}
+                                          </button>
+                                        ))}
+                                      </div>
+                                      {/* Subtype dropdown for Processing and Outcomes */}
+                                      {columnId === 'processing' && (
+                                        <select
+                                          className="subtype-select"
+                                          value={item.subType}
+                                          onChange={(e) => { e.stopPropagation(); updateSubType(item.id, e.target.value); }}
+                                          onClick={(e) => e.stopPropagation()}
+                                          style={{ maxWidth: '80px' }}
+                                        >
+                                          <option value="Processing">Processing</option>
+                                          <option value="Other">Other</option>
+                                        </select>
+                                      )}
+                                      {columnId === 'outcomes' && (
+                                        <select
+                                          className="subtype-select"
+                                          value={item.subType}
+                                          onChange={(e) => { e.stopPropagation(); updateSubType(item.id, e.target.value); }}
+                                          onClick={(e) => e.stopPropagation()}
+                                          style={{ maxWidth: '80px' }}
+                                        >
+                                          <option value="Analytical">Analytical</option>
+                                          <option value="Sensory">Sensory</option>
+                                          <option value="Consumer">Consumer</option>
+                                          <option value="Other">Other</option>
+                                        </select>
+                                      )}
+                                      {!item.confirmed && isDifferentFromDraft(item) ? (
+                                        <button
+                                          onClick={(e) => { e.stopPropagation(); restoreAiDraft(item.id); }}
+                                          title="Restore AI suggestion"
+                                          style={{
+                                            fontSize: '8px',
+                                            color: '#A78BFA',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '2px',
+                                            background: 'rgba(167, 139, 250, 0.1)',
+                                            border: '1px solid rgba(167, 139, 250, 0.3)',
+                                            borderRadius: '3px',
+                                            padding: '2px 4px',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.15s ease',
+                                          }}
+                                        >
+                                          <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                                            <path d="M3 3v5h5" />
+                                          </svg>
+                                          AI
+                                        </button>
+                                      ) : !item.confirmed && (
+                                        <span style={{ fontSize: '8px', color: '#A78BFA', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                                          <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                            <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                                          </svg>
+                                          AI
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Confirm Button */}
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); confirmItem(item.id); }}
+                                    disabled={item.confirmed}
+                                    style={{
+                                      padding: '4px 8px',
+                                      background: item.confirmed ? 'rgba(34, 197, 94, 0.15)' : theme.borderLight,
+                                      border: item.confirmed ? '1px solid rgba(34, 197, 94, 0.3)' : `1px solid ${theme.borderLight}`,
+                                      borderRadius: '4px',
+                                      cursor: item.confirmed ? 'default' : 'pointer',
+                                      color: item.confirmed ? '#22C55E' : theme.textTertiary,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '3px',
+                                      fontSize: '9px',
+                                      fontWeight: 600,
+                                      transition: 'all 0.15s ease',
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={item.confirmed ? 3 : 2.5}>
                                       <polyline points="20 6 9 17 4 12" />
                                     </svg>
-                                    Done
-                                  </>
-                                ) : (
-                                  <>
-                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                      <polyline points="20 6 9 17 4 12" />
-                                    </svg>
-                                    Confirm
-                                  </>
-                                )}
-                              </button>
+                                    {item.confirmed ? 'Done' : 'OK'}
+                                  </button>
+                                </motion.div>
+                              ))}
                             </div>
                           </div>
-                        ))}
-                      </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </>

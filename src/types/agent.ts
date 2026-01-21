@@ -58,7 +58,8 @@ export interface GraphAPI {
   setNodeVisibility: (nodeId: string, visible: boolean) => void;
   setAllNodesVisibility: (visible: boolean) => void;
   selectPill: (pillKey: string | null) => void;
-  setConnectionMode: (mode: 'all' | 'onClick') => void;
+  setRenderMode: (mode: 'showAll' | 'showOnClick') => void;
+  setSearchDepth: (depth: 'allLinks' | 'relevantOnly') => void;
   activatePill: (pillKey: string | null) => void;
 
   // Navigation operations

@@ -264,18 +264,36 @@ export function getToolDefinitions() {
     {
       type: 'function',
       function: {
-        name: 'set_connection_mode',
-        description: 'Change how connections are displayed in the graph',
+        name: 'set_render_mode',
+        description: 'Change how connections are displayed - always visible or only on interaction',
         parameters: {
           type: 'object',
           properties: {
             mode: {
               type: 'string',
-              enum: ['all', 'onClick'],
-              description: '"all" shows all connections on hover, "onClick" shows connections only for selected item',
+              enum: ['showAll', 'showOnClick'],
+              description: '"showAll" pre-renders all connections (hover dims irrelevant), "showOnClick" shows connections only when a pill is selected',
             },
           },
           required: ['mode'],
+        },
+      },
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'set_search_depth',
+        description: 'Change the traversal algorithm for finding connected items',
+        parameters: {
+          type: 'object',
+          properties: {
+            depth: {
+              type: 'string',
+              enum: ['allLinks', 'relevantOnly'],
+              description: '"allLinks" shows full bidirectional graph traversal, "relevantOnly" shows directional upstream/downstream only (no sibling discovery)',
+            },
+          },
+          required: ['depth'],
         },
       },
     },
@@ -490,12 +508,16 @@ export function executeAgentTool(
       return { success: true, focusedOn: nodeId };
     }
 
-    case 'set_connection_mode': {
-      const mode = parameters.mode as 'all' | 'onClick';
-
-      graphAPI.setConnectionMode(mode);
-
+    case 'set_render_mode': {
+      const mode = parameters.mode as 'showAll' | 'showOnClick';
+      graphAPI.setRenderMode(mode);
       return { success: true, mode };
+    }
+
+    case 'set_search_depth': {
+      const depth = parameters.depth as 'allLinks' | 'relevantOnly';
+      graphAPI.setSearchDepth(depth);
+      return { success: true, depth };
     }
 
     default:

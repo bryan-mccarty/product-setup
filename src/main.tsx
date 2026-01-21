@@ -14,6 +14,7 @@ import ConstraintsPage from './pages/project_screens/all-constraints-page-themed
 import OutcomesPage from './pages/project_screens/outcomes-page-themed.tsx'
 import ObjectivesPage from './pages/project_screens/all-objectives-page-themed.tsx'
 import ObjectivePrioritizationPage from './pages/project_screens/objective-prioritization-themed.tsx'
+import ReviewPage from './pages/project_screens/review-page-themed.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -31,6 +32,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="/project/new/step-5" element={<OutcomesPage />} />
             <Route path="/project/new/step-6" element={<ObjectivesPage />} />
             <Route path="/project/new/step-7" element={<ObjectivePrioritizationPage />} />
+            <Route path="/project/new/step-8" element={<ReviewPage />} />
           </Routes>
         </BrowserRouter>
       </DataProvider>

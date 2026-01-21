@@ -164,7 +164,8 @@ const GraphView: React.FC<GraphViewProps> = ({
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
   // Connection mode state
-  const [connectionMode, setConnectionMode] = useState<'all' | 'onClick'>('onClick');
+  const [renderMode, setRenderMode] = useState<'showAll' | 'showOnClick'>('showOnClick');
+  const [searchDepth, setSearchDepth] = useState<'allLinks' | 'relevantOnly'>('relevantOnly');
   const [selectedPillId, setSelectedPillId] = useState<string | null>(null);
   const [showConnectionMenu, setShowConnectionMenu] = useState(false);
 
@@ -896,8 +897,8 @@ const GraphView: React.FC<GraphViewProps> = ({
     return graph;
   }, [connections]);
 
-  // DFS traversal to get all connected items
-  const getConnectedItems = useCallback((startKey: string): Set<string> => {
+  // Full bidirectional DFS traversal to get all connected items (for "All Links" search)
+  const getFullDFSConnections = useCallback((startKey: string): Set<string> => {
     const visited = new Set<string>();
     const stack = [startKey];
 
@@ -915,6 +916,70 @@ const GraphView: React.FC<GraphViewProps> = ({
     return visited;
   }, [connectionGraph]);
 
+  // Directional traversal for "Relevant Only" search
+  // Runs separate upstream and downstream traversals, never changing direction
+  const getRelevantConnections = useCallback((
+    startKey: string
+  ): { visitedPills: Set<string>; visitedConnections: Set<number> } => {
+    const visitedPills = new Set<string>([startKey]);
+    const visitedConnections = new Set<number>();
+
+    // Build adjacency lists
+    const incomingByPill = new Map<string, Array<{connIdx: number, fromKey: string}>>();
+    const outgoingByPill = new Map<string, Array<{connIdx: number, toKey: string}>>();
+
+    connections.forEach((conn, idx) => {
+      const fromKey = `${conn.fromNodeId}-${conn.fromItemId}`;
+      const toKey = `${conn.toNodeId}-${conn.toItemId}`;
+
+      if (!outgoingByPill.has(fromKey)) outgoingByPill.set(fromKey, []);
+      outgoingByPill.get(fromKey)!.push({ connIdx: idx, toKey });
+
+      if (!incomingByPill.has(toKey)) incomingByPill.set(toKey, []);
+      incomingByPill.get(toKey)!.push({ connIdx: idx, fromKey });
+    });
+
+    // UPSTREAM TRAVERSAL - follow incoming edges only
+    const upstreamQueue = [startKey];
+    const visitedUpstream = new Set<string>([startKey]);
+
+    while (upstreamQueue.length > 0) {
+      const current = upstreamQueue.shift()!;
+      const incoming = incomingByPill.get(current) || [];
+
+      for (const { connIdx, fromKey } of incoming) {
+        visitedConnections.add(connIdx);
+        visitedPills.add(fromKey);
+
+        if (!visitedUpstream.has(fromKey)) {
+          visitedUpstream.add(fromKey);
+          upstreamQueue.push(fromKey);
+        }
+      }
+    }
+
+    // DOWNSTREAM TRAVERSAL - follow outgoing edges only
+    const downstreamQueue = [startKey];
+    const visitedDownstream = new Set<string>([startKey]);
+
+    while (downstreamQueue.length > 0) {
+      const current = downstreamQueue.shift()!;
+      const outgoing = outgoingByPill.get(current) || [];
+
+      for (const { connIdx, toKey } of outgoing) {
+        visitedConnections.add(connIdx);
+        visitedPills.add(toKey);
+
+        if (!visitedDownstream.has(toKey)) {
+          visitedDownstream.add(toKey);
+          downstreamQueue.push(toKey);
+        }
+      }
+    }
+
+    return { visitedPills, visitedConnections };
+  }, [connections]);
+
   // Graph API for agent sidebar
   const graphAPI = useMemo<GraphAPI>(() => ({
     // Read operations
@@ -926,7 +991,7 @@ const GraphView: React.FC<GraphViewProps> = ({
     getExpandedNodes: () => expandedNodes,
     getVisibleNodeIds: () => visibleNodes,
     getConnectionGraph: () => connectionGraph,
-    getConnectedItems: (startKey: string) => getConnectedItems(startKey),
+    getConnectedItems: (startKey: string) => getFullDFSConnections(startKey),
     getNodeStatus: () => nodeStatus,
 
     // Mutation operations
@@ -953,8 +1018,11 @@ const GraphView: React.FC<GraphViewProps> = ({
     selectPill: (pillKey: string | null) => {
       setSelectedPillId(pillKey);
     },
-    setConnectionMode: (mode: 'all' | 'onClick') => {
-      setConnectionMode(mode);
+    setRenderMode: (mode: 'showAll' | 'showOnClick') => {
+      setRenderMode(mode);
+    },
+    setSearchDepth: (depth: 'allLinks' | 'relevantOnly') => {
+      setSearchDepth(depth);
     },
     activatePill: (pillKey: string | null) => {
       // Deprecated - now handled via selectPill for graph mode
@@ -992,7 +1060,7 @@ const GraphView: React.FC<GraphViewProps> = ({
     },
   }), [
     nodesWithPositions, ALL_NODES, nodeItems, connections, expandedNodes,
-    visibleNodes, connectionGraph, getConnectedItems, nodeStatus,
+    visibleNodes, connectionGraph, getFullDFSConnections, nodeStatus,
     calculatedPillPositions, zoom, handleZoomReset
   ]);
 
@@ -1005,103 +1073,110 @@ const GraphView: React.FC<GraphViewProps> = ({
 
   // Determine which connections to render based on mode
   const connectionsToRender = useMemo(() => {
-    if (connectionMode === 'all') {
+    // Determine active pill based on mode
+    const activePill = renderMode === 'showAll' ? hoveredPillKey : selectedPillId;
+
+    // showAll with no hover: show all visible connections
+    if (renderMode === 'showAll' && !activePill) {
       return visibleConnections;
     }
 
-    if (connectionMode === 'onClick' && selectedPillId) {
-      const connectedSet = getConnectedItems(selectedPillId);
-      const collapsedNodeLinks = new Set<string>(); // Deduplicate parent node connections
-
-      return connections.filter(conn => {
-        const fromKey = `${conn.fromNodeId}-${conn.fromItemId}`;
-        const toKey = `${conn.toNodeId}-${conn.toItemId}`;
-
-        // Must involve selected pill or its connections
-        if (!connectedSet.has(fromKey) && !connectedSet.has(toKey)) {
-          return false;
-        }
-
-        const fromExpanded = expandedNodes.has(conn.fromNodeId);
-        const toExpanded = expandedNodes.has(conn.toNodeId);
-
-        // Both expanded: show pill-to-pill connection
-        if (fromExpanded && toExpanded) return true;
-
-        // One collapsed: show pill-to-parent connection (deduplicated)
-        if (fromExpanded && !toExpanded) {
-          const linkKey = `${fromKey}-${conn.toNodeId}`;
-          if (collapsedNodeLinks.has(linkKey)) return false;
-          collapsedNodeLinks.add(linkKey);
-          return true;
-        }
-        if (!fromExpanded && toExpanded) {
-          const linkKey = `${conn.fromNodeId}-${toKey}`;
-          if (collapsedNodeLinks.has(linkKey)) return false;
-          collapsedNodeLinks.add(linkKey);
-          return true;
-        }
-
-        return false;
-      });
+    // showOnClick with no selection: show nothing
+    if (renderMode === 'showOnClick' && !activePill) {
+      return [];
     }
 
-    return [];
-  }, [connectionMode, selectedPillId, connections, expandedNodes, visibleConnections, getConnectedItems]);
+    // Get relevant connections based on search depth
+    let relevantConnectionIndices: Set<number>;
 
-  // Terminal node types - never traverse THROUGH these (but can start from them)
-  const TERMINAL_NODE_TYPES = new Set(['suppliers', 'manufacturingSites', 'distributionChannels']);
+    if (searchDepth === 'allLinks') {
+      const connectedPills = getFullDFSConnections(activePill!);
+      relevantConnectionIndices = new Set<number>();
 
-  // Get highlighted connection indices using hierarchical DFS
-  // Responds to hover (in 'all' mode only)
+      connections.forEach((conn, idx) => {
+        const fromKey = `${conn.fromNodeId}-${conn.fromItemId}`;
+        const toKey = `${conn.toNodeId}-${conn.toItemId}`;
+        if (connectedPills.has(fromKey) && connectedPills.has(toKey)) {
+          relevantConnectionIndices.add(idx);
+        }
+      });
+    } else {
+      const { visitedConnections } = getRelevantConnections(activePill!);
+      relevantConnectionIndices = visitedConnections;
+    }
+
+    // Filter with collapsed node handling
+    const collapsedNodeLinks = new Set<string>();
+
+    return connections.filter((conn, idx) => {
+      if (!relevantConnectionIndices.has(idx)) return false;
+
+      const fromKey = `${conn.fromNodeId}-${conn.fromItemId}`;
+      const toKey = `${conn.toNodeId}-${conn.toItemId}`;
+      const fromExpanded = expandedNodes.has(conn.fromNodeId);
+      const toExpanded = expandedNodes.has(conn.toNodeId);
+
+      // Both expanded: show pill-to-pill connection
+      if (fromExpanded && toExpanded) return true;
+
+      // One collapsed: show pill-to-parent connection (deduplicated)
+      if (fromExpanded && !toExpanded) {
+        const linkKey = `${fromKey}->${conn.toNodeId}`;
+        if (collapsedNodeLinks.has(linkKey)) return false;
+        collapsedNodeLinks.add(linkKey);
+        return true;
+      }
+
+      if (!fromExpanded && toExpanded) {
+        const linkKey = `${conn.fromNodeId}->${toKey}`;
+        if (collapsedNodeLinks.has(linkKey)) return false;
+        collapsedNodeLinks.add(linkKey);
+        return true;
+      }
+
+      return false;
+    });
+  }, [renderMode, searchDepth, hoveredPillKey, selectedPillId, connections,
+      expandedNodes, visibleConnections, getFullDFSConnections, getRelevantConnections]);
+
+  // Get highlighted connection indices for dimming in showAll mode
   const highlightedConnectionIndices = useMemo(() => {
-    const activePill = hoveredPillKey;
-    if (connectionMode !== 'all' || !activePill) return null;
+    // Only used in showAll mode for dimming non-relevant connections
+    if (renderMode !== 'showAll') return null;
+    if (!hoveredPillKey) return null;
 
-    const [startNodeType] = activePill.split('-');
-    const startedFromData = startNodeType === 'data';
-
-    const visitedPills = new Set<string>([activePill]);
-    const highlightedIndices = new Set<number>();
-    const queue = [activePill];
-
-    while (queue.length > 0) {
-      const currentPill = queue.shift()!;
-      const [currentNodeType] = currentPill.split('-');
-      const isStartNode = currentPill === activePill;
-
-      // Terminal check: stop traversing FROM terminal nodes (unless we started there)
-      const isTerminal = TERMINAL_NODE_TYPES.has(currentNodeType);
-      if (isTerminal && !isStartNode) continue;
+    if (searchDepth === 'allLinks') {
+      const connectedPills = getFullDFSConnections(hoveredPillKey);
+      const indices = new Set<number>();
 
       connectionsToRender.forEach((conn, idx) => {
         const fromKey = `${conn.fromNodeId}-${conn.fromItemId}`;
         const toKey = `${conn.toNodeId}-${conn.toItemId}`;
-
-        if (fromKey === currentPill || toKey === currentPill) {
-          highlightedIndices.add(idx);
-
-          const neighborKey = fromKey === currentPill ? toKey : fromKey;
-          const [neighborNodeType] = neighborKey.split('-');
-
-          if (!visitedPills.has(neighborKey)) {
-            visitedPills.add(neighborKey);
-
-            // If we started from data, don't continue traversal from inputs/outcomes
-            // (this prevents lighting up sibling data items)
-            const blockBecauseDataStart = startedFromData &&
-              (neighborNodeType === 'inputs' || neighborNodeType === 'outcomes');
-
-            if (!blockBecauseDataStart) {
-              queue.push(neighborKey);
-            }
-          }
+        if (connectedPills.has(fromKey) || connectedPills.has(toKey)) {
+          indices.add(idx);
         }
       });
-    }
+      return indices;
+    } else {
+      // Relevant only - directional traversal
+      const { visitedConnections } = getRelevantConnections(hoveredPillKey);
+      const indices = new Set<number>();
 
-    return highlightedIndices;
-  }, [connectionMode, hoveredPillKey, connectionsToRender]);
+      connectionsToRender.forEach((conn, renderIdx) => {
+        const originalIdx = connections.findIndex(c =>
+          c.fromNodeId === conn.fromNodeId &&
+          c.fromItemId === conn.fromItemId &&
+          c.toNodeId === conn.toNodeId &&
+          c.toItemId === conn.toItemId
+        );
+        if (visitedConnections.has(originalIdx)) {
+          indices.add(renderIdx);
+        }
+      });
+      return indices;
+    }
+  }, [renderMode, searchDepth, hoveredPillKey, connectionsToRender, connections,
+      getFullDFSConnections, getRelevantConnections]);
 
   // Pill drag handlers
   const handlePillMouseDown = (e: React.MouseEvent, dragKey: string) => {
@@ -1151,10 +1226,8 @@ const GraphView: React.FC<GraphViewProps> = ({
     return () => window.removeEventListener('mouseup', handleGlobalPillMouseUp);
   }, [draggingPill, pillDragOffsets]);
 
-  // Connection hover handlers (for highlighting in 'all' mode)
+  // Connection hover handlers
   const handleHoverStart = (pillKey: string) => {
-    if (connectionMode !== 'all') return;
-
     hoverTimerRef.current = setTimeout(() => {
       setHoveredPillKey(pillKey);
     }, 400);
@@ -1532,10 +1605,20 @@ const GraphView: React.FC<GraphViewProps> = ({
               border: `1px solid ${theme.border}`,
               borderRadius: '10px',
               padding: '8px',
-              minWidth: '160px',
+              minWidth: '200px',
               boxShadow: theme.shadowMd,
               animation: 'fadeIn 0.15s ease-out',
             }}>
+              {/* Section 1: Display Mode */}
+              <div style={{
+                padding: '4px 8px 6px',
+                fontSize: '10px',
+                color: theme.textMuted,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
+              }}>
+                Display Mode
+              </div>
               <label style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -1552,8 +1635,8 @@ const GraphView: React.FC<GraphViewProps> = ({
               >
                 <input
                   type="radio"
-                  checked={connectionMode === 'all'}
-                  onChange={() => setConnectionMode('all')}
+                  checked={renderMode === 'showAll'}
+                  onChange={() => setRenderMode('showAll')}
                   style={{ cursor: 'pointer' }}
                 />
                 Show All
@@ -1574,11 +1657,69 @@ const GraphView: React.FC<GraphViewProps> = ({
               >
                 <input
                   type="radio"
-                  checked={connectionMode === 'onClick'}
-                  onChange={() => setConnectionMode('onClick')}
+                  checked={renderMode === 'showOnClick'}
+                  onChange={() => setRenderMode('showOnClick')}
                   style={{ cursor: 'pointer' }}
                 />
                 Show on Click
+              </label>
+
+              {/* Divider */}
+              <div style={{ height: '1px', background: theme.border, margin: '8px 0' }} />
+
+              {/* Section 2: Search Scope */}
+              <div style={{
+                padding: '4px 8px 6px',
+                fontSize: '10px',
+                color: theme.textMuted,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
+              }}>
+                Search Scope
+              </div>
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px',
+                cursor: 'pointer',
+                fontSize: '12px',
+                color: theme.text,
+                borderRadius: '6px',
+                transition: 'background 0.1s',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = theme.cardBgHover}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+              >
+                <input
+                  type="radio"
+                  checked={searchDepth === 'allLinks'}
+                  onChange={() => setSearchDepth('allLinks')}
+                  style={{ cursor: 'pointer' }}
+                />
+                All Links
+              </label>
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px',
+                cursor: 'pointer',
+                fontSize: '12px',
+                color: theme.text,
+                borderRadius: '6px',
+                transition: 'background 0.1s',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = theme.cardBgHover}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+              >
+                <input
+                  type="radio"
+                  checked={searchDepth === 'relevantOnly'}
+                  onChange={() => setSearchDepth('relevantOnly')}
+                  style={{ cursor: 'pointer' }}
+                />
+                Relevant Only
               </label>
             </div>
           )}
@@ -2125,14 +2266,14 @@ const GraphView: React.FC<GraphViewProps> = ({
                 const isHighlighted = highlightedConnectionIndices?.has(idx) ?? false;
                 const somethingIsActive = highlightedConnectionIndices !== null;
                 const dimmedOpacity = isDarkMode ? 0.12 : 0.2;
-                const connectionOpacity = connectionMode === 'all' && somethingIsActive && !isHighlighted
+                const connectionOpacity = renderMode === 'showAll' && somethingIsActive && !isHighlighted
                   ? dimmedOpacity
                   : 0.8;
 
                 return (
                   <g key={`conn-${idx}`}>
-                    {/* Invisible fat hit area - only in 'all' mode */}
-                    {connectionMode === 'all' && (
+                    {/* Invisible fat hit area - only in showAll mode */}
+                    {renderMode === 'showAll' && (
                       <path
                         d={pathData}
                         stroke="transparent"

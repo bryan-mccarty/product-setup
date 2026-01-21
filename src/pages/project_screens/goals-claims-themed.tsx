@@ -1165,6 +1165,16 @@ export default function GoalsClaimsPage() {
           border: 1px solid rgba(255,255,255,0.1);
         }
 
+        .step-circle.draft {
+          color: #F59E0B;
+          border: 2px solid #F59E0B;
+        }
+
+        .step-circle.incomplete {
+          color: #EF4444;
+          border: 2px solid #EF4444;
+        }
+
         .step-circle:hover {
           transform: scale(1.08);
         }
