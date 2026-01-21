@@ -1046,6 +1046,7 @@ export default function InputsPage() {
     projectMetadata,
     projectInputs,
     setProjectInputs,
+    draftConstraints,              // From Goals/Claims - for autoimport
     stepStatuses,
     setStepStatus
   } = useData();
@@ -1143,9 +1144,10 @@ export default function InputsPage() {
       }));
     }
 
-    // If we have a reference formula from getting-started, generate inputs
+    // Collect base inputs from reference formula if available
+    let baseInputs: any[] = [];
     if (projectMetadata?.referenceFormula && projectMetadata?.inputColumns) {
-      return generateInputsFromReferenceFormula({
+      baseInputs = generateInputsFromReferenceFormula({
         referenceFormula: projectMetadata.referenceFormula,
         inputColumns: projectMetadata.inputColumns,
         inputLibrary: INPUT_LIBRARY,
@@ -1155,7 +1157,37 @@ export default function InputsPage() {
       });
     }
 
-    return [];
+    // Auto-import inputs from draft constraints (autocomplete selections from Goals & Claims)
+    const existingNames = new Set(baseInputs.map(i => i.name.toLowerCase()));
+    const allInputs = [...productInputs, ...libraryInputs];
+
+    draftConstraints
+      .filter(d => d.metricRef?.type === 'input' && d.isPrefilled)
+      .forEach(draft => {
+        if (existingNames.has(draft.metricName.toLowerCase())) return;
+        existingNames.add(draft.metricName.toLowerCase());
+
+        const item = allInputs.find(i => i.id === draft.metricRef?.id);
+        if (item) {
+          baseInputs.push({
+            id: `imported-${Date.now()}-${item.id}`,
+            name: item.name,
+            inputType: item.inputType,
+            variableType: item.variableType,
+            description: item.description || '',
+            minValue: item.suggestedMin || '',
+            maxValue: item.suggestedMax || '',
+            levelsText: item.levels?.join(', ') || '',
+            levels: item.levels || [],
+            cost: item.cost || null,
+            status: 'draft',
+            comment: '',
+            source: 'Goals',
+          });
+        }
+      });
+
+    return baseInputs;
   });
   
   // Modal states

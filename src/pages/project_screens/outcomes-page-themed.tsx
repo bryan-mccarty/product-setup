@@ -1004,6 +1004,7 @@ export default function OutcomesPage() {
     projectMetadata,
     projectOutcomes,
     setProjectOutcomes,
+    draftObjectives,                // From Goals/Claims - for autoimport
     stepStatuses,
     setStepStatus
   } = useData();
@@ -1087,16 +1088,50 @@ export default function OutcomesPage() {
   };
 
   // Outcomes state - initialize from project context if available
-  const [outcomes, setOutcomes] = useState<any[]>(() =>
-    projectOutcomes.length > 0
-      ? projectOutcomes.map(outcome => ({
-          ...outcome,
-          levelsText: outcome.levels?.join(', ') || '',
-          status: 'confirmed',
-          comment: '',
-        }))
-      : []
-  );
+  const [outcomes, setOutcomes] = useState<any[]>(() => {
+    if (projectOutcomes.length > 0) {
+      return projectOutcomes.map(outcome => ({
+        ...outcome,
+        levelsText: outcome.levels?.join(', ') || '',
+        status: 'confirmed',
+        comment: '',
+      }));
+    }
+
+    // Auto-import outcomes from draft objectives (autocomplete selections from Goals & Claims)
+    const imported: any[] = [];
+    const seen = new Set<string>();
+    const allOutcomes = [...productOutcomes, ...libraryOutcomes];
+
+    draftObjectives
+      .filter(d => d.metricRef?.type === 'outcome' && d.isPrefilled)
+      .forEach(draft => {
+        if (seen.has(draft.metricName.toLowerCase())) return;
+        seen.add(draft.metricName.toLowerCase());
+
+        const item = allOutcomes.find(o => o.id === draft.metricRef?.id);
+        if (item) {
+          // Parse limits if present (e.g., "10-25" or "-100-100")
+          const limitsMatch = item.limits?.match(/(-?\d+(?:\.\d+)?)\s*-\s*(-?\d+(?:\.\d+)?)/);
+          imported.push({
+            id: `imported-${Date.now()}-${item.id}`,
+            name: item.name,
+            outcomeType: item.outcomeType,
+            variableType: item.variableType,
+            description: item.description || '',
+            minValue: limitsMatch ? limitsMatch[1] : '',
+            maxValue: limitsMatch ? limitsMatch[2] : '',
+            levelsText: item.levels?.join(', ') || '',
+            levels: item.levels || [],
+            status: 'draft',
+            comment: '',
+            source: 'Goals',
+          });
+        }
+      });
+
+    return imported;
+  });
   
   // Modal states
   const [showLibraryPanel, setShowLibraryPanel] = useState(false);

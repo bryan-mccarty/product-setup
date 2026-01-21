@@ -882,13 +882,6 @@ const GraphView: React.FC<GraphViewProps> = ({
     return positions;
   }, [nodesWithPositions, expandedNodes, nodeItems, pillDragOffsets, pillWidths]);
 
-  // Filter connections to only show when both nodes are expanded
-  const visibleConnections = useMemo(() => {
-    return connections.filter(conn =>
-      expandedNodes.has(conn.fromNodeId) && expandedNodes.has(conn.toNodeId)
-    );
-  }, [connections, expandedNodes]);
-
   // Build bidirectional connection graph
   const connectionGraph = useMemo(() => {
     const graph: Record<string, Set<string>> = {};
@@ -1002,6 +995,13 @@ const GraphView: React.FC<GraphViewProps> = ({
     visibleNodes, connectionGraph, getConnectedItems, nodeStatus,
     calculatedPillPositions, zoom, handleZoomReset
   ]);
+
+  // Filter connections to only show when both nodes are expanded
+  const visibleConnections = useMemo(() => {
+    return connections.filter(conn =>
+      expandedNodes.has(conn.fromNodeId) && expandedNodes.has(conn.toNodeId)
+    );
+  }, [connections, expandedNodes]);
 
   // Determine which connections to render based on mode
   const connectionsToRender = useMemo(() => {

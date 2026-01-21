@@ -128,25 +128,35 @@ export function getToolDefinitions() {
       type: 'function',
       function: {
         name: 'activate_item',
-        description: 'Activate an item to show connections and/or highlight it with amber color',
+        description: 'Activate one or more items to show connections and/or highlight them with amber color',
         parameters: {
           type: 'object',
           properties: {
-            nodeId: {
-              type: 'string',
-              description: 'The category/node ID (e.g., "inputs")',
-            },
-            itemId: {
-              type: 'string',
-              description: 'The item ID within the category',
+            items: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  nodeId: {
+                    type: 'string',
+                    description: 'The category/node ID (e.g., "inputs")',
+                  },
+                  itemId: {
+                    type: 'string',
+                    description: 'The item ID within the category',
+                  },
+                },
+                required: ['nodeId', 'itemId'],
+              },
+              description: 'Array of items to activate, each with nodeId and itemId',
             },
             mode: {
               type: 'string',
               enum: ['graph', 'amber', 'both'],
-              description: '"graph" selects item (shows connections), "amber" highlights with amber color, "both" does both',
+              description: '"graph" selects last item (shows connections), "amber" highlights all with amber color, "both" does both',
             },
           },
-          required: ['nodeId', 'itemId', 'mode'],
+          required: ['items', 'mode'],
         },
       },
     },
@@ -404,23 +414,28 @@ export function executeAgentTool(
 
     // === DISPLAY TOOLS ===
     case 'activate_item': {
-      const nodeId = parameters.nodeId as string;
-      const itemId = parameters.itemId as string;
+      const items = parameters.items as Array<{ nodeId: string; itemId: string }>;
       const mode = parameters.mode as 'graph' | 'amber' | 'both';
-      const pillKey = `${nodeId}-${itemId}`;
+      const pillKeys = items.map(item => `${item.nodeId}-${item.itemId}`);
 
       if (mode === 'graph' || mode === 'both') {
-        graphAPI.selectPill(pillKey);
+        // Select the last item for graph connections
+        const lastPillKey = pillKeys[pillKeys.length - 1];
+        graphAPI.selectPill(lastPillKey);
       }
       if (mode === 'amber' || mode === 'both') {
+        const newPills = new Set(highlights.pills);
+        for (const pillKey of pillKeys) {
+          newPills.add(pillKey);
+        }
         const newHighlights = {
-          pills: new Set(highlights.pills).add(pillKey),
+          pills: newPills,
           connections: highlights.connections,
         };
         onHighlightsChange(newHighlights);
       }
 
-      return { success: true, activated: pillKey, mode };
+      return { success: true, activated: pillKeys, mode };
     }
 
     case 'deactivate_item': {
