@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { AgentSidebar } from '../components/AgentSidebar';
+import { NodeDetailSidebar } from '../components/NodeDetailSidebar';
 import { ChatMessage, GraphAPI, AgentHighlights } from '../types/agent';
+import { FullNodeData } from '../types/nodeDetail';
 
 interface NodeStatus {
   complete: boolean;
@@ -45,6 +47,7 @@ interface GraphViewProps {
   nodeItems?: Record<string, NodeItem[]>;
   connections?: ItemConnection[];
   onNodeClick: (nodeId: string) => void;
+  fullNodeData?: FullNodeData;
 }
 
 // All possible node definitions - function to support theme-aware colors
@@ -108,6 +111,7 @@ const GraphView: React.FC<GraphViewProps> = ({
   nodeItems = {},
   connections = [],
   onNodeClick,
+  fullNodeData,
 }) => {
   const { theme, isDarkMode } = useTheme();
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -185,6 +189,9 @@ const GraphView: React.FC<GraphViewProps> = ({
   const [isAgentSidebarOpen, setIsAgentSidebarOpen] = useState(false);
   const [agentHighlights, setAgentHighlights] = useState<AgentHighlights>({ pills: new Set(), connections: new Set() });
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+
+  // Node detail sidebar state
+  const [isDetailSidebarOpen, setIsDetailSidebarOpen] = useState(false);
 
   // All nodes with theme-aware colors
   const ALL_NODES = useMemo(() => getAllNodes(isDarkMode), [isDarkMode]);
@@ -2608,6 +2615,10 @@ const GraphView: React.FC<GraphViewProps> = ({
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedPillId(item.dragKey);
+                            // Open detail sidebar in fullscreen mode
+                            if (isFullscreen) {
+                              setIsDetailSidebarOpen(true);
+                            }
                           }}
                         >
                           {/* SMALL FONT - 7px for readability */}
@@ -2634,6 +2645,35 @@ const GraphView: React.FC<GraphViewProps> = ({
         </div>
       </div>
       </div>
+
+      {/* Node Detail Sidebar - only visible in fullscreen mode */}
+      {isFullscreen && fullNodeData && (
+        <NodeDetailSidebar
+          isOpen={isDetailSidebarOpen && selectedPillId !== null}
+          onClose={() => setIsDetailSidebarOpen(false)}
+          selectedPillId={selectedPillId}
+          fullNodeData={fullNodeData}
+          connections={connections}
+          nodeItems={nodeItems}
+          onNavigateToPill={(pillKey) => {
+            setSelectedPillId(pillKey);
+            setIsDetailSidebarOpen(true);
+            // Parse pill key (format: nodeType-itemId) and focus on it
+            const nodeTypes = [
+              'inputs', 'outcomes', 'constraints', 'objectives', 'calculations',
+              'suppliers', 'competitors', 'packaging', 'data',
+              'manufacturingSites', 'distributionChannels'
+            ];
+            for (const nodeType of nodeTypes) {
+              if (pillKey.startsWith(nodeType + '-')) {
+                const itemId = pillKey.slice(nodeType.length + 1);
+                graphAPI.focusOnItem(nodeType, itemId);
+                break;
+              }
+            }
+          }}
+        />
+      )}
 
       {/* Agent Sidebar - only visible in fullscreen mode */}
       {isFullscreen && (

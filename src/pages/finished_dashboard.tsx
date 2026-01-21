@@ -580,6 +580,19 @@ const CPGCategoryDashboard = () => {
             }}
             connections={itemConnections}
             onNodeClick={handleGraphNodeClick}
+            fullNodeData={{
+              inputs,
+              outcomes,
+              constraints,
+              objectives,
+              calculations: combinations,
+              suppliers,
+              competitors,
+              packaging,
+              formulations,
+              manufacturingSites,
+              distributionChannels,
+            }}
           />
         )}
         {activeView === 'data' && (
